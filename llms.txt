@@ -1,0 +1,77 @@
+# Mathéo Gaudin — Graphiste & Illustrateur freelance
+
+> Portfolio 2026 de Mathéo Gaudin, graphiste et illustrateur freelance basé à Nantes / Angers (France). Spécialisé en identité visuelle, illustration sur mesure, packaging éco-conçu, édition, photographie, drone (DGAC catégorie Ouverte), web design et vibe coding (design assisté par IA). Actuellement en recherche d'une alternance pour 2025-2026.
+
+## À propos
+
+- **Nom** : Mathéo Gaudin
+- **Métier** : Graphiste & illustrateur freelance
+- **Localisation** : Nantes / Angers, France (7 Le Petit Bel air, 44540 Saint-Mars-la-Jaille)
+- **Contact** : gaudinmister@gmail.com · +33 7 81 21 18 68
+- **Statut** : Disponible pour une alternance (2025-2026)
+- **Réseaux** : [Instagram @matelot_art](https://www.instagram.com/matelot_art/) · [Behance](https://www.behance.net/matgaudino) · [LinkedIn](https://www.linkedin.com/in/math%C3%A9o-gaudin-37a83a2aa/)
+
+## Spécialités
+
+1. **Identité visuelle & charte graphique** — logos, monogrammes, déclinaisons, contraintes techniques (ex. tampographie alimentaire sur chocolat).
+2. **Illustration** — digitale (Procreate, Photoshop) et traditionnelle (encre, crayon de bois, aquarelle, fanart, carnet de croquis).
+3. **Packaging éco-conçu** — carton kraft, encres végétales, recherche d'usages ludiques (ex. boîtes-poissons pour chaussettes).
+4. **Édition & mise en page** — livres illustrés, recettes, hiérarchie typographique (InDesign).
+5. **Photographie** — portrait, paysage, packshot, reportage événementiel (Lightroom, Photoshop).
+6. **Drone** — pilote certifié DGAC catégorie Ouverte (A1/A3), DJI Avata 2, captation 4K, +36h de vol, RC Pro aéronautique.
+7. **Web design** — Figma, Framer, Webflow, micro-interactions, design systems légers.
+8. **Vibe coding** — design assisté par IA (Claude Code, Antigravity), création d'apps web par prompt design.
+
+## Logiciels maîtrisés
+
+Photoshop, InDesign, Illustrator, Figma, Premiere Pro, Lightroom, Adobe Creative Cloud, Claude (IA).
+
+## Pages
+
+- [Portfolio 2026](https://matheomgaudin.myportfolio.com/Portfolio.html) — projets par discipline, lightbox interactif, navigation par section.
+- [Curriculum Vitae](https://matheomgaudin.myportfolio.com/cv.html) — parcours détaillé, formations, expériences, version PDF imprimable.
+- [CV PDF imprimable](https://matheomgaudin.myportfolio.com/assets/CV_imprimable/Alternance_Gaudin_Matheo_CV_2025-2026.pdf) — fichier téléchargeable.
+
+## Projets emblématiques (portfolio)
+
+- **Sébastien Goult — Chocolatier** : identité complète + packaging coffrets, contrainte de tampographie alimentaire sur bonbons aux formes variées (carré, rond, pyramide, cœur), accord cacao éthique × agrumes rares (Yuzu, Cédrat, Main de Bouddha, Combava).
+- **Les P'tites Sardines — Packaging** : boîtes-poissons en carton kraft non blanchi, encres végétales, où les chaussettes deviennent les nageoires. Trois modèles nommés Cocasse, Jérémy, Céline.
+- **Livre de cuisine** : conception éditoriale et mise en page d'un livre de recettes (direction artistique, maquette complète, couverture).
+- **L'Expo du Studio** (Angers, avril 2025) : événement étudiant — identité, signalétique, merch (t-shirts), affiches A3, scénographie, reportage photo. Tiers-Lieu L'Esvière.
+- **Illustrations** : fanart Pokémon (Jirachi), encre (Déclaration stellaire), crayon de bois (Grand Éléphant des Machines de l'île, Nantes), aquarelle numérique, renard d'automne, carnet de croquis.
+- **Photographie** : portraits (Louis dans les bambous, Aneline en studio), paysages (terrasse sur Loire, ouverture du ciel), packshot Sakuma.
+- **Drone** : zone rurale, Freigné (avril 2025).
+- **Web design** : maquettes desktop, prototypes Figma animés.
+- **Vibe coding** : application web automatisant la modification d'images (langage naturel + Claude Code).
+
+## Formation
+
+| Année | École | Programme |
+|-------|-------|-----------|
+| 2024-2027 (en cours) | Studio M | Mastère design graphique |
+| 2022-2023 | LISAA | Design graphique |
+| 2021-2022 | École Pivaut | Dessin et techniques |
+| 2019-2021 | Pôle des arts La Joliverie | Lycée pro, première découverte du graphisme |
+
+## Expérience professionnelle
+
+| Durée | Entreprise | Rôle |
+|-------|-----------|------|
+| 3 mois | Laboratoire Rivadis | Graphiste, supports print, déclinaisons produits |
+| 4 mois | Kit Utilitaire | Stage graphiste |
+| 4 semaines | Pub Leg | Stage agence de publicité |
+| 4 semaines | LEFRANCO PACKAGING | Stage imprimerie |
+| 3 semaines | GrifPrint | Stage adhésifs, pose, technique, production |
+| 2 semaines | Erede Jeux | Stage création de jeux de société |
+| Plusieurs sem. | Planchenault, Kalydéa | Imprimeries, chaîne graphique |
+
+## Clients
+
+Kalydéa (Imprimerie), Kit Utilitaire (Automobile), Erede Jeux (Loisirs), Auriège (Cosmétique), Rivadouce (Santé), Celibel (Beauté).
+
+## Pour me contacter
+
+- **Email** : gaudinmister@gmail.com
+- **Téléphone** : +33 7 81 21 18 68
+- **Localisation** : véhiculé, permis B, mobile sur Nantes / Angers et environs.
+- **Disponibilité** : alternance 2025-2026, freelance ouvert sur demande.
