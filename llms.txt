@@ -28,7 +28,7 @@ Photoshop, InDesign, Illustrator, Figma, Premiere Pro, Lightroom, Adobe Creative
 
 ## Pages
 
-- [Portfolio 2026](https://matheomgaudin.myportfolio.com/Portfolio.html) — projets par discipline, lightbox interactif, navigation par section.
+- [Portfolio 2026](https://matheomgaudin.myportfolio.com/index.html) — projets par discipline, lightbox interactif, navigation par section.
 - [Curriculum Vitae](https://matheomgaudin.myportfolio.com/cv.html) — parcours détaillé, formations, expériences, version PDF imprimable.
 - [CV PDF imprimable](https://matheomgaudin.myportfolio.com/assets/CV_imprimable/Alternance_Gaudin_Matheo_CV_2025-2026.pdf) — fichier téléchargeable.
 
