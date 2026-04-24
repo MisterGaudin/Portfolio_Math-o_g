@@ -744,6 +744,9 @@ const BLOBS = {
 
   const applyTheme = (theme) => {
     html.setAttribute('data-theme', theme);
+    // Re-narrow color-scheme so Samsung Internet / Chrome Android don't
+    // re-apply their force-dark filter when we toggle.
+    html.style.colorScheme = theme === 'dark' ? 'only dark' : 'only light';
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#15131a' : '#f5efe8');
     try { localStorage.setItem('theme', theme); } catch(e) {}
     syncBtnLabel(theme);

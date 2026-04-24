@@ -35,6 +35,12 @@ html{
   overflow-x: clip;           /* modern: prevent X scroll without breaking sticky */
   overflow-x: hidden;         /* fallback for browsers without `clip` */
 }
+/* Samsung Internet & Chrome Android force-dark opt-out. The inline <head>
+   script also sets these as an inline style for first-paint correctness;
+   these rules act as a CSS-loaded backup if the inline script is blocked
+   (e.g. strict CSP). The "only" keyword is what disables auto-darkening. */
+html[data-theme="light"]{ color-scheme: only light; }
+html[data-theme="dark"] { color-scheme: only dark;  }
 body{
   font-family: var(--f-body);
   color: var(--ink);

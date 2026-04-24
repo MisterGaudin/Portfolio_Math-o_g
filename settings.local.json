@@ -13,7 +13,8 @@
       "Bash(curl -s http://localhost:5174/index.html)",
       "Bash(curl -sL http://localhost:5174/index.html)",
       "Bash(curl -sL http://localhost:5174/cv.html)",
-      "Bash(curl -sL http://localhost:5174/app.js)"
+      "Bash(curl -sL http://localhost:5174/app.js)",
+      "Bash(curl -s -o /dev/null -w \"css:%{http_code} html:%{http_code} cv:%{http_code} js:%{http_code}\\\\n\" http://localhost:5174/style.css)"
     ]
   }
 }

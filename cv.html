@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" style="color-scheme: light dark;">
+<html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -11,17 +11,22 @@
 <meta name="author" content="Mathéo Gaudin" />
 <meta name="robots" content="index, follow, max-image-preview:large" />
 <meta name="theme-color" id="theme-color-meta" content="#f5efe8" />
+<!-- Declares overall scheme support. The active scheme is then narrowed to a
+     single value ("only light" / "only dark") by the inline script below, so
+     Samsung Internet & Chrome Android force-dark cannot override our choice. -->
+<meta name="color-scheme" content="light dark" />
 <script>
-  /* Apply saved theme BEFORE first paint to avoid a flash. Default = light. */
+  /* Anti-FOUC + Samsung-Internet-proof color-scheme. See index.html for the
+     full rationale: setting color-scheme to "only light" / "only dark" opts
+     the page out of any browser-side automatic dark-mode forcing. */
   (function(){
-    try{
-      var t = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', t);
-      var m = document.getElementById('theme-color-meta');
-      if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
-    }catch(e){
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
+    var t = 'light';
+    try{ if (localStorage.getItem('theme') === 'dark') t = 'dark'; }catch(e){}
+    var root = document.documentElement;
+    root.setAttribute('data-theme', t);
+    root.style.colorScheme = t === 'dark' ? 'only dark' : 'only light';
+    var m = document.getElementById('theme-color-meta');
+    if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
   })();
 </script>
 <link rel="canonical" href="https://portfolio-math-o-g.vercel.app/cv.html" />
@@ -133,6 +138,10 @@
 }
 *{ box-sizing: border-box; }
 html{ scroll-behavior: smooth; }
+/* Samsung Internet / Chrome Android force-dark opt-out (CSS backup —
+   the inline <head> script also sets this inline for first-paint). */
+html[data-theme="light"]{ color-scheme: only light; }
+html[data-theme="dark"] { color-scheme: only dark;  }
 html, body{ margin:0; padding:0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 a{ color: inherit; text-decoration: none; }
 img{ display:block; max-width:100%; }
@@ -1996,6 +2005,9 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 
   const applyTheme = (theme) => {
     html.setAttribute('data-theme', theme);
+    // Re-narrow color-scheme so Samsung Internet / Chrome Android don't
+    // re-apply their force-dark filter when we toggle.
+    html.style.colorScheme = theme === 'dark' ? 'only dark' : 'only light';
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#15131a' : '#f5efe8');
     try { localStorage.setItem('theme', theme); } catch(e) {}
     syncBtnLabel(theme);

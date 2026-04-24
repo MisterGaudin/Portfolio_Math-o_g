@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="fr" style="color-scheme: light dark;">
+<html lang="fr">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -11,18 +11,25 @@
 <meta name="author" content="Mathéo Gaudin" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
 <meta name="theme-color" id="theme-color-meta" content="#f5efe8" />
+<!-- Declares overall scheme support. The active scheme is then narrowed to a
+     single value ("only light" / "only dark") by the inline script below, so
+     Samsung Internet & Chrome Android force-dark cannot override our choice. -->
+<meta name="color-scheme" content="light dark" />
 <script>
-  /* Apply saved theme BEFORE first paint to avoid a flash.
-     Default = light. The toggle button (in app.js) writes to localStorage. */
+  /* Anti-FOUC + Samsung-Internet-proof color-scheme.
+     Runs before any external CSS so the very first paint is already correct.
+     Strategy: apply data-theme AND set the html element's color-scheme to a
+     SINGLE value with the "only" keyword — this opts the page out of any
+     browser-side automatic dark-mode forcing (Samsung's "Always on", Chrome
+     Android's auto-dark-theme experiment, etc). Default = light. */
   (function(){
-    try{
-      var t = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
-      document.documentElement.setAttribute('data-theme', t);
-      var m = document.getElementById('theme-color-meta');
-      if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
-    }catch(e){
-      document.documentElement.setAttribute('data-theme', 'light');
-    }
+    var t = 'light';
+    try{ if (localStorage.getItem('theme') === 'dark') t = 'dark'; }catch(e){}
+    var root = document.documentElement;
+    root.setAttribute('data-theme', t);
+    root.style.colorScheme = t === 'dark' ? 'only dark' : 'only light';
+    var m = document.getElementById('theme-color-meta');
+    if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
   })();
 </script>
 <link rel="canonical" href="https://portfolio-math-o-g.vercel.app/index.html" />
