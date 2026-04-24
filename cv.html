@@ -168,12 +168,12 @@ main, .topbar, .marquee-top, footer { position: relative; z-index: 2; }
   overflow: hidden; padding: 9px 0; backdrop-filter: blur(8px);
 }
 .marquee-track{
-  display: flex; gap: 48px; white-space: nowrap;
+  display: flex; width: max-content; white-space: nowrap;
   animation: slide 38s linear infinite;
   font-family: var(--f-display); font-weight: 600; font-size: 13px;
   letter-spacing: .14em; text-transform: uppercase; color: var(--ink);
 }
-.marquee-track span{ display:inline-flex; align-items:center; gap: 48px; }
+.marquee-track span{ display:inline-flex; align-items:center; gap: 48px; padding-right: 48px; }
 .marquee-track svg{ width: 11px; height: 11px; }
 @keyframes slide{ from{ transform: translateX(0); } to{ transform: translateX(-50%); } }
 
