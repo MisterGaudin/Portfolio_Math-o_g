@@ -215,12 +215,15 @@ main, .topbar, .marquee-top, footer { position: relative; z-index: 2; }
 .topbar .brand span{ font-style: normal; }
 .topbar a.back, .topbar button.print-btn{
   display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2);
-  transition: color .2s, transform .3s var(--ease-out);
+  transition: color .2s, transform .3s var(--ease-out), background .25s, border-color .25s;
   background: none; border: none; cursor: pointer; font: inherit; letter-spacing: inherit; text-transform: inherit; padding: 0;
 }
-.topbar a.back:hover, .topbar button.print-btn:hover{ color: var(--ink); transform: translateX(-2px); }
-.topbar button.print-btn:hover{ transform: translateX(0); }
-.topbar .top-right{ display: flex; gap: 22px; align-items: center; }
+.topbar a.back:hover, .topbar button.print-btn:hover{ color: var(--ink); }
+.topbar a.back:hover{ transform: translateX(-2px); }
+.topbar .print-btn .print-ico{ width: 16px; height: 16px; flex: 0 0 16px; transition: transform .35s var(--ease-out); }
+.topbar .print-btn:hover .print-ico{ transform: translateY(-1px); }
+.topbar .print-btn .print-label{ display: inline-flex; align-items: center; gap: 8px; }
+.topbar .top-right{ display: flex; gap: 14px; align-items: center; }
 .topbar kbd{
   font-family: var(--f-mono); font-size: 10px;
   padding: 2px 6px; border-radius: 4px;
@@ -230,6 +233,51 @@ main, .topbar, .marquee-top, footer { position: relative; z-index: 2; }
 }
 .topbar .arrow-ret{ transition: transform .3s var(--ease-out); display: inline-block; }
 .topbar a.back:hover .arrow-ret{ transform: translateX(-3px); }
+
+/* ---- Mobile / touch: icon-only print button + room for the brand ----
+   Touch devices have no keyboard so the "Imprimer P" hint becomes
+   useless. We collapse to a square icon button (matching theme-toggle)
+   and shorten the back link so M.Gaudin keeps proper breathing room. */
+@media (hover: none), (pointer: coarse), (max-width: 640px){
+  .topbar{ padding: 14px 16px; gap: 10px; }
+  .topbar .top-right{ gap: 10px; }
+  .topbar .brand{ flex-shrink: 0; padding: 0 8px; }
+
+  /* Print button → square icon-only, same vibe as the theme toggle */
+  .topbar .print-btn{
+    width: 34px; height: 34px;
+    border: 1px solid oklch(0.18 0.015 285 / .15);
+    background: oklch(0.99 0.004 70 / .6);
+    backdrop-filter: blur(6px);
+    border-radius: 10px;
+    padding: 0; gap: 0;
+    display: grid; place-items: center;
+    color: var(--ink);
+  }
+  .topbar .print-btn:hover{
+    border-color: oklch(0.83 0.09 310 / .4);
+    transform: translateY(-1px);
+  }
+  .topbar .print-btn .print-label{ display: none; }
+  .topbar .print-btn .print-ico{ width: 17px; height: 17px; flex: 0 0 17px; }
+  html[data-theme="dark"] .topbar .print-btn{
+    background: oklch(0.24 0.016 285 / .6);
+    border-color: oklch(0.96 0.006 285 / .15);
+  }
+  html[data-theme="dark"] .topbar .print-btn:hover{ border-color: oklch(0.83 0.09 310 / .55); }
+
+  /* Back link: drop the long label, keep just the arrow as an icon */
+  .topbar a.back{ font-size: 13px; }
+  .topbar a.back .back-label{ display: none; }
+  .topbar a.back .arrow-ret{ font-size: 18px; line-height: 1; }
+}
+
+/* Very narrow viewports (Galaxy Z Flip cover, etc) — shrink the brand
+   a touch more so everything stays on one line without crowding. */
+@media (max-width: 360px){
+  .topbar{ padding: 12px 12px; gap: 8px; }
+  .topbar .brand{ font-size: 17px; padding: 0 4px; }
+}
 
 /* ======================================================
    HERO, kinetic name block (full width, WOW moment)
@@ -1482,11 +1530,20 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 
 <!-- Topbar -->
 <header class="topbar">
-  <a href="index.html" class="back"><span class="arrow-ret">←</span> Retour au portfolio</a>
+  <a href="index.html" class="back" aria-label="Retour au portfolio">
+    <span class="arrow-ret" aria-hidden="true">←</span>
+    <span class="back-label">Retour au portfolio</span>
+  </a>
   <span class="brand">M<span>.</span>Gaudin</span>
   <div class="top-right">
-    <button class="print-btn" id="printBtn" aria-label="Imprimer le CV">
-      Imprimer <kbd>P</kbd>
+    <button class="print-btn" id="printBtn" type="button" aria-label="Imprimer le CV" title="Imprimer">
+      <svg class="print-ico" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 9V3h12v6"/>
+        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+        <rect x="6" y="14" width="12" height="7" rx="1"/>
+        <circle cx="17.5" cy="11.5" r=".6" fill="currentColor" stroke="none"/>
+      </svg>
+      <span class="print-label">Imprimer <kbd>P</kbd></span>
     </button>
     <button class="theme-toggle" id="themeToggle" type="button" aria-label="Basculer en mode sombre" title="Mode sombre">
       <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
