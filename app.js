@@ -11,37 +11,187 @@ let tweaks = { ...TWEAK_DEFAULTS };
 
 /* =====================================================
    1. Holographic aura - cursor follow + parallax blobs
+   Performance-conscious rewrite:
+    - Bails out entirely on touch / reduced-motion / low-end hardware.
+    - Uses transform (no layout thrash), no per-frame forEach closure cost.
+    - Loop pauses when the tab is hidden or the cursor leaves the window.
+    - Auto-detects jank in the first second and downgrades to CSS-only
+      by setting html[data-aura="off"].
    ===================================================== */
 (() => {
+  const html  = document.documentElement;
   const orb   = document.getElementById('auraCursor');
   const blobs = [...document.querySelectorAll('.aura-blob')];
-  let tx=0, ty=0, cx=window.innerWidth/2, cy=window.innerHeight/2;
 
-  function lerp(a,b,t){ return a+(b-a)*t; }
+  // ---- Fast-path opt-outs -----------------------------------------------
+  const prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+  const lowCores = (navigator.hardwareConcurrency || 4) < 4;
+  const lowMem   = (navigator.deviceMemory || 4) < 4;
+  const saveData = navigator.connection && navigator.connection.saveData;
 
-  window.addEventListener('pointermove', (e)=>{
-    tx = e.clientX; ty = e.clientY;
-  });
-  // gentle auto-drift when idle
-  let idle = 0, lastMove = Date.now();
-  window.addEventListener('pointermove', ()=> lastMove = Date.now());
+  if (prm || isTouch || saveData) {
+    html.setAttribute('data-aura', 'off');
+    if (orb) orb.style.display = 'none';
+    return; // pure CSS-only static background — no JS loop at all
+  }
+  if (lowCores || lowMem) {
+    // Weak machine: keep visuals but skip the parallax loop entirely.
+    html.setAttribute('data-aura', 'off');
+    if (orb) orb.style.display = 'none';
+    return;
+  }
 
-  function frame(){
+  if (!orb || !blobs.length) return;
+
+  // ---- Interactive loop (strong desktops only) --------------------------
+  const w2 = () => window.innerWidth  * .5;
+  const h2 = () => window.innerHeight * .5;
+  let tx = w2(), ty = h2();
+  let cx = tx, cy = ty;
+  let running = false;
+  let pending = false;
+  let lastT = 0;
+  let jankFrames = 0, totalFrames = 0;
+
+  // Precompute the per-blob parallax coefficient
+  const coefs = blobs.map((_, i) => (i + 1) * .012);
+
+  const lerp = (a, b, t) => a + (b - a) * t;
+
+  function frame(now){
+    pending = false;
+    if (!running) return;
+
+    // Track jank (frames over 24ms) during the first ~60 frames. If too many,
+    // assume weak GPU/CPU and downgrade to static mode.
+    if (lastT){
+      const dt = now - lastT;
+      if (totalFrames < 60){
+        totalFrames++;
+        if (dt > 24) jankFrames++;
+        if (totalFrames === 60 && jankFrames > 20){
+          html.setAttribute('data-aura', 'off');
+          orb.style.display = 'none';
+          running = false;
+          return;
+        }
+      }
+    }
+    lastT = now;
+
     cx = lerp(cx, tx, .08);
     cy = lerp(cy, ty, .08);
-    orb.style.left = cx + 'px';
-    orb.style.top  = cy + 'px';
 
-    // parallax - each blob drifts at different rate
-    blobs.forEach((b, i) => {
-      const k = (i + 1) * .012;
-      const offX = (cx - window.innerWidth/2)  * k;
-      const offY = (cy - window.innerHeight/2) * k;
-      b.style.transform = `translate3d(${offX}px, ${offY}px, 0)`;
-    });
-    requestAnimationFrame(frame);
+    // Orb: use transform so no layout is triggered.
+    orb.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+
+    const ox = cx - w2();
+    const oy = cy - h2();
+    for (let i = 0; i < blobs.length; i++){
+      const k = coefs[i];
+      blobs[i].style.transform = `translate3d(${ox * k}px, ${oy * k}px, 0)`;
+    }
+
+    // Stop the loop when essentially at rest — it'll restart on pointermove.
+    if (Math.abs(cx - tx) < .3 && Math.abs(cy - ty) < .3){
+      running = false;
+      return;
+    }
+    if (!pending){
+      pending = true;
+      requestAnimationFrame(frame);
+    }
   }
-  frame();
+
+  function kick(){
+    if (running || document.hidden) return;
+    running = true;
+    lastT = 0;
+    if (!pending){
+      pending = true;
+      requestAnimationFrame(frame);
+    }
+  }
+
+  // Place the orb at viewport center on load (before any interaction)
+  orb.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+
+  window.addEventListener('pointermove', (e) => {
+    tx = e.clientX; ty = e.clientY;
+    kick();
+  }, { passive: true });
+
+  window.addEventListener('pointerleave', () => { running = false; });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) running = false;
+    else kick();
+  });
+  window.addEventListener('resize', () => {
+    tx = w2(); ty = h2();
+    kick();
+  }, { passive: true });
+})();
+
+/* =====================================================
+   1b. Perf guard — if aura was disabled (weak hardware,
+   reduced motion, saveData, touch), freeze every
+   decorative SVG SMIL animation and pause continuous
+   CSS animations when they scroll off-screen.
+   ===================================================== */
+(() => {
+  const html = document.documentElement;
+  const rootSvg = document.querySelector('svg defs')?.ownerSVGElement;
+
+  // Freeze all SVG <animate> elements (blob morphs) when aura is off.
+  if (html.getAttribute('data-aura') === 'off' && rootSvg && rootSvg.pauseAnimations) {
+    try { rootSvg.pauseAnimations(); } catch(e){}
+  }
+
+  // Also freeze when the tab is hidden — browsers usually do this, but some
+  // older engines (Samsung Internet on flex mode, etc.) do not.
+  document.addEventListener('visibilitychange', () => {
+    if (!rootSvg || !rootSvg.pauseAnimations) return;
+    try {
+      if (document.hidden) rootSvg.pauseAnimations();
+      else if (html.getAttribute('data-aura') !== 'off') rootSvg.unpauseAnimations();
+    } catch(e){}
+  });
+})();
+
+/* =====================================================
+   1c. Off-screen pause — IntersectionObserver flags any
+   element that has a permanently-running CSS animation.
+   CSS rule [data-inview="0"]{animation-play-state:paused}
+   handles the actual throttling at zero JS cost per frame.
+   ===================================================== */
+(() => {
+  if (!('IntersectionObserver' in window)) return;
+
+  // Elements that run infinite animations — we pause them off-screen.
+  const selectors = [
+    '.marquee-top',        // horizontal text scroll
+    '.portrait',           // ring spin + halo
+    '.cv-badge',           // breathing
+    '.hero-left h1',       // .italic gradient breathe
+    '.stat',               // number gradient breathe (CV + portfolio shared look)
+    '.cta-big',            // huge gradient title in footer
+    '.btn.primary'         // shimmer gradient
+  ];
+
+  const targets = [...document.querySelectorAll(selectors.join(','))];
+  if (!targets.length) return;
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      entry.target.setAttribute('data-inview', entry.isIntersecting ? '1' : '0');
+    });
+  }, { rootMargin: '80px 0px 80px 0px', threshold: 0 });
+
+  targets.forEach(el => {
+    el.setAttribute('data-inview', '0');
+    io.observe(el);
+  });
 })();
 
 /* =====================================================
@@ -86,30 +236,43 @@ const BLOBS = {
 
   document.querySelectorAll('.fluid-mask').forEach((el) => {
     const startKey = el.dataset.morph || 'a';
-    // Build a unique cycle: start -> 2 others -> back to start so it loops seamlessly
-    const others = keys.filter(k => k !== startKey);
-    // shuffle-ish by counter
-    const shuffled = [others[counter % others.length], others[(counter + 2) % others.length], others[(counter + 3) % others.length]];
-    const cycle = [startKey, ...shuffled, startKey];
-    const values = cycle.map(k => BLOBS[k].rest).join(';');
-    // slow, staggered per mask for organic variety
-    const dur = (14 + (counter % 5) * 2) + 's';
-    const begin = (-(counter % 7) * 1.3) + 's';
     const cpId = `cp-${counter}`;
+
+    // Perf guard: on low-power machines, skip the SMIL <animate> entirely and
+    // serve a single static blob path. Same visual language, zero per-frame
+    // compositor cost for all ~20 masks combined.
+    const lowPower = document.documentElement.getAttribute('data-aura') === 'off';
+
+    if (lowPower){
+      defsSvg.insertAdjacentHTML('beforeend', `
+        <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
+          <path d="${BLOBS[startKey].rest}"/>
+        </clipPath>
+      `);
+    } else {
+      // Build a unique cycle: start -> 2 others -> back to start so it loops seamlessly
+      const others = keys.filter(k => k !== startKey);
+      const shuffled = [others[counter % others.length], others[(counter + 2) % others.length], others[(counter + 3) % others.length]];
+      const cycle = [startKey, ...shuffled, startKey];
+      const values = cycle.map(k => BLOBS[k].rest).join(';');
+      // slow, staggered per mask for organic variety
+      const dur = (14 + (counter % 5) * 2) + 's';
+      const begin = (-(counter % 7) * 1.3) + 's';
+
+      defsSvg.insertAdjacentHTML('beforeend', `
+        <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
+          <path d="${BLOBS[startKey].rest}">
+            <animate attributeName="d" dur="${dur}" begin="${begin}" repeatCount="indefinite"
+                     calcMode="spline"
+                     keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
+                     keyTimes="0; 0.33; 0.66; 0.85; 1"
+                     values="${values}"/>
+          </path>
+        </clipPath>
+      `);
+    }
+
     counter++;
-
-    defsSvg.insertAdjacentHTML('beforeend', `
-      <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
-        <path d="${BLOBS[startKey].rest}">
-          <animate attributeName="d" dur="${dur}" begin="${begin}" repeatCount="indefinite"
-                   calcMode="spline"
-                   keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
-                   keyTimes="0; 0.33; 0.66; 0.85; 1"
-                   values="${values}"/>
-        </path>
-      </clipPath>
-    `);
-
     el.style.setProperty('--cp', `url(#${cpId})`);
     el.style.setProperty('--cp-hover', `url(#${cpId})`); // same - no hover change
 
@@ -491,13 +654,25 @@ const BLOBS = {
 (() => {
   const btt = document.getElementById('backToTop');
   if (!btt) return;
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 500) {
-      btt.classList.add('visible');
-    } else {
-      btt.classList.remove('visible');
-    }
-  });
+  // Use IntersectionObserver on the hero instead of a scroll listener — zero
+  // per-tick cost; fires only when crossing the threshold.
+  const hero = document.querySelector('.hero');
+  if (hero && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => btt.classList.toggle('visible', !e.isIntersecting));
+    }, { rootMargin: '-500px 0px 0px 0px' });
+    io.observe(hero);
+  } else {
+    // Fallback — passive rAF-throttled scroll
+    let queued = false;
+    window.addEventListener('scroll', () => {
+      if (queued) return; queued = true;
+      requestAnimationFrame(() => {
+        queued = false;
+        btt.classList.toggle('visible', window.scrollY > 500);
+      });
+    }, { passive: true });
+  }
   btt.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });

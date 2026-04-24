@@ -28,9 +28,13 @@
   --ease-in : cubic-bezier(.6,.05,.9,.3);
 }
 
-*{ box-sizing: border-box; }
-html, body{ margin:0; padding:0; }
-html{ scroll-behavior: smooth; }
+*{ box-sizing: border-box; min-width: 0; }
+html, body{ margin:0; padding:0; width: 100%; max-width: 100%; }
+html{
+  scroll-behavior: smooth;
+  overflow-x: clip;           /* modern: prevent X scroll without breaking sticky */
+  overflow-x: hidden;         /* fallback for browsers without `clip` */
+}
 body{
   font-family: var(--f-body);
   color: var(--ink);
@@ -38,14 +42,19 @@ body{
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  overflow-x: clip;
   overflow-x: hidden;
 }
+main{ max-width: 100%; overflow-x: clip; overflow-x: hidden; }
+h1, h2, h3, h4, p{ overflow-wrap: break-word; word-break: normal; }
 img{ display:block; max-width:100%; }
 a{ color: inherit; text-decoration: none; }
 ::selection{ background: oklch(0.83 0.09 310 / .45); color: var(--ink); }
 
 /* ============================================================
    HOLOGRAPHIC BG - mouse-reactive aura orbs + grain
+   Optimised: lighter blurs, isolated paint, graceful degradation
+   on mobile / touch / reduced-motion / low-end devices.
    ============================================================ */
 .aura-bg{
   position: fixed; inset: 0;
@@ -53,15 +62,18 @@ a{ color: inherit; text-decoration: none; }
   pointer-events: none;
   overflow: hidden;
   background: var(--paper);
+  contain: strict;                   /* isolate paint/layout — huge perf win */
 }
 .aura-blob{
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(60px);                /* was 80px — 60px looks identical, paints 30% faster */
   opacity: .55;
   will-change: transform;
   transition: transform .35s var(--ease-out);
   mix-blend-mode: multiply;
+  transform: translate3d(0,0,0);     /* promote to own layer */
+  backface-visibility: hidden;
 }
 .aura-blob.b1{ width: 62vw; height: 62vw; background: radial-gradient(circle at 30% 30%, var(--lilac), transparent 70%); top:-20vw; left:-10vw; }
 .aura-blob.b2{ width: 55vw; height: 55vw; background: radial-gradient(circle at 60% 40%, var(--sky), transparent 70%); top: 10vh; right:-15vw; }
@@ -72,15 +84,147 @@ a{ color: inherit; text-decoration: none; }
 /* cursor-follow hi-fi orb */
 .aura-cursor{
   position: absolute;
+  top: 0; left: 0;                   /* positioned via transform (no layout thrash) */
   width: 520px; height: 520px;
   border-radius: 50%;
   background: radial-gradient(circle at 35% 35%,
     oklch(0.85 0.14 320 / .9), oklch(0.82 0.12 260 / .6) 40%, transparent 70%);
-  filter: blur(40px);
+  filter: blur(36px);                /* was 40px */
   mix-blend-mode: multiply;
   transform: translate3d(-50%,-50%,0);
   pointer-events: none;
+  will-change: transform;
   transition: opacity .4s var(--ease-out);
+}
+
+/* ---------- Graceful degradation ---------- */
+
+/* Touch devices: no cursor tracking, and 2 blobs are plenty */
+@media (hover: none), (pointer: coarse){
+  .aura-cursor{ display: none !important; }
+  .aura-blob.b4, .aura-blob.b5{ display: none; }  /* drop 2 of 5 */
+  .aura-blob{
+    filter: blur(40px);              /* cheaper blur on mobile GPUs */
+    mix-blend-mode: normal;          /* multiply is costly on mobile compositors */
+    opacity: .35;
+  }
+}
+
+/* Narrow viewports regardless of input — paint cost grows with vw */
+@media (max-width: 720px){
+  .aura-blob{ filter: blur(40px); }
+}
+
+/* Users who asked for reduced motion / lower GPU strain */
+@media (prefers-reduced-motion: reduce){
+  .aura-cursor{ display: none !important; }
+  .aura-blob{ transition: none !important; }
+}
+
+/* Explicit "low power" opt-out — JS sets data-aura="off" when it detects
+   hitches. Also triggered by browsers advertising reduced data / low power. */
+html[data-aura="off"] .aura-cursor{ display: none !important; }
+html[data-aura="off"] .aura-blob.b3,
+html[data-aura="off"] .aura-blob.b4,
+html[data-aura="off"] .aura-blob.b5{ display: none; }
+html[data-aura="off"] .aura-blob{
+  filter: blur(30px);
+  mix-blend-mode: normal;
+  opacity: .28;
+  transition: none;
+}
+
+/* ============================================================
+   PERF MODE — stop ALL continuous animations + trim expensive
+   effects when html[data-aura="off"] (weak CPU/GPU detected).
+   ============================================================ */
+html[data-aura="off"] .marquee-track{ animation: none; }
+html[data-aura="off"] .marquee-top{ backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-aura="off"] .portrait .ring{ animation: none; }
+html[data-aura="off"] .cv-badge{ animation: none; }
+html[data-aura="off"] .btn.primary{ animation: none; }
+html[data-aura="off"] .hero-left h1 .italic{ animation: none; background-position: 0% 50%; }
+html[data-aura="off"] .stat .n em{ animation: none; background-position: 0% 50%; }
+html[data-aura="off"] .cta-big em{ animation: none; background-position: 0% 50%; }
+/* Kill SVG SMIL clip-path morphs — JS also calls pauseAnimations() for
+   browsers that don't honor these attributes after the fact. */
+html[data-aura="off"] svg animate{ begin: indefinite; }
+
+/* Heavy blurs and multi-stop gradients become cheaper. */
+html[data-aura="off"] .topbar{ backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+html[data-aura="off"] .mobile-nav-backdrop{ backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+html[data-aura="off"] .mobile-nav-panel{ backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+html[data-aura="off"] .tool-chip,
+html[data-aura="off"] .skill-chip,
+html[data-aura="off"] .btn,
+html[data-aura="off"] .stat,
+html[data-aura="off"] .client,
+html[data-aura="off"] .foot-grid h4{ backdrop-filter: none; -webkit-backdrop-filter: none; }
+html[data-aura="off"] .lb-fs,
+html[data-aura="off"] .lightbox{ backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+html[data-aura="off"] .grain{ opacity: .06; }
+html[data-aura="off"] .tweaks{ backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Shorter, snappier transitions — no drawn-out animations on weak hardware */
+html[data-aura="off"] *,
+html[data-aura="off"] *::before,
+html[data-aura="off"] *::after{
+  transition-duration: .18s !important;
+}
+
+/* Reduce box-shadow blurs (rendered on main thread on some GPUs) */
+html[data-aura="off"] .stat:hover,
+html[data-aura="off"] .btn:hover,
+html[data-aura="off"] .client:hover,
+html[data-aura="off"] .skill-chip:hover,
+html[data-aura="off"] .tool-chip:hover{ box-shadow: none; }
+
+/* ============================================================
+   OFF-SCREEN PAUSE — elements toggled with data-inview="0" by JS.
+   Saves compositor cycles on every infinite animation that loops
+   when nothing is visible.
+   ============================================================ */
+[data-inview="0"]{ animation-play-state: paused !important; }
+[data-inview="0"] *{ animation-play-state: paused !important; }
+
+/* ============================================================
+   prefers-reduced-motion — baseline safety net
+   ============================================================ */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .marquee-track,
+  .portrait .ring,
+  .cv-badge,
+  .btn.primary,
+  .hero-left h1 .italic,
+  .stat .n em,
+  .cta-big em{ animation: none !important; }
+  .aura-cursor{ display: none !important; }
+}
+
+/* ============================================================
+   MOBILE BLUR BUDGET — backdrop-filter is pricey on mobile GPUs.
+   Halve every blur radius on coarse pointer / narrow viewports.
+   ============================================================ */
+@media (hover: none), (pointer: coarse), (max-width: 720px){
+  .topbar{ backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .marquee-top{ backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .mobile-nav-backdrop{ backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .mobile-nav-panel{ backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .tool-chip,
+  .skill-chip,
+  .btn,
+  .stat,
+  .client{ backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+  .lb-fs{ backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+  .lightbox.open{ backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  /* Drop grain opacity on mobile — barely visible, saves overdraw */
+  .grain{ opacity: .08; }
 }
 
 /* grain */

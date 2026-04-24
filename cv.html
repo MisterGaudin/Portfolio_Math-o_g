@@ -811,6 +811,70 @@ h1.name em{
 @keyframes fadeInUp{ from{ opacity: 0; transform: translateY(12px); } to{ opacity: 1; transform: translateY(0); } }
 
 /* ======================================================
+   PERF MODE — kill continuous animations + trim effects
+   when JS flags html[data-aura="off"] (weak hardware / touch
+   / reduced-motion / saveData).
+   ====================================================== */
+html[data-aura="off"] .aura-cursor{ display: none !important; }
+html[data-aura="off"] .aura-blob.b4,
+html[data-aura="off"] .aura-blob.b5{ display: none; }
+html[data-aura="off"] .aura-blob{ filter: blur(40px); mix-blend-mode: normal; opacity: .3; transition: none; }
+html[data-aura="off"] .marquee-track{ animation: none; }
+html[data-aura="off"] .profile-img{ animation: none; }
+html[data-aura="off"] h1.name em,
+html[data-aura="off"] .stat .n em,
+html[data-aura="off"] .btn.primary,
+html[data-aura="off"] .download-wrap .txt h3 em{ animation: none; background-position: 0% 50%; }
+html[data-aura="off"] .status-badge .pulse::before,
+html[data-aura="off"] .profile-badge .pulse,
+html[data-aura="off"] .eyebrow .dot,
+html[data-aura="off"] .timeline-item.current::before{ animation: none; }
+html[data-aura="off"] .topbar{ backdrop-filter: blur(6px); }
+html[data-aura="off"] .marquee-top{ backdrop-filter: none; }
+html[data-aura="off"] .profile-img,
+html[data-aura="off"] .intro-text,
+html[data-aura="off"] .contact-info li,
+html[data-aura="off"] .tool-chip,
+html[data-aura="off"] .timeline-date .dur-chip,
+html[data-aura="off"] .timeline-content,
+html[data-aura="off"] .download-wrap,
+html[data-aura="off"] .stat,
+html[data-aura="off"] .mini-nav button::after,
+html[data-aura="off"] .section-head .count{ backdrop-filter: none; }
+html[data-aura="off"] .grain{ opacity: .06; }
+html[data-aura="off"] *, html[data-aura="off"] *::before, html[data-aura="off"] *::after{
+  transition-duration: .18s !important;
+}
+
+/* Off-screen pause — infinite CSS animations stop when scrolled out */
+[data-inview="0"]{ animation-play-state: paused !important; }
+[data-inview="0"] *{ animation-play-state: paused !important; }
+
+/* prefers-reduced-motion safety net */
+@media (prefers-reduced-motion: reduce){
+  *, *::before, *::after{
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .aura-cursor{ display: none !important; }
+}
+
+/* Cheaper blurs on mobile GPUs */
+@media (hover: none), (pointer: coarse), (max-width: 720px){
+  .topbar{ backdrop-filter: blur(8px); }
+  .marquee-top{ backdrop-filter: blur(4px); }
+  .intro-text,
+  .contact-info li,
+  .tool-chip,
+  .timeline-content,
+  .stat,
+  .download-wrap{ backdrop-filter: blur(2px); }
+  .grain{ opacity: .08; }
+}
+
+/* ======================================================
    PRINT, single A4 page, compact
    ====================================================== */
 @page { size: A4 portrait; margin: 0; }
@@ -1287,45 +1351,126 @@ h1.name em{
 
 <script>
 /* ============================================================
-   1. Aura cursor follow + parallax (same as Portfolio)
+   0. Perf guard — detect weak hardware / touch / reduced motion
+   and flag html[data-aura="off"] to kill continuous animations
+   via CSS. Mirrors the logic used in app.js for the portfolio.
    ============================================================ */
 (() => {
-  const orb   = document.getElementById('auraCursor');
-  const blobs = [...document.querySelectorAll('.aura-blob')];
-  let tx = window.innerWidth/2, ty = window.innerHeight/2;
-  let cx = tx, cy = ty;
-  const lerp = (a,b,t) => a + (b-a) * t;
-
-  window.addEventListener('pointermove', (e) => { tx = e.clientX; ty = e.clientY; });
-
-  function frame(){
-    cx = lerp(cx, tx, .08);
-    cy = lerp(cy, ty, .08);
-    orb.style.left = cx + 'px';
-    orb.style.top  = cy + 'px';
-    blobs.forEach((b, i) => {
-      const k = (i + 1) * .014;
-      const offX = (cx - window.innerWidth/2)  * k;
-      const offY = (cy - window.innerHeight/2) * k;
-      b.style.transform = `translate3d(${offX}px, ${offY}px, 0)`;
-    });
-    requestAnimationFrame(frame);
+  const html = document.documentElement;
+  const prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isTouch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
+  const lowCores = (navigator.hardwareConcurrency || 4) < 4;
+  const lowMem   = (navigator.deviceMemory || 4) < 4;
+  const saveData = navigator.connection && navigator.connection.saveData;
+  if (prm || isTouch || saveData || lowCores || lowMem){
+    html.setAttribute('data-aura', 'off');
   }
-  frame();
 })();
 
 /* ============================================================
-   2. Scroll progress bar
+   1. Aura cursor follow + parallax (same as Portfolio) —
+   optimised: skipped on low-power, pauses when tab hidden or
+   cursor idle, uses transform only (no layout thrash).
+   ============================================================ */
+(() => {
+  const html = document.documentElement;
+  const orb   = document.getElementById('auraCursor');
+  const blobs = [...document.querySelectorAll('.aura-blob')];
+
+  // Bail out entirely on low-power: CSS keeps blobs static (still pretty).
+  if (html.getAttribute('data-aura') === 'off' || !orb || !blobs.length){
+    if (orb) orb.style.display = 'none';
+    return;
+  }
+
+  const w2 = () => window.innerWidth  * .5;
+  const h2 = () => window.innerHeight * .5;
+  let tx = w2(), ty = h2();
+  let cx = tx, cy = ty;
+  let running = false, pending = false, lastT = 0;
+  let jankFrames = 0, totalFrames = 0;
+  const coefs = blobs.map((_, i) => (i + 1) * .014);
+  const lerp = (a,b,t) => a + (b-a) * t;
+
+  function frame(now){
+    pending = false;
+    if (!running) return;
+
+    if (lastT){
+      const dt = now - lastT;
+      if (totalFrames < 60){
+        totalFrames++;
+        if (dt > 24) jankFrames++;
+        if (totalFrames === 60 && jankFrames > 20){
+          html.setAttribute('data-aura', 'off');
+          orb.style.display = 'none';
+          running = false;
+          return;
+        }
+      }
+    }
+    lastT = now;
+
+    cx = lerp(cx, tx, .08);
+    cy = lerp(cy, ty, .08);
+    orb.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+
+    const ox = cx - w2(), oy = cy - h2();
+    for (let i = 0; i < blobs.length; i++){
+      const k = coefs[i];
+      blobs[i].style.transform = `translate3d(${ox * k}px, ${oy * k}px, 0)`;
+    }
+
+    if (Math.abs(cx - tx) < .3 && Math.abs(cy - ty) < .3){ running = false; return; }
+    if (!pending){ pending = true; requestAnimationFrame(frame); }
+  }
+  function kick(){
+    if (running || document.hidden) return;
+    running = true; lastT = 0;
+    if (!pending){ pending = true; requestAnimationFrame(frame); }
+  }
+  orb.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -50%)`;
+  window.addEventListener('pointermove', (e) => { tx = e.clientX; ty = e.clientY; kick(); }, { passive: true });
+  window.addEventListener('pointerleave', () => { running = false; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) running = false; else kick(); });
+  window.addEventListener('resize', () => { tx = w2(); ty = h2(); kick(); }, { passive: true });
+})();
+
+/* ============================================================
+   1b. Off-screen pause — CSS rule [data-inview="0"] freezes
+   infinite animations scrolled out of sight. Zero JS cost per
+   frame after the initial observer setup.
+   ============================================================ */
+(() => {
+  if (!('IntersectionObserver' in window)) return;
+  const targets = [...document.querySelectorAll(
+    '.marquee-top, .profile-img, h1.name, .stat, .btn.primary, .download-wrap, .status-badge, .profile-badge, .timeline-item.current, .eyebrow'
+  )];
+  if (!targets.length) return;
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      entry.target.setAttribute('data-inview', entry.isIntersecting ? '1' : '0');
+    });
+  }, { rootMargin: '80px 0px 80px 0px', threshold: 0 });
+  targets.forEach(el => { el.setAttribute('data-inview', '0'); io.observe(el); });
+})();
+
+/* ============================================================
+   2. Scroll progress bar — rAF-throttled to one write per frame.
    ============================================================ */
 (() => {
   const bar = document.getElementById('scrollProgress');
+  if (!bar) return;
+  let queued = false;
   const update = () => {
+    queued = false;
     const h = document.documentElement.scrollHeight - window.innerHeight;
     const p = h > 0 ? Math.min(100, Math.max(0, window.scrollY / h * 100)) : 0;
     bar.style.width = p + '%';
   };
-  window.addEventListener('scroll', update, { passive: true });
-  window.addEventListener('resize', update);
+  const request = () => { if (!queued){ queued = true; requestAnimationFrame(update); } };
+  window.addEventListener('scroll', request, { passive: true });
+  window.addEventListener('resize', request);
   update();
 })();
 
@@ -1353,19 +1498,25 @@ h1.name em{
     items.forEach(it => tio.observe(it));
   });
 
-  // Fill the timeline line based on scroll position relative to timeline
+  // Fill the timeline line based on scroll position relative to timeline.
+  // rAF-throttled + cache DOM lookups to avoid querying on every scroll tick.
+  const timelines = [...document.querySelectorAll('.timeline')];
+  let lineQueued = false;
   function updateLines(){
-    document.querySelectorAll('.timeline').forEach(tl => {
+    lineQueued = false;
+    const winH = window.innerHeight;
+    for (let i = 0; i < timelines.length; i++){
+      const tl = timelines[i];
       const r = tl.getBoundingClientRect();
-      const winH = window.innerHeight;
       const start = r.top - winH * 0.55;
       const total = r.height + winH * 0.25;
       const prog = Math.min(1, Math.max(0, -start / total));
       tl.style.setProperty('--progress', (prog * 100) + '%');
-    });
+    }
   }
-  window.addEventListener('scroll', updateLines, { passive: true });
-  window.addEventListener('resize', updateLines);
+  const requestLines = () => { if (!lineQueued){ lineQueued = true; requestAnimationFrame(updateLines); } };
+  window.addEventListener('scroll', requestLines, { passive: true });
+  window.addEventListener('resize', requestLines);
   updateLines();
 })();
 
@@ -1512,24 +1663,44 @@ h1.name em{
     });
   });
 
+  let activeQueued = false;
   const setActive = () => {
+    activeQueued = false;
     const y = window.scrollY + window.innerHeight * 0.35;
     let active = 0;
-    sections.forEach((s, i) => { if (s && s.offsetTop <= y) active = i; });
-    buttons.forEach((b, i) => b.classList.toggle('active', i === active));
+    for (let i = 0; i < sections.length; i++){
+      const s = sections[i];
+      if (s && s.offsetTop <= y) active = i;
+    }
+    for (let i = 0; i < buttons.length; i++){
+      buttons[i].classList.toggle('active', i === active);
+    }
   };
-  window.addEventListener('scroll', setActive, { passive: true });
+  const requestActive = () => { if (!activeQueued){ activeQueued = true; requestAnimationFrame(setActive); } };
+  window.addEventListener('scroll', requestActive, { passive: true });
   setActive();
 })();
 
 /* ============================================================
-   10. Back to top
+   10. Back to top — IntersectionObserver on the hero (no scroll
+   listener, fires only when crossing the threshold).
    ============================================================ */
 (() => {
   const btt = document.getElementById('backToTop');
-  window.addEventListener('scroll', () => {
-    btt.classList.toggle('visible', window.scrollY > 500);
-  }, { passive: true });
+  if (!btt) return;
+  const hero = document.getElementById('hero');
+  if (hero && 'IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => btt.classList.toggle('visible', !e.isIntersecting));
+    }, { rootMargin: '-500px 0px 0px 0px' });
+    io.observe(hero);
+  } else {
+    let queued = false;
+    window.addEventListener('scroll', () => {
+      if (queued) return; queued = true;
+      requestAnimationFrame(() => { queued = false; btt.classList.toggle('visible', window.scrollY > 500); });
+    }, { passive: true });
+  }
   btt.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
 })();
 
