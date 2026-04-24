@@ -1860,3 +1860,155 @@ a.portrait:hover .cv-badge{
     bottom: calc(env(viewport-segment-height 0 1, 50vh) / 2 - 12px);
   }
 }
+
+/* ============================================================
+   DARK MODE — adapt every light-mode assumption.
+   Strategy: invert paper/ink tokens, flip multiply→screen on the
+   blobs/grain that sit on the page bg, and rebuild every hardcoded
+   light surface as a translucent dark surface so frosted glass keeps
+   its character. Aura/gradient palette stays the same — soft pastels
+   read beautifully against the dark navy.
+   ============================================================ */
+@media (prefers-color-scheme: dark){
+
+  /* --- core tokens --------------------------------------------------- */
+  :root{
+    --paper  : oklch(0.16 0.014 285);
+    --paper-2: oklch(0.21 0.016 285);
+    --ink    : oklch(0.96 0.006 285);
+    --ink-2  : oklch(0.80 0.011 285);
+    --ink-3  : oklch(0.58 0.013 285);
+    --hair   : oklch(0.32 0.014 285);
+  }
+  ::selection{ background: oklch(0.55 0.18 320 / .55); color: var(--ink); }
+
+  /* --- aura background: invert blend so blobs ADD light to dark ----- */
+  .aura-bg{ background: var(--paper); }
+  .aura-blob{ mix-blend-mode: screen; opacity: .42; }
+  .aura-cursor{ mix-blend-mode: screen; opacity: .85; }
+  .grain{ mix-blend-mode: screen; opacity: .07; }
+  @media (hover: none), (pointer: coarse){
+    .aura-blob{ mix-blend-mode: screen; opacity: .35; }
+  }
+  html[data-aura="off"] .aura-blob{ mix-blend-mode: screen; opacity: .28; }
+
+  /* --- topbar + marquee --------------------------------------------- */
+  .topbar{
+    background: oklch(0.16 0.014 285 / .55);
+    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+  }
+  .marquee-top{
+    background: linear-gradient(90deg,
+      oklch(0.42 0.13 18 / .40),
+      oklch(0.40 0.12 310 / .40),
+      oklch(0.38 0.10 240 / .40),
+      oklch(0.50 0.10 62 / .40));
+    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+  }
+
+  /* --- burger + mobile drawer --------------------------------------- */
+  .burger{
+    background: oklch(0.24 0.016 285 / .6);
+    border: 1px solid oklch(0.96 0.006 285 / .15);
+  }
+  .burger span{ background: var(--ink); }
+  .mobile-nav-backdrop{ background: oklch(0.04 0.012 285 / .65); }
+  .mobile-nav-panel{
+    background: oklch(0.18 0.016 285 / .96);
+    border-left: 1px solid oklch(0.96 0.006 285 / .08);
+    box-shadow: -24px 0 60px oklch(0 0 0 / .55);
+  }
+  .mobile-nav-panel a{ border-bottom: 1px solid oklch(0.96 0.006 285 / .06); }
+  .mobile-nav-panel a:hover,
+  .mobile-nav-panel a:focus-visible{ color: oklch(0.85 0.14 320); }
+  .mobile-nav-close{
+    border: 1px solid oklch(0.96 0.006 285 / .15);
+    color: var(--ink);
+  }
+  .mobile-nav-close:hover{ background: oklch(0.96 0.006 285 / .06); }
+
+  /* --- meta rows + section dividers --------------------------------- */
+  .meta-row{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
+
+  /* --- chips: tools + skills ---------------------------------------- */
+  .tool-chip{
+    background: oklch(0.24 0.016 285 / .55);
+    border: 1px solid oklch(0.96 0.006 285 / .12);
+  }
+  .tool-chip:hover{ background: oklch(0.30 0.018 285 / .85); }
+  .skill-chip{
+    background: oklch(0.24 0.016 285 / .5);
+    border: 1px solid oklch(0.96 0.006 285 / .14);
+  }
+
+  /* --- buttons ------------------------------------------------------ */
+  .btn{
+    background: oklch(0.24 0.016 285 / .6);
+    border: 1px solid oklch(0.96 0.006 285 / .2);
+    color: var(--ink);
+  }
+  .btn:hover{ box-shadow: 0 12px 30px oklch(0 0 0 / .35); }
+  /* .btn.primary keeps its rainbow gradient + dark text — stays legible */
+  .btn .arrow{ background: var(--ink); color: var(--paper); }
+
+  /* --- portrait halo + ring + placeholder --------------------------- */
+  .portrait .ring{ border-color: oklch(0.96 0.006 285 / .25); }
+  .portrait .img{ color: oklch(0.96 0.006 285 / .5); }
+
+  /* --- project numbers (outlined display digit) --------------------- */
+  .project-num{ -webkit-text-stroke-color: oklch(0.96 0.006 285 / .45); }
+
+  /* --- fluid mask images: stop multiplying with the dark page ------- */
+  .fluid-mask .inner img{ mix-blend-mode: normal; }
+
+  /* --- clients grid ------------------------------------------------- */
+  .clients{
+    border: 1px solid oklch(0.96 0.006 285 / .1);
+    background: oklch(0.96 0.006 285 / .08);
+  }
+  .client{
+    background: oklch(0.21 0.016 285 / .72);
+    color: var(--ink);
+  }
+  .client:hover{
+    background: linear-gradient(135deg, oklch(0.40 0.13 310 / .55), oklch(0.40 0.10 240 / .55));
+  }
+
+  /* --- footer ------------------------------------------------------- */
+  .foot-grid{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
+  .foot-grid a:hover{ color: oklch(0.85 0.14 320); }
+
+  /* --- codeblock: was already dark, just lift its drop shadow ------- */
+  .codeblock{ box-shadow: 0 40px 80px oklch(0 0 0 / .5); }
+
+  /* --- intro curtain + grain ---------------------------------------- */
+  .intro .intro-grain{ mix-blend-mode: screen; opacity: .18; }
+  .intro .intro-meta .bar{ background: oklch(0.96 0.006 285 / .22); }
+
+  /* --- tweaks panel ------------------------------------------------- */
+  .tweaks{
+    background: oklch(0.21 0.016 285 / .85);
+    border: 1px solid oklch(0.96 0.006 285 / .12);
+    box-shadow: 0 24px 60px oklch(0 0 0 / .35);
+  }
+
+  /* --- back-to-top: var(--ink/--paper) flip naturally; tweak hover -- */
+  .back-to-top:hover{ background: var(--rose); color: oklch(0.18 0.015 285); }
+
+  /* --- mark highlights (defeat inline style with !important) -------- */
+  mark{
+    color: var(--ink) !important;
+    background: linear-gradient(180deg, transparent 55%, oklch(0.55 0.20 18 / .55) 55%) !important;
+    padding: 0 2px;
+  }
+
+  /* --- zoom-hint chip on fluid-masks -------------------------------- */
+  .fluid-mask .zoom-hint{
+    background: oklch(0.24 0.016 285 / .8);
+    color: var(--ink);
+  }
+
+  /* --- lb-gallery placeholder slides keep their light aura (they're
+        designed as colored placeholders), so leave them alone.
+        Only the page-attached grain switches blend mode.            --- */
+}
