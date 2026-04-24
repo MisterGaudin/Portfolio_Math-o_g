@@ -32,8 +32,8 @@
 html, body{ margin:0; padding:0; width: 100%; max-width: 100%; }
 html{
   scroll-behavior: smooth;
-  overflow-x: clip;           /* modern: prevent X scroll without breaking sticky */
   overflow-x: hidden;         /* fallback for browsers without `clip` */
+  overflow-x: clip;           /* modern: prevent X scroll without breaking sticky */
 }
 /* Samsung Internet & Chrome Android force-dark opt-out. The inline <head>
    script also sets these as an inline style for first-paint correctness;
@@ -48,10 +48,10 @@ body{
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  overflow-x: clip;
   overflow-x: hidden;
+  overflow-x: clip;
 }
-main{ max-width: 100%; overflow-x: clip; overflow-x: hidden; }
+main{ max-width: 100%; overflow-x: hidden; overflow-x: clip; }
 h1, h2, h3, h4, p{ overflow-wrap: break-word; word-break: normal; }
 img{ display:block; max-width:100%; }
 a{ color: inherit; text-decoration: none; }
@@ -2063,6 +2063,48 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
    On mobile it sits next to the burger. */
 .topbar .top-actions{
   display: inline-flex; align-items: center; gap: 10px;
+}
+
+/* CV shortcut button — desktop only, revealed once the hero has scrolled past. */
+.cv-link{
+  width: 38px; height: 38px;
+  border: 1px solid oklch(0.18 0.015 285 / .15);
+  background: oklch(0.99 0.004 70 / .6);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  display: grid; place-items: center;
+  color: var(--ink);
+  text-decoration: none;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px) scale(.9);
+  transition: opacity .35s var(--ease-out), transform .45s var(--ease-out),
+              background .25s, border-color .25s;
+}
+.cv-link.is-visible{
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+.cv-link:hover{
+  border-color: oklch(0.83 0.09 310 / .4);
+  transform: translateY(-1px) scale(1);
+}
+.cv-link svg{
+  width: 18px; height: 18px;
+  stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  fill: none;
+}
+html[data-theme="dark"] .cv-link{
+  background: oklch(0.24 0.016 285 / .6);
+  border-color: oklch(0.96 0.006 285 / .15);
+}
+html[data-theme="dark"] .cv-link:hover{
+  border-color: oklch(0.83 0.09 310 / .55);
+}
+@media (max-width: 800px){
+  .cv-link{ display: none; }
 }
 
 @media (max-width: 430px){

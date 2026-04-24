@@ -679,6 +679,32 @@ const BLOBS = {
 })();
 
 /* =====================================================
+   CV shortcut — reveal once hero is scrolled past
+   ===================================================== */
+(() => {
+  const cvLink = document.getElementById('cvLink');
+  const hero = document.querySelector('.hero');
+  if (!cvLink || !hero) return;
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => cvLink.classList.toggle('is-visible', !e.isIntersecting));
+    }, { threshold: 0 });
+    io.observe(hero);
+  } else {
+    let ticking = false;
+    window.addEventListener('scroll', () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(() => {
+        ticking = false;
+        const r = hero.getBoundingClientRect();
+        cvLink.classList.toggle('is-visible', r.bottom <= 0);
+      });
+    }, { passive: true });
+  }
+})();
+
+/* =====================================================
    Mobile burger nav
    ===================================================== */
 (() => {
