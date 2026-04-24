@@ -1862,153 +1862,222 @@ a.portrait:hover .cv-badge{
 }
 
 /* ============================================================
-   DARK MODE — adapt every light-mode assumption.
-   Strategy: invert paper/ink tokens, flip multiply→screen on the
-   blobs/grain that sit on the page bg, and rebuild every hardcoded
-   light surface as a translucent dark surface so frosted glass keeps
-   its character. Aura/gradient palette stays the same — soft pastels
-   read beautifully against the dark navy.
+   DARK MODE — opt-in via html[data-theme="dark"].
+   Default is always LIGHT. JS reads localStorage on boot and sets
+   data-theme; the theme-toggle button flips it. We deliberately do
+   NOT use prefers-color-scheme so the user's OS pref doesn't override
+   their explicit choice.
    ============================================================ */
-@media (prefers-color-scheme: dark){
 
-  /* --- core tokens --------------------------------------------------- */
-  :root{
-    --paper  : oklch(0.16 0.014 285);
-    --paper-2: oklch(0.21 0.016 285);
-    --ink    : oklch(0.96 0.006 285);
-    --ink-2  : oklch(0.80 0.011 285);
-    --ink-3  : oklch(0.58 0.013 285);
-    --hair   : oklch(0.32 0.014 285);
+/* --- core tokens --------------------------------------------------- */
+html[data-theme="dark"]{
+  --paper  : oklch(0.16 0.014 285);
+  --paper-2: oklch(0.21 0.016 285);
+  --ink    : oklch(0.96 0.006 285);
+  --ink-2  : oklch(0.80 0.011 285);
+  --ink-3  : oklch(0.58 0.013 285);
+  --hair   : oklch(0.32 0.014 285);
+}
+html[data-theme="dark"] ::selection{ background: oklch(0.55 0.18 320 / .55); color: var(--ink); }
+
+/* --- aura background: invert blend so blobs ADD light to dark ----- */
+html[data-theme="dark"] .aura-bg{ background: var(--paper); }
+html[data-theme="dark"] .aura-blob{ mix-blend-mode: screen; opacity: .42; }
+html[data-theme="dark"] .aura-cursor{ mix-blend-mode: screen; opacity: .85; }
+html[data-theme="dark"] .grain{ mix-blend-mode: screen; opacity: .07; }
+@media (hover: none), (pointer: coarse){
+  html[data-theme="dark"] .aura-blob{ mix-blend-mode: screen; opacity: .35; }
+}
+html[data-theme="dark"][data-aura="off"] .aura-blob{ mix-blend-mode: screen; opacity: .28; }
+
+/* --- topbar + marquee --------------------------------------------- */
+html[data-theme="dark"] .topbar{
+  background: oklch(0.16 0.014 285 / .55);
+  border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+}
+html[data-theme="dark"] .marquee-top{
+  background: linear-gradient(90deg,
+    oklch(0.42 0.13 18 / .40),
+    oklch(0.40 0.12 310 / .40),
+    oklch(0.38 0.10 240 / .40),
+    oklch(0.50 0.10 62 / .40));
+  border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+}
+
+/* --- burger + mobile drawer --------------------------------------- */
+html[data-theme="dark"] .burger{
+  background: oklch(0.24 0.016 285 / .6);
+  border: 1px solid oklch(0.96 0.006 285 / .15);
+}
+html[data-theme="dark"] .burger span{ background: var(--ink); }
+html[data-theme="dark"] .mobile-nav-backdrop{ background: oklch(0.04 0.012 285 / .65); }
+html[data-theme="dark"] .mobile-nav-panel{
+  background: oklch(0.18 0.016 285 / .96);
+  border-left: 1px solid oklch(0.96 0.006 285 / .08);
+  box-shadow: -24px 0 60px oklch(0 0 0 / .55);
+}
+html[data-theme="dark"] .mobile-nav-panel a{ border-bottom: 1px solid oklch(0.96 0.006 285 / .06); }
+html[data-theme="dark"] .mobile-nav-panel a:hover,
+html[data-theme="dark"] .mobile-nav-panel a:focus-visible{ color: oklch(0.85 0.14 320); }
+html[data-theme="dark"] .mobile-nav-close{
+  border: 1px solid oklch(0.96 0.006 285 / .15);
+  color: var(--ink);
+}
+html[data-theme="dark"] .mobile-nav-close:hover{ background: oklch(0.96 0.006 285 / .06); }
+
+/* --- meta rows + section dividers --------------------------------- */
+html[data-theme="dark"] .meta-row{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
+
+/* --- chips: tools + skills ---------------------------------------- */
+html[data-theme="dark"] .tool-chip{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .12);
+}
+html[data-theme="dark"] .tool-chip:hover{ background: oklch(0.30 0.018 285 / .85); }
+html[data-theme="dark"] .skill-chip{
+  background: oklch(0.24 0.016 285 / .5);
+  border: 1px solid oklch(0.96 0.006 285 / .14);
+}
+
+/* --- buttons ------------------------------------------------------ */
+html[data-theme="dark"] .btn{
+  background: oklch(0.24 0.016 285 / .6);
+  border: 1px solid oklch(0.96 0.006 285 / .2);
+  color: var(--ink);
+}
+html[data-theme="dark"] .btn:hover{ box-shadow: 0 12px 30px oklch(0 0 0 / .35); }
+/* .btn.primary keeps its rainbow gradient + dark text — stays legible */
+html[data-theme="dark"] .btn .arrow{ background: var(--ink); color: var(--paper); }
+
+/* --- portrait halo + ring + placeholder --------------------------- */
+html[data-theme="dark"] .portrait .ring{ border-color: oklch(0.96 0.006 285 / .25); }
+html[data-theme="dark"] .portrait .img{ color: oklch(0.96 0.006 285 / .5); }
+
+/* --- project numbers (outlined display digit) --------------------- */
+html[data-theme="dark"] .project-num{ -webkit-text-stroke-color: oklch(0.96 0.006 285 / .45); }
+
+/* --- fluid mask images: stop multiplying with the dark page ------- */
+html[data-theme="dark"] .fluid-mask .inner img{ mix-blend-mode: normal; }
+
+/* --- clients grid ------------------------------------------------- */
+html[data-theme="dark"] .clients{
+  border: 1px solid oklch(0.96 0.006 285 / .1);
+  background: oklch(0.96 0.006 285 / .08);
+}
+html[data-theme="dark"] .client{
+  background: oklch(0.21 0.016 285 / .72);
+  color: var(--ink);
+}
+html[data-theme="dark"] .client:hover{
+  background: linear-gradient(135deg, oklch(0.40 0.13 310 / .55), oklch(0.40 0.10 240 / .55));
+}
+
+/* --- footer ------------------------------------------------------- */
+html[data-theme="dark"] .foot-grid{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
+html[data-theme="dark"] .foot-grid a:hover{ color: oklch(0.85 0.14 320); }
+
+/* --- codeblock: was already dark, just lift its drop shadow ------- */
+html[data-theme="dark"] .codeblock{ box-shadow: 0 40px 80px oklch(0 0 0 / .5); }
+
+/* --- intro curtain + grain ---------------------------------------- */
+html[data-theme="dark"] .intro .intro-grain{ mix-blend-mode: screen; opacity: .18; }
+html[data-theme="dark"] .intro .intro-meta .bar{ background: oklch(0.96 0.006 285 / .22); }
+
+/* --- tweaks panel ------------------------------------------------- */
+html[data-theme="dark"] .tweaks{
+  background: oklch(0.21 0.016 285 / .85);
+  border: 1px solid oklch(0.96 0.006 285 / .12);
+  box-shadow: 0 24px 60px oklch(0 0 0 / .35);
+}
+
+/* --- back-to-top: var(--ink/--paper) flip naturally; tweak hover -- */
+html[data-theme="dark"] .back-to-top:hover{ background: var(--rose); color: oklch(0.18 0.015 285); }
+
+/* --- mark highlights (defeat inline style with !important) -------- */
+html[data-theme="dark"] mark{
+  color: var(--ink) !important;
+  background: linear-gradient(180deg, transparent 55%, oklch(0.55 0.20 18 / .55) 55%) !important;
+  padding: 0 2px;
+}
+
+/* --- zoom-hint chip on fluid-masks -------------------------------- */
+html[data-theme="dark"] .fluid-mask .zoom-hint{
+  background: oklch(0.24 0.016 285 / .8);
+  color: var(--ink);
+}
+
+/* ============================================================
+   THEME TOGGLE — small sun/moon button in the topbar.
+   Sized to match .burger for visual rhythm. Sun shows in dark mode
+   (click to go light), moon shows in light mode (click to go dark).
+   The actual page-wide reveal animation is driven by the View
+   Transitions API in app.js — this just animates the icon itself.
+   ============================================================ */
+.theme-toggle{
+  width: 38px; height: 38px;
+  border: 1px solid oklch(0.18 0.015 285 / .15);
+  background: oklch(0.99 0.004 70 / .6);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 0;
+  cursor: pointer;
+  display: grid; place-items: center;
+  position: relative;
+  color: var(--ink);
+  transition: background .25s, border-color .25s, transform .35s var(--ease-out);
+}
+.theme-toggle:hover{
+  border-color: oklch(0.83 0.09 310 / .4);
+  transform: translateY(-1px);
+}
+.theme-toggle svg{
+  width: 18px; height: 18px;
+  position: absolute;
+  inset: 0; margin: auto;
+  stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  fill: none;
+  transition: opacity .35s var(--ease-out), transform .55s cubic-bezier(.34, 1.56, .64, 1);
+  transform-origin: center;
+}
+.theme-toggle .ico-sun{ opacity: 0; transform: rotate(-120deg) scale(.4); }
+.theme-toggle .ico-moon{ opacity: 1; transform: rotate(0) scale(1); }
+html[data-theme="dark"] .theme-toggle{
+  background: oklch(0.24 0.016 285 / .6);
+  border-color: oklch(0.96 0.006 285 / .15);
+}
+html[data-theme="dark"] .theme-toggle:hover{
+  border-color: oklch(0.83 0.09 310 / .55);
+}
+html[data-theme="dark"] .theme-toggle .ico-sun{ opacity: 1; transform: rotate(0) scale(1); }
+html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(120deg) scale(.4); }
+
+/* Topbar layout: keep the toggle and burger snug on the right.
+   On desktop the toggle sits at the end of the topbar, after the nav.
+   On mobile it sits next to the burger. */
+.topbar .top-actions{
+  display: inline-flex; align-items: center; gap: 10px;
+}
+
+@media (max-width: 430px){
+  .theme-toggle{ width: 42px; height: 42px; }
+  .theme-toggle svg{ width: 19px; height: 19px; }
+}
+
+/* View Transitions API — the actual circular reveal is staged in JS.
+   These pseudo-elements just need to NOT crossfade by default; we
+   replace the default fade with our own clip-path animation. */
+@supports (view-transition-name: root){
+  ::view-transition-old(root),
+  ::view-transition-new(root){
+    animation: none;
+    mix-blend-mode: normal;
   }
-  ::selection{ background: oklch(0.55 0.18 320 / .55); color: var(--ink); }
+  ::view-transition-old(root){ z-index: 1; }
+  ::view-transition-new(root){ z-index: 2; }
+}
 
-  /* --- aura background: invert blend so blobs ADD light to dark ----- */
-  .aura-bg{ background: var(--paper); }
-  .aura-blob{ mix-blend-mode: screen; opacity: .42; }
-  .aura-cursor{ mix-blend-mode: screen; opacity: .85; }
-  .grain{ mix-blend-mode: screen; opacity: .07; }
-  @media (hover: none), (pointer: coarse){
-    .aura-blob{ mix-blend-mode: screen; opacity: .35; }
-  }
-  html[data-aura="off"] .aura-blob{ mix-blend-mode: screen; opacity: .28; }
-
-  /* --- topbar + marquee --------------------------------------------- */
-  .topbar{
-    background: oklch(0.16 0.014 285 / .55);
-    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-  .marquee-top{
-    background: linear-gradient(90deg,
-      oklch(0.42 0.13 18 / .40),
-      oklch(0.40 0.12 310 / .40),
-      oklch(0.38 0.10 240 / .40),
-      oklch(0.50 0.10 62 / .40));
-    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-
-  /* --- burger + mobile drawer --------------------------------------- */
-  .burger{
-    background: oklch(0.24 0.016 285 / .6);
-    border: 1px solid oklch(0.96 0.006 285 / .15);
-  }
-  .burger span{ background: var(--ink); }
-  .mobile-nav-backdrop{ background: oklch(0.04 0.012 285 / .65); }
-  .mobile-nav-panel{
-    background: oklch(0.18 0.016 285 / .96);
-    border-left: 1px solid oklch(0.96 0.006 285 / .08);
-    box-shadow: -24px 0 60px oklch(0 0 0 / .55);
-  }
-  .mobile-nav-panel a{ border-bottom: 1px solid oklch(0.96 0.006 285 / .06); }
-  .mobile-nav-panel a:hover,
-  .mobile-nav-panel a:focus-visible{ color: oklch(0.85 0.14 320); }
-  .mobile-nav-close{
-    border: 1px solid oklch(0.96 0.006 285 / .15);
-    color: var(--ink);
-  }
-  .mobile-nav-close:hover{ background: oklch(0.96 0.006 285 / .06); }
-
-  /* --- meta rows + section dividers --------------------------------- */
-  .meta-row{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
-
-  /* --- chips: tools + skills ---------------------------------------- */
-  .tool-chip{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .12);
-  }
-  .tool-chip:hover{ background: oklch(0.30 0.018 285 / .85); }
-  .skill-chip{
-    background: oklch(0.24 0.016 285 / .5);
-    border: 1px solid oklch(0.96 0.006 285 / .14);
-  }
-
-  /* --- buttons ------------------------------------------------------ */
-  .btn{
-    background: oklch(0.24 0.016 285 / .6);
-    border: 1px solid oklch(0.96 0.006 285 / .2);
-    color: var(--ink);
-  }
-  .btn:hover{ box-shadow: 0 12px 30px oklch(0 0 0 / .35); }
-  /* .btn.primary keeps its rainbow gradient + dark text — stays legible */
-  .btn .arrow{ background: var(--ink); color: var(--paper); }
-
-  /* --- portrait halo + ring + placeholder --------------------------- */
-  .portrait .ring{ border-color: oklch(0.96 0.006 285 / .25); }
-  .portrait .img{ color: oklch(0.96 0.006 285 / .5); }
-
-  /* --- project numbers (outlined display digit) --------------------- */
-  .project-num{ -webkit-text-stroke-color: oklch(0.96 0.006 285 / .45); }
-
-  /* --- fluid mask images: stop multiplying with the dark page ------- */
-  .fluid-mask .inner img{ mix-blend-mode: normal; }
-
-  /* --- clients grid ------------------------------------------------- */
-  .clients{
-    border: 1px solid oklch(0.96 0.006 285 / .1);
-    background: oklch(0.96 0.006 285 / .08);
-  }
-  .client{
-    background: oklch(0.21 0.016 285 / .72);
-    color: var(--ink);
-  }
-  .client:hover{
-    background: linear-gradient(135deg, oklch(0.40 0.13 310 / .55), oklch(0.40 0.10 240 / .55));
-  }
-
-  /* --- footer ------------------------------------------------------- */
-  .foot-grid{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
-  .foot-grid a:hover{ color: oklch(0.85 0.14 320); }
-
-  /* --- codeblock: was already dark, just lift its drop shadow ------- */
-  .codeblock{ box-shadow: 0 40px 80px oklch(0 0 0 / .5); }
-
-  /* --- intro curtain + grain ---------------------------------------- */
-  .intro .intro-grain{ mix-blend-mode: screen; opacity: .18; }
-  .intro .intro-meta .bar{ background: oklch(0.96 0.006 285 / .22); }
-
-  /* --- tweaks panel ------------------------------------------------- */
-  .tweaks{
-    background: oklch(0.21 0.016 285 / .85);
-    border: 1px solid oklch(0.96 0.006 285 / .12);
-    box-shadow: 0 24px 60px oklch(0 0 0 / .35);
-  }
-
-  /* --- back-to-top: var(--ink/--paper) flip naturally; tweak hover -- */
-  .back-to-top:hover{ background: var(--rose); color: oklch(0.18 0.015 285); }
-
-  /* --- mark highlights (defeat inline style with !important) -------- */
-  mark{
-    color: var(--ink) !important;
-    background: linear-gradient(180deg, transparent 55%, oklch(0.55 0.20 18 / .55) 55%) !important;
-    padding: 0 2px;
-  }
-
-  /* --- zoom-hint chip on fluid-masks -------------------------------- */
-  .fluid-mask .zoom-hint{
-    background: oklch(0.24 0.016 285 / .8);
-    color: var(--ink);
-  }
-
-  /* --- lb-gallery placeholder slides keep their light aura (they're
-        designed as colored placeholders), so leave them alone.
-        Only the page-attached grain switches blend mode.            --- */
+/* Reduced-motion users: skip the fancy circular reveal */
+@media (prefers-reduced-motion: reduce){
+  .theme-toggle svg{ transition: opacity .15s; transform: none !important; }
 }

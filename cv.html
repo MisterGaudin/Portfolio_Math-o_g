@@ -10,8 +10,20 @@
 <meta name="keywords" content="CV Mathéo Gaudin, curriculum vitae graphiste, alternance graphisme Nantes, alternance graphisme Angers, Studio M, LISAA, illustrateur freelance" />
 <meta name="author" content="Mathéo Gaudin" />
 <meta name="robots" content="index, follow, max-image-preview:large" />
-<meta name="theme-color" content="#f5efe8" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#15131a" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" id="theme-color-meta" content="#f5efe8" />
+<script>
+  /* Apply saved theme BEFORE first paint to avoid a flash. Default = light. */
+  (function(){
+    try{
+      var t = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.getElementById('theme-color-meta');
+      if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
+    }catch(e){
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
 <link rel="canonical" href="https://portfolio-math-o-g.vercel.app/cv.html" />
 
 <!-- Open Graph -->
@@ -876,190 +888,236 @@ html[data-aura="off"] *, html[data-aura="off"] *::before, html[data-aura="off"] 
 }
 
 /* ======================================================
-   DARK MODE — full adaptation. Inverts paper/ink tokens, swaps
-   multiply→screen on the page-attached aura/grain, and rebuilds
-   every hardcoded light frosted surface as a translucent dark one
-   so the glassmorphism stays intact. Print rules below stay
-   unchanged so the paper output is still a clean light document.
+   DARK MODE — opt-in via html[data-theme="dark"]. Defaults LIGHT.
+   The keyframe `dotPulse` is redefined as `dotPulseDark` because
+   keyframes can't be scoped to a parent selector.
    ====================================================== */
-@media (prefers-color-scheme: dark){
 
-  :root{
-    --paper  : oklch(0.16 0.014 285);
-    --paper-2: oklch(0.21 0.016 285);
-    --ink    : oklch(0.96 0.006 285);
-    --ink-2  : oklch(0.80 0.011 285);
-    --ink-3  : oklch(0.58 0.013 285);
-    --hair   : oklch(0.32 0.014 285);
-  }
-  ::selection{ background: oklch(0.55 0.18 320 / .55); color: var(--ink); }
+html[data-theme="dark"]{
+  --paper  : oklch(0.16 0.014 285);
+  --paper-2: oklch(0.21 0.016 285);
+  --ink    : oklch(0.96 0.006 285);
+  --ink-2  : oklch(0.80 0.011 285);
+  --ink-3  : oklch(0.58 0.013 285);
+  --hair   : oklch(0.32 0.014 285);
+}
+html[data-theme="dark"] ::selection{ background: oklch(0.55 0.18 320 / .55); color: var(--ink); }
 
-  /* Aura layer — flip blend so blobs LIGHTEN the dark page */
-  .aura-bg{ background: var(--paper); }
-  .aura-blob{ mix-blend-mode: screen; opacity: .42; }
-  .aura-cursor{ mix-blend-mode: screen; opacity: .85; }
-  .grain{ mix-blend-mode: screen; opacity: .07; }
-  html[data-aura="off"] .aura-blob{ mix-blend-mode: screen; opacity: .3; }
+/* Aura layer — flip blend so blobs LIGHTEN the dark page */
+html[data-theme="dark"] .aura-bg{ background: var(--paper); }
+html[data-theme="dark"] .aura-blob{ mix-blend-mode: screen; opacity: .42; }
+html[data-theme="dark"] .aura-cursor{ mix-blend-mode: screen; opacity: .85; }
+html[data-theme="dark"] .grain{ mix-blend-mode: screen; opacity: .07; }
+html[data-theme="dark"][data-aura="off"] .aura-blob{ mix-blend-mode: screen; opacity: .3; }
 
-  /* Topbar + marquee */
-  .topbar{
-    background: oklch(0.16 0.014 285 / .55);
-    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-  .topbar kbd{
-    background: oklch(0.96 0.006 285 / .08);
-    border: 1px solid oklch(0.96 0.006 285 / .12);
-    color: var(--ink-2);
-  }
-  .marquee-top{
-    background: linear-gradient(90deg,
-      oklch(0.42 0.13 18 / .40),
-      oklch(0.40 0.12 310 / .40),
-      oklch(0.38 0.10 240 / .40),
-      oklch(0.50 0.10 62 / .40));
-    border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
-  }
+/* Topbar + marquee */
+html[data-theme="dark"] .topbar{
+  background: oklch(0.16 0.014 285 / .55);
+  border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+}
+html[data-theme="dark"] .topbar kbd{
+  background: oklch(0.96 0.006 285 / .08);
+  border: 1px solid oklch(0.96 0.006 285 / .12);
+  color: var(--ink-2);
+}
+html[data-theme="dark"] .marquee-top{
+  background: linear-gradient(90deg,
+    oklch(0.42 0.13 18 / .40),
+    oklch(0.40 0.12 310 / .40),
+    oklch(0.38 0.10 240 / .40),
+    oklch(0.50 0.10 62 / .40));
+  border-bottom: 1px solid oklch(0.96 0.006 285 / .08);
+}
 
-  /* Kinetic name hover — was darkening, now brighten */
-  .kinetic-row:hover .kinetic-char{ color: oklch(0.85 0.04 285); }
+/* Kinetic name hover — was darkening, now brighten */
+html[data-theme="dark"] .kinetic-row:hover .kinetic-char{ color: oklch(0.85 0.04 285); }
 
-  /* Status badge ("Disponible · Alternance") — lighten green */
-  .status-badge{
-    background: oklch(0.45 0.12 155 / .35);
-    border-color: oklch(0.65 0.16 155 / .45);
-    color: oklch(0.88 0.10 155);
-  }
+/* Status badge ("Disponible · Alternance") — lighten green */
+html[data-theme="dark"] .status-badge{
+  background: oklch(0.45 0.12 155 / .35);
+  border-color: oklch(0.65 0.16 155 / .45);
+  color: oklch(0.88 0.10 155);
+}
 
-  /* Hero stats cards */
-  .stat{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-  .stat:hover{
-    box-shadow: 0 18px 40px oklch(0 0 0 / .35);
-    border-color: oklch(0.83 0.09 310 / .45);
-  }
+/* Hero stats cards */
+html[data-theme="dark"] .stat{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .08);
+}
+html[data-theme="dark"] .stat:hover{
+  box-shadow: 0 18px 40px oklch(0 0 0 / .35);
+  border-color: oklch(0.83 0.09 310 / .45);
+}
 
-  /* Profile portrait — shadow + badge */
-  .profile-img{ box-shadow: 0 24px 60px oklch(0 0 0 / .45); }
-  .profile-img:hover{ box-shadow: 0 32px 70px oklch(0.55 0.18 320 / .35); }
-  .profile-img .img-base{ filter: grayscale(10%) contrast(1.05); }
-  .profile-badge{
-    background: oklch(0.21 0.016 285 / .85);
-    border: 1px solid oklch(0.96 0.006 285 / .1);
-    color: var(--ink-2);
-  }
+/* Profile portrait — shadow + badge */
+html[data-theme="dark"] .profile-img{ box-shadow: 0 24px 60px oklch(0 0 0 / .45); }
+html[data-theme="dark"] .profile-img:hover{ box-shadow: 0 32px 70px oklch(0.55 0.18 320 / .35); }
+html[data-theme="dark"] .profile-img .img-base{ filter: grayscale(10%) contrast(1.05); }
+html[data-theme="dark"] .profile-badge{
+  background: oklch(0.21 0.016 285 / .85);
+  border: 1px solid oklch(0.96 0.006 285 / .1);
+  color: var(--ink-2);
+}
 
-  /* Sidebar text panels */
-  .intro-text{
-    background: oklch(0.24 0.016 285 / .5);
-    border: 1px solid oklch(0.96 0.006 285 / .08);
-    color: var(--ink-2);
-  }
-  .intro-text::before{ color: oklch(0.78 0.16 18); opacity: .65; }
+/* Sidebar text panels */
+html[data-theme="dark"] .intro-text{
+  background: oklch(0.24 0.016 285 / .5);
+  border: 1px solid oklch(0.96 0.006 285 / .08);
+  color: var(--ink-2);
+}
+html[data-theme="dark"] .intro-text::before{ color: oklch(0.78 0.16 18); opacity: .65; }
 
-  .contact-info li{
-    background: oklch(0.24 0.016 285 / .5);
-    border: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-  .contact-info li:hover{
-    border-color: oklch(0.83 0.09 310 / .5);
-    box-shadow: 0 10px 28px oklch(0 0 0 / .3);
-  }
-  .contact-info li[data-nolink]:hover{
-    border-color: oklch(0.96 0.006 285 / .08);
-  }
+html[data-theme="dark"] .contact-info li{
+  background: oklch(0.24 0.016 285 / .5);
+  border: 1px solid oklch(0.96 0.006 285 / .08);
+}
+html[data-theme="dark"] .contact-info li:hover{
+  border-color: oklch(0.83 0.09 310 / .5);
+  box-shadow: 0 10px 28px oklch(0 0 0 / .3);
+}
+html[data-theme="dark"] .contact-info li[data-nolink]:hover{
+  border-color: oklch(0.96 0.006 285 / .08);
+}
 
-  /* Tools chips (sidebar) */
-  .tool-chip{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .12);
-  }
-  .tool-chip:hover{
-    border-color: oklch(0.83 0.09 310 / .5);
-    box-shadow: 0 10px 24px oklch(0 0 0 / .35);
-  }
+/* Tools chips (sidebar) */
+html[data-theme="dark"] .tool-chip{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .12);
+}
+html[data-theme="dark"] .tool-chip:hover{
+  border-color: oklch(0.83 0.09 310 / .5);
+  box-shadow: 0 10px 24px oklch(0 0 0 / .35);
+}
 
-  /* Section headings count chip */
-  .section-head .count{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .14);
-  }
+/* Section headings count chip */
+html[data-theme="dark"] .section-head .count{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .14);
+}
 
-  /* Timeline rail + dots */
-  .timeline::before{
-    background: linear-gradient(180deg,
-      oklch(0.96 0.006 285 / .08) 0%,
-      oklch(0.83 0.09 310 / .35) 30%,
-      oklch(0.84 0.10 18 / .35) 60%,
-      oklch(0.96 0.006 285 / .08) 100%);
-  }
-  .timeline-item::before{
-    background: var(--paper-2);
-    border: 2px solid oklch(0.96 0.006 285 / .25);
-  }
-  .timeline-item.in::before{
-    background: linear-gradient(135deg, var(--rose), var(--lilac));
-    border-color: transparent;
-    box-shadow: 0 0 0 4px var(--paper), 0 0 18px oklch(0.84 0.10 18 / .55);
-  }
-  .timeline-item.current::before{
-    background: linear-gradient(135deg, var(--mint), var(--sky));
-  }
-  @keyframes dotPulse{
-    0%, 100% { box-shadow: 0 0 0 4px oklch(0.16 0.014 285), 0 0 0 0 oklch(0.65 0.16 155 / .6); }
-    70%      { box-shadow: 0 0 0 4px oklch(0.16 0.014 285), 0 0 0 12px oklch(0.65 0.16 155 / 0); }
-  }
+/* Timeline rail + dots */
+html[data-theme="dark"] .timeline::before{
+  background: linear-gradient(180deg,
+    oklch(0.96 0.006 285 / .08) 0%,
+    oklch(0.83 0.09 310 / .35) 30%,
+    oklch(0.84 0.10 18 / .35) 60%,
+    oklch(0.96 0.006 285 / .08) 100%);
+}
+html[data-theme="dark"] .timeline-item::before{
+  background: var(--paper-2);
+  border: 2px solid oklch(0.96 0.006 285 / .25);
+}
+html[data-theme="dark"] .timeline-item.in::before{
+  background: linear-gradient(135deg, var(--rose), var(--lilac));
+  border-color: transparent;
+  box-shadow: 0 0 0 4px var(--paper), 0 0 18px oklch(0.84 0.10 18 / .55);
+}
+html[data-theme="dark"] .timeline-item.current::before{
+  background: linear-gradient(135deg, var(--mint), var(--sky));
+  animation: dotPulseDark 2s ease-in-out infinite;
+}
+@keyframes dotPulseDark{
+  0%, 100% { box-shadow: 0 0 0 4px oklch(0.16 0.014 285), 0 0 0 0 oklch(0.65 0.16 155 / .6); }
+  70%      { box-shadow: 0 0 0 4px oklch(0.16 0.014 285), 0 0 0 12px oklch(0.65 0.16 155 / 0); }
+}
 
-  /* Timeline content cards */
-  .timeline-date .dur-chip{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .1);
-  }
-  .timeline-item:hover .dur-chip{
-    border-color: oklch(0.83 0.09 310 / .5);
-    background: oklch(0.40 0.13 310 / .35);
-  }
-  .timeline-content{
-    background: oklch(0.24 0.016 285 / .5);
-    border: 1px solid oklch(0.96 0.006 285 / .07);
-  }
-  .timeline-content::before{
-    background: linear-gradient(135deg, oklch(0.84 0.10 18 / .12), oklch(0.83 0.09 310 / .12));
-  }
-  .timeline-item:hover .timeline-content{
-    border-color: oklch(0.83 0.09 310 / .4);
-    box-shadow: 0 16px 36px oklch(0 0 0 / .35);
-  }
-  .timeline-content .current-pill{
-    background: oklch(0.45 0.12 155 / .4);
-    border: 1px solid oklch(0.65 0.16 155 / .4);
-    color: oklch(0.88 0.10 155);
-  }
+/* Timeline content cards */
+html[data-theme="dark"] .timeline-date .dur-chip{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .1);
+}
+html[data-theme="dark"] .timeline-item:hover .dur-chip{
+  border-color: oklch(0.83 0.09 310 / .5);
+  background: oklch(0.40 0.13 310 / .35);
+}
+html[data-theme="dark"] .timeline-content{
+  background: oklch(0.24 0.016 285 / .5);
+  border: 1px solid oklch(0.96 0.006 285 / .07);
+}
+html[data-theme="dark"] .timeline-content::before{
+  background: linear-gradient(135deg, oklch(0.84 0.10 18 / .12), oklch(0.83 0.09 310 / .12));
+}
+html[data-theme="dark"] .timeline-item:hover .timeline-content{
+  border-color: oklch(0.83 0.09 310 / .4);
+  box-shadow: 0 16px 36px oklch(0 0 0 / .35);
+}
+html[data-theme="dark"] .timeline-content .current-pill{
+  background: oklch(0.45 0.12 155 / .4);
+  border: 1px solid oklch(0.65 0.16 155 / .4);
+  color: oklch(0.88 0.10 155);
+}
 
-  /* Download CTA card */
-  .download-wrap{
-    background: oklch(0.24 0.016 285 / .55);
-    border: 1px solid oklch(0.96 0.006 285 / .08);
-  }
-  /* .btn.primary keeps rainbow gradient — text already dark, looks great */
+/* Download CTA card */
+html[data-theme="dark"] .download-wrap{
+  background: oklch(0.24 0.016 285 / .55);
+  border: 1px solid oklch(0.96 0.006 285 / .08);
+}
+/* .btn.primary keeps rainbow gradient — text already dark, looks great */
 
-  /* Mini-nav dots (right rail) */
-  .mini-nav button{
-    border: 1px solid oklch(0.96 0.006 285 / .35);
-  }
-  .mini-nav button::after{
-    background: oklch(0.21 0.016 285 / .92);
-    border: 1px solid oklch(0.96 0.006 285 / .12);
-    color: var(--ink);
-  }
+/* Mini-nav dots (right rail) */
+html[data-theme="dark"] .mini-nav button{
+  border: 1px solid oklch(0.96 0.006 285 / .35);
+}
+html[data-theme="dark"] .mini-nav button::after{
+  background: oklch(0.21 0.016 285 / .92);
+  border: 1px solid oklch(0.96 0.006 285 / .12);
+  color: var(--ink);
+}
 
-  /* CV footer */
-  .cv-foot{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
+/* CV footer */
+html[data-theme="dark"] .cv-foot{ border-top: 1px solid oklch(0.96 0.006 285 / .1); }
 
-  /* Toast — invert (var(--ink) is now light, var(--paper) is now dark)
-     gives a "light pill on dark page" — fine. Just lift the shadow. */
-  .toast{ box-shadow: 0 16px 40px oklch(0 0 0 / .5); }
+/* Toast — invert (var(--ink) is now light, var(--paper) is now dark)
+   gives a "light pill on dark page" — fine. Just lift the shadow. */
+html[data-theme="dark"] .toast{ box-shadow: 0 16px 40px oklch(0 0 0 / .5); }
+
+/* ======================================================
+   THEME TOGGLE — CV variant. Sized to match the topbar buttons,
+   icon swaps with a spring rotation. Sun = currently dark,
+   moon = currently light.
+   ====================================================== */
+.theme-toggle{
+  width: 34px; height: 34px;
+  border: 1px solid oklch(0.18 0.015 285 / .15);
+  background: oklch(0.99 0.004 70 / .6);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+  padding: 0; cursor: pointer;
+  display: grid; place-items: center;
+  position: relative;
+  color: var(--ink);
+  transition: background .25s, border-color .25s, transform .35s var(--ease-spring);
+}
+.theme-toggle:hover{
+  border-color: oklch(0.83 0.09 310 / .4);
+  transform: translateY(-1px);
+}
+.theme-toggle svg{
+  width: 16px; height: 16px;
+  position: absolute; inset: 0; margin: auto;
+  stroke: currentColor; stroke-width: 1.6;
+  stroke-linecap: round; stroke-linejoin: round; fill: none;
+  transition: opacity .35s var(--ease-out), transform .55s var(--ease-spring);
+  transform-origin: center;
+}
+.theme-toggle .ico-sun{ opacity: 0; transform: rotate(-120deg) scale(.4); }
+.theme-toggle .ico-moon{ opacity: 1; transform: rotate(0) scale(1); }
+html[data-theme="dark"] .theme-toggle{
+  background: oklch(0.24 0.016 285 / .6);
+  border-color: oklch(0.96 0.006 285 / .15);
+}
+html[data-theme="dark"] .theme-toggle:hover{ border-color: oklch(0.83 0.09 310 / .55); }
+html[data-theme="dark"] .theme-toggle .ico-sun{ opacity: 1; transform: rotate(0) scale(1); }
+html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(120deg) scale(.4); }
+
+@supports (view-transition-name: root){
+  ::view-transition-old(root),
+  ::view-transition-new(root){ animation: none; mix-blend-mode: normal; }
+  ::view-transition-old(root){ z-index: 1; }
+  ::view-transition-new(root){ z-index: 2; }
+}
+@media (prefers-reduced-motion: reduce){
+  .theme-toggle svg{ transition: opacity .15s; transform: none !important; }
 }
 
 /* ======================================================
@@ -1071,7 +1129,7 @@ html[data-aura="off"] *, html[data-aura="off"] *::before, html[data-aura="off"] 
   /* kill only the truly interactive / decorative noise */
   .scroll-progress, .aura-bg, .grain, .topbar, .marquee-top, .mini-nav,
   .back-to-top, .toast, .download-wrap, .cv-foot,
-  .copy-hint, .lens-ring, .section-head .count { display: none !important; }
+  .copy-hint, .lens-ring, .section-head .count, .theme-toggle { display: none !important; }
 
   *, *::before, *::after { animation: none !important; transition: none !important; }
 
@@ -1286,6 +1344,10 @@ html[data-aura="off"] *, html[data-aura="off"] *::before, html[data-aura="off"] 
   <div class="top-right">
     <button class="print-btn" id="printBtn" aria-label="Imprimer le CV">
       Imprimer <kbd>P</kbd>
+    </button>
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Basculer en mode sombre" title="Mode sombre">
+      <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></svg>
     </button>
   </div>
 </header>
@@ -1908,6 +1970,61 @@ html[data-aura="off"] *, html[data-aura="off"] *::before, html[data-aura="off"] 
     } else if (e.key === 'Escape') {
       location.href = 'index.html';
     }
+  });
+})();
+
+/* ============================================================
+   Theme toggle — light ⇄ dark with View Transitions API.
+   The initial theme was applied by the inline <head> script before
+   first paint. This wires the button, persists the choice, and
+   animates the swap as a circular reveal from the button.
+   ============================================================ */
+(() => {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  const html = document.documentElement;
+  const meta = document.getElementById('theme-color-meta');
+  const prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const syncBtnLabel = (theme) => {
+    const next = theme === 'dark' ? 'clair' : 'sombre';
+    btn.setAttribute('aria-label', 'Basculer en mode ' + next);
+    btn.setAttribute('title', 'Mode ' + next);
+  };
+  syncBtnLabel(html.getAttribute('data-theme') || 'light');
+
+  const applyTheme = (theme) => {
+    html.setAttribute('data-theme', theme);
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#15131a' : '#f5efe8');
+    try { localStorage.setItem('theme', theme); } catch(e) {}
+    syncBtnLabel(theme);
+  };
+
+  btn.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next    = current === 'dark' ? 'light' : 'dark';
+
+    if (!document.startViewTransition || prm){
+      applyTheme(next);
+      return;
+    }
+
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width  / 2;
+    const y = rect.top  + rect.height / 2;
+    const r = Math.hypot(
+      Math.max(x, window.innerWidth  - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => applyTheme(next));
+    transition.ready.then(() => {
+      document.documentElement.animate(
+        { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+        { duration: 650, easing: 'cubic-bezier(.2,.7,.1,1)', pseudoElement: '::view-transition-new(root)' }
+      );
+    });
   });
 })();
 </script>

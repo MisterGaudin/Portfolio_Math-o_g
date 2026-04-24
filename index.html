@@ -10,8 +10,21 @@
 <meta name="keywords" content="Mathéo Gaudin, graphiste Nantes, graphiste Angers, illustrateur freelance, identité visuelle, packaging éco-conçu, édition, photographie, drone DGAC, web design, vibe coding, alternance graphisme" />
 <meta name="author" content="Mathéo Gaudin" />
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
-<meta name="theme-color" content="#f5efe8" media="(prefers-color-scheme: light)" />
-<meta name="theme-color" content="#15131a" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" id="theme-color-meta" content="#f5efe8" />
+<script>
+  /* Apply saved theme BEFORE first paint to avoid a flash.
+     Default = light. The toggle button (in app.js) writes to localStorage. */
+  (function(){
+    try{
+      var t = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', t);
+      var m = document.getElementById('theme-color-meta');
+      if (m) m.setAttribute('content', t === 'dark' ? '#15131a' : '#f5efe8');
+    }catch(e){
+      document.documentElement.setAttribute('data-theme', 'light');
+    }
+  })();
+</script>
 <link rel="canonical" href="https://portfolio-math-o-g.vercel.app/index.html" />
 
 <!-- Open Graph -->
@@ -225,9 +238,15 @@
     <a href="#clients">Clients</a>
   </nav>
   <span class="year">© 2026</span>
-  <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="mobileNav">
-    <span></span><span></span><span></span>
-  </button>
+  <div class="top-actions">
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Basculer en mode sombre" title="Mode sombre">
+      <svg class="ico-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="ico-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.5 4.5l2 2M17.5 17.5l2 2M4.5 19.5l2-2M17.5 6.5l2-2"/></svg>
+    </button>
+    <button class="burger" id="burger" aria-label="Ouvrir le menu" aria-expanded="false" aria-controls="mobileNav">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
 </header>
 
 <!-- Mobile drawer nav -->

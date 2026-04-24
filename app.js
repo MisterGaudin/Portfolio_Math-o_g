@@ -717,3 +717,78 @@ const BLOBS = {
     if (window.innerWidth > 800 && drawer.classList.contains('open')) close();
   });
 })();
+
+/* =====================================================
+   Theme toggle — light ⇄ dark.
+   The initial theme is applied by an inline <head> script (anti-FOUC),
+   so by the time we run, html[data-theme] is already set. We just
+   wire the button, persist the choice, sync the address-bar color,
+   and animate the swap with the View Transitions API where supported
+   (a circular reveal expanding from the click point). Falls back to
+   an instant theme swap on browsers without the API.
+   ===================================================== */
+(() => {
+  const btn = document.getElementById('themeToggle');
+  if (!btn) return;
+
+  const html = document.documentElement;
+  const meta = document.getElementById('theme-color-meta');
+  const prm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const syncBtnLabel = (theme) => {
+    const next = theme === 'dark' ? 'clair' : 'sombre';
+    btn.setAttribute('aria-label', 'Basculer en mode ' + next);
+    btn.setAttribute('title', 'Mode ' + next);
+  };
+  syncBtnLabel(html.getAttribute('data-theme') || 'light');
+
+  const applyTheme = (theme) => {
+    html.setAttribute('data-theme', theme);
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#15131a' : '#f5efe8');
+    try { localStorage.setItem('theme', theme); } catch(e) {}
+    syncBtnLabel(theme);
+  };
+
+  const swap = () => {
+    const current = html.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    const next    = current === 'dark' ? 'light' : 'dark';
+
+    // No View Transitions support, or user prefers reduced motion → instant.
+    if (!document.startViewTransition || prm){
+      applyTheme(next);
+      return;
+    }
+
+    // Circular reveal radiating from the toggle button. We compute the
+    // farthest viewport corner so the circle always fully covers the screen.
+    const rect = btn.getBoundingClientRect();
+    const x = rect.left + rect.width  / 2;
+    const y = rect.top  + rect.height / 2;
+    const r = Math.hypot(
+      Math.max(x, window.innerWidth  - x),
+      Math.max(y, window.innerHeight - y)
+    );
+
+    const transition = document.startViewTransition(() => applyTheme(next));
+
+    transition.ready.then(() => {
+      // Going to dark: the new (dark) layer reveals OVER the old (light).
+      // Going to light: same idea, the new (light) layer reveals OVER the old (dark).
+      document.documentElement.animate(
+        {
+          clipPath: [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${r}px at ${x}px ${y}px)`
+          ]
+        },
+        {
+          duration: 650,
+          easing: 'cubic-bezier(.2,.7,.1,1)',
+          pseudoElement: '::view-transition-new(root)'
+        }
+      );
+    });
+  };
+
+  btn.addEventListener('click', swap);
+})();
