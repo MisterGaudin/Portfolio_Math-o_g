@@ -795,3 +795,87 @@ const BLOBS = {
 
   btn.addEventListener('click', swap);
 })();
+
+/* =====================================================
+   Force-dark detection — Samsung Internet's "Always on" dark
+   mode (and Chrome Android's force-dark) sit ABOVE our
+   color-scheme: only X opt-out: they're a user-level
+   accessibility filter and intentionally cannot be turned
+   off by the page. We can however DETECT it (by sampling what
+   the browser actually renders for white) and surface a
+   discreet, dismissible notice with step-by-step instructions
+   so the user knows why our toggle isn't doing anything.
+   ===================================================== */
+(() => {
+  if (sessionStorage.getItem('fd-notice-dismissed') === '1') return;
+
+  // Wait for layout + fonts to settle so the probe color is stable
+  setTimeout(() => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;background:#fff;color:#000;pointer-events:none;';
+    document.body.appendChild(probe);
+    const bg = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+
+    const m = bg.match(/\d+/g);
+    if (!m || m.length < 3) return;
+    // Pure white = 765 (255+255+255). If significantly less, the browser is
+    // applying a color filter on top of the page (force-dark).
+    if (+m[0] + +m[1] + +m[2] >= 600) return;
+
+    document.documentElement.setAttribute('data-forced-dark', '1');
+    showNotice();
+  }, 350);
+
+  function showNotice(){
+    const n = document.createElement('div');
+    n.className = 'fd-notice';
+    n.innerHTML =
+      '<span class="fd-icn" aria-hidden="true">🌙</span>' +
+      '<span class="fd-msg">Mode sombre forcé par votre navigateur</span>' +
+      '<button class="fd-help" type="button">Désactiver</button>' +
+      '<button class="fd-close" type="button" aria-label="Ignorer">×</button>';
+    document.body.appendChild(n);
+    requestAnimationFrame(() => n.classList.add('show'));
+
+    n.querySelector('.fd-help').addEventListener('click', openInstructions);
+    n.querySelector('.fd-close').addEventListener('click', () => {
+      n.classList.remove('show');
+      try { sessionStorage.setItem('fd-notice-dismissed', '1'); } catch(e){}
+      setTimeout(() => n.remove(), 450);
+    });
+  }
+
+  function openInstructions(){
+    const o = document.createElement('div');
+    o.className = 'fd-modal';
+    o.innerHTML =
+      '<div class="fd-panel" role="dialog" aria-modal="true" aria-labelledby="fd-title">' +
+        '<h3 id="fd-title">Mode sombre forcé par votre navigateur</h3>' +
+        '<p>Votre navigateur applique automatiquement un mode sombre par-dessus tous les sites, ce qui empêche le bouton de bascule de fonctionner. Pour profiter du portfolio dans le mode de votre choix :</p>' +
+        '<h4>Samsung Internet</h4>' +
+        '<ol>' +
+          '<li>Touchez le menu <strong>≡</strong> en bas à droite</li>' +
+          '<li>Ouvrez <strong>Paramètres</strong></li>' +
+          '<li>Allez dans <strong>Mise en page et menus</strong> → <strong>Mode sombre</strong></li>' +
+          '<li>Choisissez <em>Auto par page web</em></li>' +
+        '</ol>' +
+        '<h4>Chrome Android</h4>' +
+        '<ol>' +
+          '<li>Menu <strong>⋮</strong> → <strong>Paramètres</strong></li>' +
+          '<li>Touchez <strong>Thème</strong></li>' +
+          '<li>Sélectionnez <em>Système</em> ou <em>Clair</em></li>' +
+        '</ol>' +
+        '<button class="fd-ok" type="button">J\'ai compris</button>' +
+      '</div>';
+    document.body.appendChild(o);
+    requestAnimationFrame(() => o.classList.add('show'));
+
+    const close = () => {
+      o.classList.remove('show');
+      setTimeout(() => o.remove(), 400);
+    };
+    o.querySelector('.fd-ok').addEventListener('click', close);
+    o.addEventListener('click', (e) => { if (e.target === o) close(); });
+  }
+})();

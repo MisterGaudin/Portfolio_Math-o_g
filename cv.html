@@ -1130,6 +1130,140 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 }
 
 /* ======================================================
+   FORCE-DARK NOTICE (Samsung Internet "Always on" / Chrome
+   Android force-dark detection — see app.js for the same
+   styling on the portfolio page).
+   ====================================================== */
+.fd-notice{
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 80;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: calc(100vw - 24px);
+  padding: 8px 8px 8px 14px;
+  border-radius: 999px;
+  background: oklch(0.99 0.004 70 / .92);
+  border: 1px solid oklch(0.18 0.015 285 / .12);
+  backdrop-filter: blur(14px) saturate(1.2);
+  box-shadow: 0 12px 30px oklch(0.18 0.015 285 / .18);
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .03em;
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .4s var(--ease-out), transform .5s var(--ease-out);
+}
+.fd-notice.show{ opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+.fd-notice .fd-icn{ font-size: 13px; line-height: 1; }
+.fd-notice .fd-msg{ white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60vw; }
+.fd-notice .fd-help{
+  border: none;
+  background: linear-gradient(115deg, var(--rose), var(--lilac));
+  color: oklch(0.18 0.015 285);
+  padding: 5px 11px;
+  border-radius: 999px;
+  font: inherit;
+  letter-spacing: .04em;
+  cursor: pointer;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.fd-notice .fd-close{
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: oklch(0.18 0.015 285 / .08);
+  color: var(--ink);
+  font-size: 16px; line-height: 1;
+  cursor: pointer;
+  display: grid; place-items: center;
+}
+@media (max-width: 480px){
+  .fd-notice{ font-size: 10px; padding: 6px 6px 6px 12px; gap: 8px; }
+  .fd-notice .fd-msg{ max-width: 50vw; }
+}
+
+.fd-modal{
+  position: fixed; inset: 0;
+  z-index: 130;
+  display: grid; place-items: center;
+  background: oklch(0.12 0.012 285 / 0);
+  backdrop-filter: blur(0);
+  padding: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .35s var(--ease-out), backdrop-filter .35s, background .35s;
+}
+.fd-modal.show{
+  opacity: 1; pointer-events: auto;
+  background: oklch(0.12 0.012 285 / .65);
+  backdrop-filter: blur(20px);
+}
+.fd-modal .fd-panel{
+  max-width: 440px; width: 100%;
+  background: oklch(0.99 0.004 70);
+  border-radius: 24px;
+  padding: 32px 28px 24px;
+  box-shadow: 0 40px 100px oklch(0 0 0 / .35);
+  transform: scale(.92) translateY(20px);
+  transition: transform .45s var(--ease-out);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.fd-modal.show .fd-panel{ transform: scale(1) translateY(0); }
+.fd-modal h3{
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 0 0 12px;
+  color: oklch(0.18 0.015 285);
+}
+.fd-modal h4{
+  font-family: var(--f-mono);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: oklch(0.62 0.012 285);
+  margin: 18px 0 8px;
+}
+.fd-modal p{
+  margin: 0 0 12px;
+  font-size: 14px; line-height: 1.55;
+  color: oklch(0.38 0.018 285);
+}
+.fd-modal ol{
+  font-size: 13px; line-height: 1.7;
+  color: oklch(0.18 0.015 285);
+  padding-left: 20px;
+  margin: 0;
+}
+.fd-modal ol li{ margin-bottom: 4px; }
+.fd-modal ol em{ font-style: italic; color: oklch(0.55 0.18 320); font-weight: 500; }
+.fd-modal .fd-ok{
+  margin-top: 24px;
+  width: 100%;
+  padding: 14px;
+  border: none;
+  background: linear-gradient(115deg, var(--rose), var(--lilac), var(--sky));
+  color: oklch(0.18 0.015 285);
+  border-radius: 14px;
+  font-family: var(--f-mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  font-weight: 500;
+  cursor: pointer;
+  transition: transform .3s var(--ease-out);
+}
+.fd-modal .fd-ok:hover{ transform: translateY(-2px); }
+
+/* ======================================================
    PRINT, single A4 page, compact
    ====================================================== */
 @page { size: A4 portrait; margin: 0; }
@@ -2038,6 +2172,81 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
       );
     });
   });
+})();
+
+/* ============================================================
+   Force-dark detection (Samsung Internet "Always on" / Chrome
+   Android force-dark). Same logic as the portfolio's app.js.
+   ============================================================ */
+(() => {
+  if (sessionStorage.getItem('fd-notice-dismissed') === '1') return;
+
+  setTimeout(() => {
+    const probe = document.createElement('div');
+    probe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;background:#fff;color:#000;pointer-events:none;';
+    document.body.appendChild(probe);
+    const bg = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+
+    const m = bg.match(/\d+/g);
+    if (!m || m.length < 3) return;
+    if (+m[0] + +m[1] + +m[2] >= 600) return;
+
+    document.documentElement.setAttribute('data-forced-dark', '1');
+    showNotice();
+  }, 350);
+
+  function showNotice(){
+    const n = document.createElement('div');
+    n.className = 'fd-notice';
+    n.innerHTML =
+      '<span class="fd-icn" aria-hidden="true">🌙</span>' +
+      '<span class="fd-msg">Mode sombre forcé par votre navigateur</span>' +
+      '<button class="fd-help" type="button">Désactiver</button>' +
+      '<button class="fd-close" type="button" aria-label="Ignorer">×</button>';
+    document.body.appendChild(n);
+    requestAnimationFrame(() => n.classList.add('show'));
+
+    n.querySelector('.fd-help').addEventListener('click', openInstructions);
+    n.querySelector('.fd-close').addEventListener('click', () => {
+      n.classList.remove('show');
+      try { sessionStorage.setItem('fd-notice-dismissed', '1'); } catch(e){}
+      setTimeout(() => n.remove(), 450);
+    });
+  }
+
+  function openInstructions(){
+    const o = document.createElement('div');
+    o.className = 'fd-modal';
+    o.innerHTML =
+      '<div class="fd-panel" role="dialog" aria-modal="true" aria-labelledby="fd-title">' +
+        '<h3 id="fd-title">Mode sombre forcé par votre navigateur</h3>' +
+        '<p>Votre navigateur applique automatiquement un mode sombre par-dessus tous les sites, ce qui empêche le bouton de bascule de fonctionner. Pour profiter du portfolio dans le mode de votre choix :</p>' +
+        '<h4>Samsung Internet</h4>' +
+        '<ol>' +
+          '<li>Touchez le menu <strong>≡</strong> en bas à droite</li>' +
+          '<li>Ouvrez <strong>Paramètres</strong></li>' +
+          '<li>Allez dans <strong>Mise en page et menus</strong> → <strong>Mode sombre</strong></li>' +
+          '<li>Choisissez <em>Auto par page web</em></li>' +
+        '</ol>' +
+        '<h4>Chrome Android</h4>' +
+        '<ol>' +
+          '<li>Menu <strong>⋮</strong> → <strong>Paramètres</strong></li>' +
+          '<li>Touchez <strong>Thème</strong></li>' +
+          '<li>Sélectionnez <em>Système</em> ou <em>Clair</em></li>' +
+        '</ol>' +
+        '<button class="fd-ok" type="button">J\'ai compris</button>' +
+      '</div>';
+    document.body.appendChild(o);
+    requestAnimationFrame(() => o.classList.add('show'));
+
+    const close = () => {
+      o.classList.remove('show');
+      setTimeout(() => o.remove(), 400);
+    };
+    o.querySelector('.fd-ok').addEventListener('click', close);
+    o.addEventListener('click', (e) => { if (e.target === o) close(); });
+  }
 })();
 </script>
 
