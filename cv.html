@@ -54,7 +54,11 @@
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..500&display=swap"></noscript>
+
+<!-- LCP preload : portrait du CV -->
+<link rel="preload" as="image" href="assets/CV_imprimable/Math%C3%A9o_gaudin_image%20du%20dessus.webp" fetchpriority="high">
 
 <!-- Structured data — Person + résumé. Aide les LLMs à indexer le parcours. -->
 <script type="application/ld+json">
@@ -1609,8 +1613,8 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="profile-img reveal" id="profileLens">
-      <img loading="eager" fetchpriority="high" decoding="async" src="assets/CV_imprimable/Mathéo_gaudin_image du dessus.webp" alt="Mathéo Gaudin" class="img-base">
-      <img loading="lazy" decoding="async" src="assets/CV_imprimable/Mathéo_image_du dessous.webp" alt="Mathéo Gaudin, holographique" class="img-reveal">
+      <img width="1254" height="1254" loading="eager" fetchpriority="high" decoding="async" src="assets/CV_imprimable/Mathéo_gaudin_image du dessus.webp" alt="Mathéo Gaudin" class="img-base">
+      <img width="1254" height="1254" loading="lazy" decoding="async" src="assets/CV_imprimable/Mathéo_image_du dessous.webp" alt="Mathéo Gaudin, holographique" class="img-reveal">
       <div class="lens-ring"></div>
       <div class="profile-badge"><span class="pulse"></span> Nantes / Angers</div>
     </div>
@@ -1647,14 +1651,14 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
     <div class="tools-block reveal delay-1">
       <h4>Logiciels utilisés</h4>
       <div class="tools-grid" id="toolsGrid">
-        <span class="tool-chip" data-t="photoshop"><img loading="lazy" decoding="async" src="assets/Icons/photoshop.svg" alt="">Photoshop</span>
-        <span class="tool-chip" data-t="indesign"><img loading="lazy" decoding="async" src="assets/Icons/indesign.svg" alt="">InDesign</span>
-        <span class="tool-chip" data-t="illustrator"><img loading="lazy" decoding="async" src="assets/Icons/illustrator.svg" alt="">Illustrator</span>
-        <span class="tool-chip" data-t="figma"><img loading="lazy" decoding="async" src="assets/Icons/figma.svg" alt="">Figma</span>
-        <span class="tool-chip" data-t="premiere"><img loading="lazy" decoding="async" src="assets/Icons/premiere.svg" alt="">Premiere Pro</span>
-        <span class="tool-chip" data-t="lightroom"><img loading="lazy" decoding="async" src="assets/Icons/lightroom.svg" alt="">Lightroom</span>
-        <span class="tool-chip" data-t="creative_cloud"><img loading="lazy" decoding="async" src="assets/Icons/creative_cloud.svg" alt="">Creative Cloud</span>
-        <span class="tool-chip" data-t="claude"><img loading="lazy" decoding="async" src="assets/Icons/claude-logo.svg" alt="">Claude</span>
+        <span class="tool-chip" data-t="photoshop"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/photoshop.svg" alt="">Photoshop</span>
+        <span class="tool-chip" data-t="indesign"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/indesign.svg" alt="">InDesign</span>
+        <span class="tool-chip" data-t="illustrator"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/illustrator.svg" alt="">Illustrator</span>
+        <span class="tool-chip" data-t="figma"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/figma.svg" alt="">Figma</span>
+        <span class="tool-chip" data-t="premiere"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/premiere.svg" alt="">Premiere Pro</span>
+        <span class="tool-chip" data-t="lightroom"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/lightroom.svg" alt="">Lightroom</span>
+        <span class="tool-chip" data-t="creative_cloud"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/creative_cloud.svg" alt="">Creative Cloud</span>
+        <span class="tool-chip" data-t="claude"><img width="22" height="22" loading="lazy" decoding="async" src="assets/Icons/claude-logo.svg" alt="">Claude</span>
       </div>
     </div>
   </aside>
@@ -1813,7 +1817,7 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 <button class="back-to-top" id="backToTop" aria-label="Retour en haut">↑</button>
 
 <!-- Print-only sheet — system print dialog renders this WebP, never the HTML CV. -->
-<img class="print-sheet" src="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" alt="" aria-hidden="true">
+<img class="print-sheet" width="7016" height="4961" loading="lazy" decoding="async" src="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" alt="" aria-hidden="true">
 
 <!-- Toast -->
 <div class="toast" id="toast"><span class="icn">✓</span><span id="toastMsg">Copié dans le presse-papier</span></div>

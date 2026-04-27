@@ -58,8 +58,12 @@
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,300;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..500&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..500&family=Inter:wght@300..600&family=JetBrains+Mono:wght@400..500&display=swap"></noscript>
 <link rel="stylesheet" href="style.css">
+
+<!-- LCP preload : portrait du hero, premier élément visible above the fold -->
+<link rel="preload" as="image" href="assets/GAUDIN_math%C3%A9o_profil_photo_image_Matheo_godin_new.webp" fetchpriority="high">
 
 <!-- Structured data (JSON-LD) — Person + CreativeWork + WebSite. Aide les LLMs et moteurs à comprendre qui est Mathéo, quoi/où/quand. -->
 <script type="application/ld+json">
@@ -328,7 +332,7 @@
       <div class="halo"></div>
       <!-- Portrait photo -->
       <div class="img" role="img" aria-label="Portrait de Mathéo Gaudin">
-        <img loading="eager" fetchpriority="high" decoding="async" src="assets/GAUDIN_math%C3%A9o_profil_photo_image_Matheo_godin_new.webp" alt="Mathéo Gaudin" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:94%;height:auto;max-width:none;max-height:none;object-fit:contain;mix-blend-mode:normal;">
+        <img width="1213" height="1599" loading="eager" fetchpriority="high" decoding="async" src="assets/GAUDIN_math%C3%A9o_profil_photo_image_Matheo_godin_new.webp" alt="Mathéo Gaudin" style="position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:94%;height:auto;max-width:none;max-height:none;object-fit:contain;mix-blend-mode:normal;">
       </div>
       <div class="ring"><span></span></div>
       <div class="cv-badge">Curriculum Vitae ↗</div>
@@ -355,27 +359,27 @@
   </div>
   <div class="gallery illus-cluster reveal delay-1">
     <div class="fluid-mask" data-morph="c" data-lb-title="Jirachi - fanart Pokémon" data-lb-kind="illustration digitale" style="--tint-a: var(--lilac); --tint-b: var(--rose)" data-tools="procreate,photoshop" data-gallery='[{"img":"assets/illustration-1-jirachi.webp","label":"Jirachi - fanart","caption":"illustration digitale · 2023"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-1-jirachi.webp" alt="Jirachi fanart Pokémon" style="mix-blend-mode:normal; object-position: 50% 28%"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1806" height="2563" loading="lazy" decoding="async" src="assets/illustration-1-jirachi.webp" alt="Jirachi fanart Pokémon" style="mix-blend-mode:normal; object-position: 50% 28%"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Jirachi · fanart</span><span>↘ digital</span></div>
     </div>
     <div class="fluid-mask" data-morph="a" data-lb-title="Déclaration stellaire - encre" data-lb-kind="encre sur papier" style="--tint-a: var(--sky); --tint-b: var(--mint)" data-tools="encre,feutre" data-gallery='[{"img":"assets/illustration-2-lune.webp","label":"Déclaration stellaire","caption":"encre sur papier"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-2-lune.webp" alt="Femme tenant la lune, dessin à l'encre" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1440" height="1802" loading="lazy" decoding="async" src="assets/illustration-2-lune.webp" alt="Femme tenant la lune, dessin à l'encre" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Déclaration stellaire</span><span>↘ encre</span></div>
     </div>
     <div class="fluid-mask" data-morph="e" data-lb-title="Le Grand Éléphant - Nantes" data-lb-kind="crayon de bois · noir et blanc" style="--tint-a: var(--peach); --tint-b: var(--rose)" data-tools="crayon" data-gallery='[{"img":"assets/illustration-3-elephant.webp","label":"Le Grand Éléphant","caption":"étude au crayon de bois - Machines de l'île"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-3-elephant.webp" alt="Grand éléphant des Machines de l'île, crayon" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="920" height="656" loading="lazy" decoding="async" src="assets/illustration-3-elephant.webp" alt="Grand éléphant des Machines de l'île, crayon" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Grand Éléphant</span><span>↘ crayon de bois</span></div>
     </div>
     <div class="fluid-mask" data-morph="b" data-lb-title="Complicité - fille & chat" data-lb-kind="illustration digitale" style="--tint-a: var(--mint); --tint-b: var(--sky)" data-tools="procreate" data-gallery='[{"img":"assets/illustration-4-fille-chat.webp","label":"Complicité","caption":"aquarelle numérique"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-4-fille-chat.webp" alt="Fille et chat, aquarelle numérique" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1042" height="1041" loading="lazy" decoding="async" src="assets/illustration-4-fille-chat.webp" alt="Fille et chat, aquarelle numérique" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Complicité</span><span>↘ aquarelle num.</span></div>
     </div>
     <div class="fluid-mask" data-morph="d" data-lb-title="Renard d'automne" data-lb-kind="illustration digitale dans le style aquarelle" style="--tint-a: var(--rose); --tint-b: var(--lilac)" data-tools="aquarelle" data-gallery='[{"img":"assets/illustration-5-renard.webp","label":"Renard d&#39;automne","caption":"illustration digitale dans le style aquarelle"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-5-renard.webp" alt="Renard entouré de feuilles d'automne" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1792" height="1832" loading="lazy" decoding="async" src="assets/illustration-5-renard.webp" alt="Renard entouré de feuilles d'automne" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Renard d'automne</span><span>↘ illustration digitale</span></div>
     </div>
     <div class="fluid-mask" data-morph="f" data-lb-title="Carnet - portraits" data-lb-kind="croquis carnet" style="--tint-a: oklch(0.82 0.10 80); --tint-b: var(--peach)" data-tools="crayon,carnet" data-gallery='[{"img":"assets/illustration-6-carnet.webp","label":"Carnet de croquis","caption":"portraits au crayon"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/illustration-6-carnet.webp" alt="Carnet de croquis au crayon" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1536" height="916" loading="lazy" decoding="async" src="assets/illustration-6-carnet.webp" alt="Carnet de croquis au crayon" style="mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Carnet · portraits</span><span>↘ crayon</span></div>
     </div>
   </div>
@@ -411,7 +415,7 @@
          data-gallery='[{"img":"assets/édition_livre_de_cuisine/cuisine final3.webp","label":"Mise en scène","caption":"page sommaire présentation"},{"img":"assets/édition_livre_de_cuisine/cuisine final4.webp","label":"Double page recettes","caption":"illustration, section intérieure"},{"img":"assets/édition_livre_de_cuisine/livre cuisine page_tarte tomates_gaudin_Mathéo.webp","label":"Page de recette","caption":"Tarte aux tomates"},{"img":"assets/édition_livre_de_cuisine/livre cuisine page_4decouv_gaudin_Mathéo.webp","label":"4ème de couverture","caption":"4ème de couverture et illustration interne"},{"img":"assets/édition_livre_de_cuisine/couverture Livre cuisine_croquis.webp","label":"Recherches graphiques","caption":"croquis couverture"}]'
          style="--tint-a: oklch(0.85 0.15 90); --tint-b: var(--rose)">
       <div class="inner">
-        <img loading="lazy" decoding="async" src="assets/édition_livre_de_cuisine/livre cuisine page_jaune_gaudin_Mathéo.webp" alt="Page d'introduction du livre de cuisine sur fond jaune" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
+        <img width="1390" height="1026" loading="lazy" decoding="async" src="assets/édition_livre_de_cuisine/livre cuisine page_jaune_gaudin_Mathéo.webp" alt="Page d'introduction du livre de cuisine sur fond jaune" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
       </div>
       <div class="zoom-hint">↗</div>
       <div class="caption"><span>Livre de cuisine</span><span>↘ édition</span></div>
@@ -454,7 +458,7 @@
          data-tools="illustrator,photoshop,indesign"
          data-gallery='[{"img":"assets/chocolat/envie-choco.webp","label":"Le bonbon signature","caption":"tampographie alimentaire"},{"img":"assets/chocolat/coffrets-trio.webp","label":"Coffret ouvert - 8 bonbons","caption":"packaging"},{"img":"assets/chocolat/tripack-boite.webp","label":"Coffret fermé","caption":"variation de packaging"},{"youtube":"04u-buKjNvI","img":"https://img.youtube.com/vi/04u-buKjNvI/maxresdefault.jpg","label":"Sébastien Goult en vidéo","caption":"animation du logo"},{"img":"assets/chocolat/chef-sebastien.webp","label":"Sébastien Goult, chef chocolatier","caption":"portrait atelier"},{"img":"assets/chocolat/atelier-mains.webp","label":"La main du chef","caption":"dressage cacao"}]'>
       <div class="inner">
-        <img loading="lazy" decoding="async" src="assets/chocolat/envie-choco.webp" alt="Bonbon chocolat Sébastien Goult, logotype en tampographie alimentaire" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
+        <img width="1678" height="937" loading="lazy" decoding="async" src="assets/chocolat/envie-choco.webp" alt="Bonbon chocolat Sébastien Goult, logotype en tampographie alimentaire" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
       </div>
       <div class="zoom-hint">↗</div>
       <div class="caption"><span>Sébastien Goult · identité</span><span>↘ brand</span></div>
@@ -480,27 +484,27 @@
   </div>
   <div class="gallery mosaic reveal delay-1">
     <div class="fluid-mask" data-morph="c" data-lb-title="Louis - portrait végétal" data-lb-kind="photographie" style="--tint-a: var(--mint); --tint-b: var(--sky)" data-tools="lightroom,photoshop" data-gallery='[{"img":"assets/photo/portrait-louis.webp","label":"Louis","caption":"portrait cach\u00e9 · bambou"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/portrait-louis.webp" alt="Louis, portrait dans les bambous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1064" height="1479" loading="lazy" decoding="async" src="assets/photo/portrait-louis.webp" alt="Louis, portrait dans les bambous" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Louis · bambous</span><span>↘ portrait</span></div>
     </div>
     <div class="fluid-mask" data-morph="d" data-lb-title="Aneline - portrait studio" data-lb-kind="photographie" style="--tint-a: var(--sky); --tint-b: var(--rose)" data-tools="lightroom,photoshop" data-gallery='[{"img":"assets/photo/portrait-aneline.webp","label":"Aneline","caption":"portrait studio · lumière bleuée"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/portrait-aneline.webp" alt="Aneline, portrait studio" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1025" height="1534" loading="lazy" decoding="async" src="assets/photo/portrait-aneline.webp" alt="Aneline, portrait studio" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Aneline · studio</span><span>↘ portrait</span></div>
     </div>
     <div class="fluid-mask" data-morph="e" data-lb-title="Terrasse sur Loire" data-lb-kind="photographie" style="--tint-a: var(--peach); --tint-b: var(--rose)" data-tools="lightroom" data-gallery='[{"img":"assets/photo/loire-terrasse.webp","label":"Terrasse sur Loire","caption":"coucher de soleil · Angers"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/loire-terrasse.webp" alt="Terrasse en bord de Loire au coucher de soleil" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1033" height="1377" loading="lazy" decoding="async" src="assets/photo/loire-terrasse.webp" alt="Terrasse en bord de Loire au coucher de soleil" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Bord de Loire</span><span>↘ paysage</span></div>
     </div>
     <div class="fluid-mask" data-morph="f" data-lb-title="Ouverture du ciel" data-lb-kind="photographie" style="--tint-a: var(--rose); --tint-b: var(--peach)" data-tools="lightroom" data-gallery='[{"img":"assets/photo/ciel-ouverture.webp","label":"Ouverture du ciel","caption":"nuages embras\u00e9s"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/ciel-ouverture.webp" alt="Ciel embrasé, nuages rose et or" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="3000" height="4000" loading="lazy" decoding="async" src="assets/photo/ciel-ouverture.webp" alt="Ciel embrasé, nuages rose et or" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Ouverture du ciel</span><span>↘ ciel</span></div>
     </div>
     <div class="fluid-mask" data-morph="a" data-lb-title="Packshot - Sakuma" data-lb-kind="photographie" style="--tint-a: oklch(0.72 0.14 40); --tint-b: oklch(0.55 0.12 30)" data-tools="lightroom,photoshop" data-gallery='[{"img":"assets/photo/packshot-japonais.webp","label":"Packshot mis en sc\u00e8ne","caption":"feuillage d&#39;automne \u00b7 lumi\u00e8re chaude"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/packshot-japonais.webp" alt="Packshot produit mis en scène dans un sous-bois" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1085" height="1450" loading="lazy" decoding="async" src="assets/photo/packshot-japonais.webp" alt="Packshot produit mis en scène dans un sous-bois" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Packshot · mise en scène</span><span>↘ produit</span></div>
     </div>
     <div class="fluid-mask" data-morph="b" data-lb-title="Pissenlit · contre-jour" data-lb-kind="photographie" style="--tint-a: var(--peach); --tint-b: var(--mint)" data-tools="lightroom" data-gallery='[{"img":"assets/photo/pissenlit.webp","label":"Pissenlit","caption":"contre-jour · fin de journ\u00e9e"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/photo/pissenlit.webp" alt="Pissenlit en contre-jour au crépuscule" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1024" height="1294" loading="lazy" decoding="async" src="assets/photo/pissenlit.webp" alt="Pissenlit en contre-jour au crépuscule" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 60%;mix-blend-mode:normal;"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Pissenlit · contre-jour</span><span>↘ nature</span></div>
     </div>
   </div>
@@ -531,7 +535,7 @@
          data-lb-title="Vue du ciel" data-lb-kind="drone · photographie"
          style="--tint-a: var(--sky); --tint-b: var(--mint)">
       <div class="inner">
-        <img loading="lazy" decoding="async" src="assets/Vu d'en haut_drone/Prise de vu drone_freigné .webp" alt="Prise de vue drone - Freigné" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;mix-blend-mode:normal">
+        <img width="1448" height="1086" loading="lazy" decoding="async" src="assets/Vu d'en haut_drone/Prise de vu drone_freigné .webp" alt="Prise de vue drone - Freigné" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;mix-blend-mode:normal">
       </div>
       <div class="zoom-hint">↗</div>
       <div class="caption"><span>Freigné</span><span>↘ 04.2025</span></div>
@@ -559,19 +563,19 @@
   </div>
   <div class="gallery event-grid reveal delay-1">
     <div class="fluid-mask feature fs-direct" data-morph="d" data-lb-title="Affiche de l'exposition" data-lb-kind="événementiel · identité print" style="--tint-a: oklch(0.78 0.14 275); --tint-b: oklch(0.82 0.12 80)" data-tools="illustrator,photoshop,indesign" data-gallery='[{"img":"assets/event-expo-studio/06-affiche-a3.webp","label":"Affiche officielle","caption":"A3 · 18-19 avril · Tiers-Lieu L&#39;Esvière, Angers"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/event-expo-studio/06-affiche-a3.webp" alt="Affiche L'Expo du Studio" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1069" height="1513" loading="lazy" decoding="async" src="assets/event-expo-studio/06-affiche-a3.webp" alt="Affiche L'Expo du Studio" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Affiche de l'exposition</span><span>↘ 04.25</span></div>
     </div>
     <div class="fluid-mask tall" data-morph="a" data-lb-title="Vêtements de l'événement" data-lb-kind="événementiel · merch & textile" style="--tint-a: var(--lilac); --tint-b: var(--rose)" data-tools="illustrator,photoshop" data-gallery='[{"img":"assets/event-expo-studio/02-tshirts-duo.webp","label":"Duo t-shirts - Art makes the rules","caption":"édition limitée"},{"img":"assets/event-expo-studio/10-tshirt-vert.webp","label":"T-shirt - Art makes the rules (vert)","caption":"sérigraphie · illustration originale"},{"img":"assets/event-expo-studio/03-tshirt-mathis.webp","label":"T-shirt - version bleue","caption":"sérigraphie dos"},{"img":"assets/event-expo-studio/04-tshirt-sarah.webp","label":"T-shirt - Logo sérigraphie","caption":"logo sur t-shirt"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/event-expo-studio/02-tshirts-duo.webp" alt="Vêtements de l'événement - duo t-shirts" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1087" height="1447" loading="lazy" decoding="async" src="assets/event-expo-studio/02-tshirts-duo.webp" alt="Vêtements de l'événement - duo t-shirts" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Vêtements de l'événement</span><span>↘ merch</span></div>
     </div>
     <div class="fluid-mask tall" data-morph="b" data-lb-title="Signalétique" data-lb-kind="événementiel · wayfinding" style="--tint-a: var(--sky); --tint-b: var(--lilac)" data-tools="illustrator,indesign" data-gallery='[{"img":"assets/event-expo-studio/05-signaletique.webp","label":"Signalétique entrée","caption":"affiche + plan du tiers-lieu"},{"img":"assets/event-expo-studio/08-signaletique-ecran.webp","label":"Écran intérieur","caption":"diffusion de l&#39;affiche · tiers-lieu"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/event-expo-studio/05-signaletique.webp" alt="Signalétique de l'événement" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1031" height="1448" loading="lazy" decoding="async" src="assets/event-expo-studio/05-signaletique.webp" alt="Signalétique de l'événement" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 35%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Signalétique</span><span>↘ 04.25</span></div>
     </div>
     <div class="fluid-mask tall" data-morph="c" data-lb-title="Photos de l'événement" data-lb-kind="événementiel · reportage" style="--tint-a: var(--peach); --tint-b: var(--rose)" data-tools="lightroom,photoshop" data-gallery='[{"img":"assets/event-expo-studio/07-evenement.webp","label":"Jour J","caption":"visiteur de l&#39;événement"},{"img":"assets/event-expo-studio/09-sceno-discussion.webp","label":"Scénographie & public","caption":"photo · Mathis Duval"},{"img":"assets/event-expo-studio/11-sceno-visiteuses.webp","label":"Visiteuses devant les œuvres","caption":"photo · Mathis Duval"},{"img":"assets/event-expo-studio/01-matheo-stand.webp","label":"Stand personnel","caption":"scénographie & mise en scène"}]'>
-      <div class="inner"><img loading="lazy" decoding="async" src="assets/event-expo-studio/07-evenement.webp" alt="Photos de l'événement, jour J" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
+      <div class="inner"><img width="1086" height="1448" loading="lazy" decoding="async" src="assets/event-expo-studio/07-evenement.webp" alt="Photos de l'événement, jour J" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 40%;mix-blend-mode:normal"></div><div class="zoom-hint">↗</div>
       <div class="caption"><span>Photos de l'événement</span><span>↘ 04.25</span></div>
     </div>
   </div>
@@ -608,7 +612,7 @@
          data-gallery='[{"img":"assets/packaging/hero-mere-fils.webp","label":"Le moment de la découverte","caption":"mise en scène produit"},{"img":"assets/packaging/enfant.webp","label":"L&#39;objet devient jouet","caption":"reportage domestique"},{"img":"assets/packaging/mise-en-scene-kraft.webp","label":"Trio de poissons","caption":"univers marin"},{"youtube":"oavxmz5Qf7c","img":"https://img.youtube.com/vi/oavxmz5Qf7c/maxresdefault.jpg","label":"Vidéo de présentation","caption":"packaging interactif"},{"img":"assets/packaging/poisson-01-cocasse.webp","label":"Cocasse","caption":"modèle rayé"},{"img":"assets/packaging/poisson-02-jeremy.webp","label":"Jérémy","caption":"modèle rayé vert"},{"img":"assets/packaging/poisson-03-celine.webp","label":"Céline","caption":"modèle losange"},{"img":"assets/packaging/logo-sardines.gif","label":"Logo animé","caption":"Les P&#39;tites Sardines"},{"img":"assets/packaging/croquis-forme.webp","label":"Recherche - silhouette","caption":"crayon"},{"img":"assets/packaging/croquis-allonge.webp","label":"Recherche - allongé","caption":"crayon"},{"img":"assets/packaging/croquis-marche.webp","label":"Recherche - personnage","caption":"crayon"},{"img":"assets/packaging/croquis-chapeau.webp","label":"Recherche - chapeau","caption":"crayon"},{"img":"assets/packaging/croquis-fier.webp","label":"Recherche - posture","caption":"crayon"}]'
          style="--tint-a: var(--peach); --tint-b: var(--lilac)">
       <div class="inner">
-        <img loading="lazy" decoding="async" src="assets/packaging/hero-mere-fils.webp" alt="Packaging Les P'tites Sardines, mère et fils découvrent la boîte poisson" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
+        <img width="1131" height="928" loading="lazy" decoding="async" src="assets/packaging/hero-mere-fils.webp" alt="Packaging Les P'tites Sardines, mère et fils découvrent la boîte poisson" style="position:absolute; inset:0; width:100%; height:100%; object-fit: cover; mix-blend-mode: normal;">
       </div>
       <div class="zoom-hint">↗</div>
       <div class="caption"><span>Les P'tites Sardines</span><span>↘ product</span></div>
@@ -643,7 +647,7 @@
          style="--tint-a: var(--sky); --tint-b: var(--lilac)"
          data-gallery='[{"img":"assets/Web_design/web design_gaudin mathéo 1.webp","label":"Maquette desktop","caption":"Site vitrine"},{"img":"assets/Web_design/web design_image 2.webp","label":"Variations","caption":"Recherche graphique"},{"youtube":"CK-ssjShB0A","img":"https://img.youtube.com/vi/CK-ssjShB0A/maxresdefault.jpg","label":"Prototype interactif","caption":"Animation Figma"},{"youtube":"tWqdnbpNuCA","img":"https://img.youtube.com/vi/tWqdnbpNuCA/maxresdefault.jpg","label":"Démonstration","caption":"Parcours utilisateur"}]'>
       <div class="inner">
-        <img loading="lazy" decoding="async" src="assets/Web_design/web design_gaudin mathéo 1.webp" alt="Maquette web design" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;mix-blend-mode:normal">
+        <img width="1536" height="1024" loading="lazy" decoding="async" src="assets/Web_design/web design_gaudin mathéo 1.webp" alt="Maquette web design" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;mix-blend-mode:normal">
       </div>
       <div class="zoom-hint">↗</div>
       <div class="caption"><span>Design d'interface</span><span>↘ ui/ux</span></div>
@@ -705,7 +709,7 @@
            style="--tint-a: var(--mint); --tint-b: var(--sky)"
            data-tools="claude,vscode">
         <div class="inner">
-          <img loading="lazy" decoding="async" src="assets/vibe coding/Vibe_coding_web app_images_automatisés.webp" alt="Interface de l'application web automatisant les modifications d'images" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;mix-blend-mode:normal">
+          <img width="1636" height="1283" loading="lazy" decoding="async" src="assets/vibe coding/Vibe_coding_web app_images_automatisés.webp" alt="Interface de l'application web automatisant les modifications d'images" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;mix-blend-mode:normal">
         </div>
         <div class="zoom-hint">↗</div>
         <div class="caption"><span>App d'automatisation</span><span>↘ vibe</span></div>
@@ -801,8 +805,7 @@
 </div>
 
 <button id="backToTop" aria-label="Retour en haut" class="back-to-top">↑</button>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
-<script src="app.js"></script>
+<script src="app.js" defer></script>
 
 </body>
 </html>
