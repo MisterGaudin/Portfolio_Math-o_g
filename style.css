@@ -648,6 +648,50 @@ h2.display .thin{ font-weight: 300; }
   z-index: 130;
 }
 .lb-fs-close:hover{ transform: rotate(90deg) scale(1.05); }
+
+/* Eye toggle — collapse all chrome (close, arrows, caption) to focus on the image. */
+.lb-fs-eye{
+  position: fixed;
+  top: max(20px, env(safe-area-inset-top, 20px));
+  right: calc(max(20px, env(safe-area-inset-right, 20px)) + 64px);
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 1px solid oklch(0.95 0.01 280 / .25);
+  background: oklch(0.95 0.01 280 / .12); color: #fff;
+  backdrop-filter: blur(14px); cursor: pointer;
+  display: grid; place-items: center;
+  transition: transform .3s var(--ease-out), background .3s, opacity .3s;
+  z-index: 130;
+  padding: 0;
+}
+.lb-fs-eye:hover{ transform: scale(1.05); background: oklch(0.95 0.01 280 / .22); }
+.lb-fs-eye svg{
+  width: 22px; height: 22px;
+  position: absolute; inset: 0; margin: auto;
+  transition: opacity .25s var(--ease-out), transform .35s var(--ease-out);
+  transform-origin: center;
+}
+.lb-fs-eye .ico-eye-closed{ opacity: 0; transform: scale(.6); }
+.lb-fs-eye .ico-eye-open { opacity: 1; transform: scale(1); }
+.lb-fs-eye[aria-pressed="true"] .ico-eye-closed{ opacity: 1; transform: scale(1); }
+.lb-fs-eye[aria-pressed="true"] .ico-eye-open { opacity: 0; transform: scale(.6); }
+
+/* Minimal mode — eye closed: hide everything except the image and the eye button itself. */
+.lb-fs.minimal .lb-fs-close,
+.lb-fs.minimal .lb-fs-nav,
+.lb-fs.minimal .fs-cap{
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .3s var(--ease-out);
+}
+
+@media (max-width: 720px), (pointer: coarse){
+  .lb-fs-eye{
+    width: 48px; height: 48px;
+    background: oklch(0.18 0.012 285 / .72);
+    border-color: oklch(0.95 0.01 280 / .45);
+    right: calc(max(12px, env(safe-area-inset-right, 12px)) + 56px);
+  }
+}
 .lb-fs-nav{
   position: fixed; top: 50%;
   width: 52px; height: 52px; border-radius: 50%;
@@ -680,9 +724,14 @@ h2.display .thin{ font-weight: 300; }
     top: max(14px, env(safe-area-inset-top, 14px));
     right: max(12px, env(safe-area-inset-right, 12px));
   }
+  .lb-fs-eye{
+    top: max(14px, env(safe-area-inset-top, 14px));
+    right: calc(max(12px, env(safe-area-inset-right, 12px)) + 56px);
+  }
   /* Close button needs to dodge the iPhone Dynamic Island in landscape */
   @supports (padding: max(0px)) {
     .lb-fs-close{ top: max(14px, env(safe-area-inset-top, 14px) + 4px); }
+    .lb-fs-eye{   top: max(14px, env(safe-area-inset-top, 14px) + 4px); }
   }
 }
 .lb-slide{

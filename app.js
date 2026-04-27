@@ -470,6 +470,18 @@ const BLOBS = {
   document.getElementById('lbFs')?.addEventListener('click', (e) => {
     if (e.target.id === 'lbFs' || e.target.classList.contains('lb-fs-stage')) closeFullscreen();
   });
+  // Eye toggle — collapse UI chrome to focus on the image
+  const eyeBtn = document.getElementById('lbFsEye');
+  if (eyeBtn){
+    eyeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const fsEl = document.getElementById('lbFs');
+      const minimal = fsEl.classList.toggle('minimal');
+      eyeBtn.setAttribute('aria-pressed', String(minimal));
+      eyeBtn.setAttribute('aria-label', minimal ? 'Afficher l’interface' : 'Masquer l’interface');
+      eyeBtn.title = minimal ? 'Afficher l’interface' : 'Masquer l’interface';
+    });
+  }
   function openFullscreen(idx){
     const items = window.__lbItems || [];
     if (!items[idx]) return;
@@ -499,7 +511,15 @@ const BLOBS = {
     fs.dataset.idx = idx;
   }
   function closeFullscreen(){
-    document.getElementById('lbFs').classList.remove('open');
+    const fs = document.getElementById('lbFs');
+    fs.classList.remove('open');
+    fs.classList.remove('minimal');
+    const eye = document.getElementById('lbFsEye');
+    if (eye){
+      eye.setAttribute('aria-pressed', 'false');
+      eye.setAttribute('aria-label', 'Masquer l’interface');
+      eye.title = 'Masquer l’interface';
+    }
     const vid = document.getElementById('lbFsVideo');
     if (vid) vid.src = '';
     // Restore body scroll if the main lightbox isn't open underneath

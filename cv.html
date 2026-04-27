@@ -142,7 +142,7 @@ html{ scroll-behavior: smooth; }
    the inline <head> script also sets this inline for first-paint). */
 html[data-theme="light"]{ color-scheme: only light; }
 html[data-theme="dark"] { color-scheme: only dark;  }
-html, body{ margin:0; padding:0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+html, body{ margin:0; padding:0; background: var(--paper); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.6; -webkit-font-smoothing: antialiased; overflow-x: hidden; overflow-x: clip; }
 a{ color: inherit; text-decoration: none; }
 img{ display:block; max-width:100%; }
 ::selection{ background: oklch(0.83 0.09 310 / .45); color: var(--ink); }
@@ -1314,7 +1314,7 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 /* ======================================================
    PRINT, single A4 page, compact
    ====================================================== */
-@page { size: A4 portrait; margin: 0; }
+@page { size: A4 landscape; margin: 0; }
 
 @media print {
   /* kill only the truly interactive / decorative noise */
@@ -1501,6 +1501,34 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
     color: #333 !important;
   }
   .timeline-content .current-pill .pulse{ display: none; }
+}
+
+/* ======================================================
+   PRINT — render only the dedicated WebP, never the HTML CV.
+   This wins over the long block above because it appears later
+   in the cascade (equal specificity → last declaration wins).
+   ====================================================== */
+.print-sheet{ display: none; }
+
+@media print{
+  @page{ size: A4 landscape; margin: 0; }
+  html, body{
+    margin: 0 !important; padding: 0 !important;
+    background: #fff !important;
+    width: 297mm; height: 210mm;
+    overflow: hidden !important;
+  }
+  body > *{ display: none !important; }
+  .print-sheet{
+    display: block !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 297mm !important;
+    height: 210mm !important;
+    object-fit: contain !important;
+    background: #fff !important;
+    margin: 0 !important; padding: 0 !important;
+  }
 }
 </style>
 </head>
@@ -1764,7 +1792,7 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
         <h3>Emporter le CV <em>hors-ligne.</em></h3>
         <p>Version imprimable · PDF · 2026</p>
       </div>
-      <a href="assets/CV_imprimable/Alternance_Gaudin_Matheo_CV_2026.pdf" target="_blank" rel="noopener noreferrer" class="btn primary" id="downloadBtn">
+      <a href="assets/GAUDIN_Math%C3%A9o_CV_2026.pdf" target="_blank" rel="noopener noreferrer" class="btn primary" id="downloadBtn">
         Télécharger le PDF <span class="arrow">↓</span>
       </a>
     </div>
@@ -1783,6 +1811,9 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 
 <!-- Back to top -->
 <button class="back-to-top" id="backToTop" aria-label="Retour en haut">↑</button>
+
+<!-- Print-only sheet — system print dialog renders this WebP, never the HTML CV. -->
+<img class="print-sheet" src="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" alt="" aria-hidden="true">
 
 <!-- Toast -->
 <div class="toast" id="toast"><span class="icn">✓</span><span id="toastMsg">Copié dans le presse-papier</span></div>

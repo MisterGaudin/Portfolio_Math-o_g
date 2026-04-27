@@ -30,7 +30,7 @@ Photoshop, InDesign, Illustrator, Figma, Premiere Pro, Lightroom, Adobe Creative
 
 - [Portfolio 2026](https://portfolio-math-o-g.vercel.app/index.html) — projets par discipline, lightbox interactif, navigation par section.
 - [Curriculum Vitae](https://portfolio-math-o-g.vercel.app/cv.html) — parcours détaillé, formations, expériences, version PDF imprimable.
-- [CV PDF imprimable](https://portfolio-math-o-g.vercel.app/assets/CV_imprimable/Alternance_Gaudin_Matheo_CV_2026.pdf) — fichier téléchargeable.
+- [CV PDF imprimable](https://portfolio-math-o-g.vercel.app/assets/GAUDIN_Math%C3%A9o_CV_2026.pdf) — fichier téléchargeable.
 
 ## Projets emblématiques (portfolio)
 
