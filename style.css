@@ -1153,37 +1153,19 @@ h2.display .thin{ font-weight: 300; }
 
 /* Small phones: drop the 2x2 hero treatment for the Renard tile —
    keeping it would make item 5 ~4x larger than the others, which
-   reads as disproportionate. Captions also flow inline below each
-   bubble (instead of absolute) so wrapped text doesn't crash into
-   the next row. */
+   reads as disproportionate. Captions are hidden — the title shows
+   in the lightbox on tap, so the cluster stays clean and tight. */
 @media (max-width: 600px){
   .gallery.illus-cluster{
-    grid-auto-rows: auto;
-    gap: 24px;
+    grid-auto-rows: clamp(180px, 50vw, 240px);
+    gap: 16px;
   }
   .gallery.illus-cluster > :nth-child(5){
     grid-column: span 1 !important;
     grid-row: span 1 !important;
   }
-  .gallery.illus-cluster .fluid-mask{
-    aspect-ratio: auto;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-  }
-  .gallery.illus-cluster .fluid-mask .inner{
-    position: relative;
-    inset: auto;
-    width: 100%;
-    aspect-ratio: 4 / 5;
-    flex: 0 0 auto;
-  }
   .gallery.illus-cluster .fluid-mask .caption{
-    position: static;
-    bottom: auto;
-    margin-top: 10px;
-    line-height: 1.4;
-    flex: 0 0 auto;
+    display: none;
   }
 }
 
