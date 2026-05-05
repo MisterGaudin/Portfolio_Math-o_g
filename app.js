@@ -30,15 +30,42 @@ let tweaks = { ...TWEAK_DEFAULTS };
   const lowMem   = (navigator.deviceMemory || 4) < 4;
   const saveData = navigator.connection && navigator.connection.saveData;
 
-  if (prm || isTouch || saveData) {
+  if (prm || saveData) {
+    // User explicitly asked for less motion / less data → strip everything.
     html.setAttribute('data-aura', 'off');
     if (orb) orb.style.display = 'none';
-    return; // pure CSS-only static background — no JS loop at all
+    return;
   }
   if (lowCores || lowMem) {
-    // Weak machine: keep visuals but skip the parallax loop entirely.
+    // Weak hardware (any input modality): kill continuous animations + orb.
     html.setAttribute('data-aura', 'off');
     if (orb) orb.style.display = 'none';
+    return;
+  }
+  if (isTouch) {
+    // Capable phone/tablet: keep CSS marquee, portrait ring spin, SVG morphs
+    // running, but skip the cursor-follow loop (no cursor) and hide the orb.
+    if (orb) orb.style.display = 'none';
+    // Watchdog: if the device reports decent specs but actually janks during
+    // the first ~120 frames (~2s), strip continuous animations after the fact.
+    let last = 0, slow = 0, total = 0;
+    const tick = (t) => {
+      if (last) {
+        total++;
+        if (t - last > 32) slow++;
+        if (total >= 120) {
+          if (slow > 50) {
+            html.setAttribute('data-aura', 'off');
+            const svg = document.querySelector('svg defs')?.ownerSVGElement;
+            try { svg && svg.pauseAnimations && svg.pauseAnimations(); } catch(e){}
+          }
+          return;
+        }
+      }
+      last = t;
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
     return;
   }
 

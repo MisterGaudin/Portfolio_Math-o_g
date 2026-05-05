@@ -1149,6 +1149,20 @@ h2.display .thin{ font-weight: 300; }
   .gallery.illus-cluster > :nth-child(5){ grid-column: span 2 !important; grid-row: span 2 !important; }
 }
 
+/* Small phones: drop the 2x2 hero treatment for the Renard tile —
+   keeping it would make item 5 ~4x larger than the others, which
+   reads as disproportionate. Equal-sized cells feel more balanced. */
+@media (max-width: 600px){
+  .gallery.illus-cluster{
+    grid-auto-rows: clamp(180px, 50vw, 240px);
+    gap: 16px;
+  }
+  .gallery.illus-cluster > :nth-child(5){
+    grid-column: span 1 !important;
+    grid-row: span 1 !important;
+  }
+}
+
 /* Event grid - feature bubble + 3 companion tiles */
 .gallery.event-grid{
   display: grid;
