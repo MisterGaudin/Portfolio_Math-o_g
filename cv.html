@@ -60,6 +60,11 @@
 <!-- LCP preload : portrait du CV -->
 <link rel="preload" as="image" href="assets/CV_imprimable/Math%C3%A9o_gaudin_image%20du%20dessus.webp" fetchpriority="high">
 
+<!-- Préchargement de la planche d'impression : l'<img> .print-sheet est en display:none,
+     donc sans ce preload le navigateur ne la téléchargerait jamais et l'aperçu d'impression
+     afficherait une page blanche. -->
+<link rel="preload" as="image" href="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" fetchpriority="low">
+
 <!-- Structured data — Person + résumé. Aide les LLMs à indexer le parcours. -->
 <script type="application/ld+json">
 {
@@ -1816,8 +1821,10 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
 <!-- Back to top -->
 <button class="back-to-top" id="backToTop" aria-label="Retour en haut">↑</button>
 
-<!-- Print-only sheet — system print dialog renders this WebP, never the HTML CV. -->
-<img class="print-sheet" width="7016" height="4961" loading="lazy" decoding="async" src="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" alt="" aria-hidden="true">
+<!-- Print-only sheet — system print dialog renders this WebP, never the HTML CV.
+     loading="eager" est requis : avec display:none + loading="lazy" le navigateur
+     ne télécharge jamais l'image et l'impression sort blanche. -->
+<img class="print-sheet" id="printSheet" width="7016" height="4961" loading="eager" decoding="async" src="assets/CV_imprimable/GAUDIN_Math%C3%A9o_CV_2026_impression.webp" alt="" aria-hidden="true">
 
 <!-- Toast -->
 <div class="toast" id="toast"><span class="icn">✓</span><span id="toastMsg">Copié dans le presse-papier</span></div>
@@ -2194,14 +2201,33 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
    ============================================================ */
 (() => {
   const printBtn = document.getElementById('printBtn');
-  printBtn.addEventListener('click', () => window.print());
+  const printSheet = document.getElementById('printSheet');
+
+  // Garantit que la planche d'impression est entièrement décodée avant
+  // d'ouvrir la boîte de dialogue : sinon, sur connexion lente, le navigateur
+  // peut imprimer avant que l'image ne soit prête → page blanche.
+  function printCV() {
+    const ready = (printSheet && printSheet.complete && printSheet.naturalWidth > 0)
+      ? Promise.resolve()
+      : new Promise((resolve) => {
+          if (!printSheet) return resolve();
+          const done = () => resolve();
+          printSheet.addEventListener('load', done, { once: true });
+          printSheet.addEventListener('error', done, { once: true });
+          // Filet de sécurité : on n'attend jamais plus de 4 s.
+          setTimeout(done, 4000);
+        });
+    ready.then(() => window.print());
+  }
+
+  printBtn.addEventListener('click', printCV);
 
   window.addEventListener('keydown', (e) => {
     const active = document.activeElement;
     if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
     if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
-      window.print();
+      printCV();
     } else if (e.key === 'Escape') {
       location.href = 'index.html';
     }
