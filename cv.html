@@ -459,6 +459,13 @@ h1.name em{
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  /* Sans `touch-action: none`, le navigateur capte tout glissement de
+     doigt comme un scroll et coupe les `pointermove` → la loupe n'apparaît
+     qu'au point de contact initial sans suivre le doigt.
+     Tradeoff : on ne peut plus défiler la page en posant le doigt sur
+     la photo, mais le visuel d'ailleurs ne fait que ~64mm de haut, donc
+     ce n'est pas gênant. */
+  touch-action: none;
 }
 .profile-img img{
   -webkit-touch-callout: none;
