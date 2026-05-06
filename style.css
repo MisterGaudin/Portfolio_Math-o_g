@@ -620,6 +620,11 @@ h2.display .thin{ font-weight: 300; }
   box-shadow: 0 40px 120px oklch(0 0 0 / .6);
   transform: scale(.96);
   transition: transform .5s var(--ease-out);
+  /* Fond clair appliqué SOUS l'image : invisible pour les visuels opaques
+     (l'image couvre tout) ; visible uniquement aux pixels transparents
+     (ex. packaging détouré sur PNG/WebP avec alpha). Évite l'effet
+     "noir-sur-noir" sur fond sombre du viewer. */
+  background: oklch(0.99 0.005 70);
 }
 .lb-fs.open .lb-fs-stage img{ transform: scale(1); }
 .lb-fs .fs-cap{
@@ -1818,10 +1823,32 @@ a.portrait:hover .cv-badge{
   .gallery.mosaic{ grid-template-columns: 1fr; grid-auto-rows: 240px; }
   .gallery.mosaic > *{ grid-column: span 1 !important; grid-row: span 1 !important; }
 
-  /* Lightbox bento — 1 column on very narrow screens */
-  .lb-gallery{ grid-template-columns: 1fr; padding: 16px; gap: 10px; }
+  /* Lightbox bento — 1 column on very narrow screens.
+     padding-bottom élevé pour laisser passer l'overlay .lb-meta (~80-100px
+     selon safe-area home indicator) sans masquer la dernière vignette. */
+  .lb-gallery{ grid-template-columns: 1fr; padding: 16px 16px calc(96px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
   .lb-gallery > .lb-slide{ grid-column: span 1 !important; grid-row: span 1 !important; min-height: 200px; }
   .lb-gallery > .lb-slide:nth-child(1){ grid-column: span 1 !important; min-height: 240px; }
+
+  /* Mobile : .lb-meta sort de la zone "débordement bas" (bottom: -48px) qui
+     n'a pas la place d'exister sur petit écran (88vh stage + 48px meta =
+     dépasse / chevauche la grille). On le rapatrie EN OVERLAY au bas du
+     stage, sur un dégradé sombre, façon sous-titre de viewer d'images.
+     La grille reçoit en compensation un padding-bottom suffisant pour que
+     la dernière vignette ne soit pas masquée par l'overlay. */
+  .lightbox .lb-meta{
+    bottom: 0;
+    padding: 28px 18px max(16px, env(safe-area-inset-bottom, 16px));
+    background: linear-gradient(to top, oklch(0.08 0.012 285 / .9), transparent);
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    pointer-events: none;
+    z-index: 2;
+    /* Coins bas arrondis pour épouser les 32px du .lb-inner et ne pas
+       déborder visuellement de la forme arrondie du viewer. */
+    border-radius: 0 0 32px 32px;
+  }
+  .lightbox .lb-meta .title{ font-size: 15px; }
 
   /* Lightbox stage padding accounts for safe area at bottom (home indicator) */
   .lb-fs{
