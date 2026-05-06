@@ -244,8 +244,12 @@ const BLOBS = {
     morph: "M0.34,0.06 C0.62,0.00 0.94,0.16 0.94,0.40 C0.94,0.64 0.76,0.90 0.50,0.96 C0.24,1.02 -0.02,0.88 -0.02,0.62 C-0.02,0.36 0.14,0.14 0.28,0.08 C0.32,0.06 0.34,0.06 0.34,0.06 Z"
   },
   e: {
-    rest:  "M0.52,0.04 C0.80,0.00 0.96,0.28 0.94,0.50 C0.92,0.72 0.76,0.96 0.48,0.96 C0.20,0.96 0.00,0.72 0.04,0.44 C0.08,0.16 0.28,0.08 0.52,0.04 Z",
-    morph: "M0.48,0.08 C0.76,0.04 0.98,0.22 0.92,0.52 C0.86,0.82 0.60,0.98 0.36,0.94 C0.12,0.90 -0.02,0.68 0.02,0.44 C0.06,0.20 0.28,0.10 0.48,0.08 Z"
+    // IMPORTANT: doit avoir 5 courbes C comme tous les autres blobs.
+    // SMIL ne peut pas interpoler entre paths de topologies différentes :
+    // si on mélange un blob 4-courbes et un blob 5-courbes dans un cycle,
+    // la transition se fait en saut discret → effet de "clipping"/redémarrage.
+    rest:  "M0.52,0.04 C0.78,0.02 0.96,0.20 0.96,0.42 C0.96,0.66 0.92,0.86 0.74,0.92 C0.58,1.02 0.38,1.02 0.22,0.94 C0.06,0.86 -0.04,0.66 0.02,0.46 C0.06,0.20 0.24,0.04 0.52,0.04 Z",
+    morph: "M0.48,0.08 C0.74,0.06 0.94,0.24 0.94,0.46 C0.94,0.68 0.86,0.88 0.70,0.94 C0.54,1.00 0.34,1.00 0.18,0.92 C0.02,0.84 -0.06,0.68 -0.02,0.50 C0.02,0.30 0.20,0.10 0.48,0.08 Z"
   },
   f: {
     rest:  "M0.24,0.08 C0.46,-0.02 0.78,0.04 0.92,0.22 C1.06,0.40 0.96,0.70 0.80,0.86 C0.64,1.02 0.34,1.02 0.18,0.88 C0.02,0.74 -0.04,0.42 0.08,0.22 C0.14,0.14 0.20,0.10 0.24,0.08 Z",
@@ -286,13 +290,19 @@ const BLOBS = {
       const dur = (14 + (counter % 5) * 2) + 's';
       const begin = (-(counter % 7) * 1.3) + 's';
 
+      // calcMode="linear" + keyTimes uniformes : tous les segments durent
+      // 25% du cycle et avancent à vitesse constante. Sans ça :
+      //  - les anciens keyTimes "0;0.33;0.66;0.85;1" compressaient les 2
+      //    derniers segments en 19% + 15%, donnant un retour-à-la-forme-de-
+      //    départ visiblement précipité (effet "snap"/clipping) ;
+      //  - les keySplines "0.4 0 0.2 1" (ease-in-out avec vélocité nulle aux
+      //    extrémités) faisaient pulser la déformation à chaque keyframe.
       defsSvg.insertAdjacentHTML('beforeend', `
         <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
           <path d="${BLOBS[startKey].rest}">
             <animate attributeName="d" dur="${dur}" begin="${begin}" repeatCount="indefinite"
-                     calcMode="spline"
-                     keySplines="0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1; 0.4 0 0.2 1"
-                     keyTimes="0; 0.33; 0.66; 0.85; 1"
+                     calcMode="linear"
+                     keyTimes="0; 0.25; 0.5; 0.75; 1"
                      values="${values}"/>
           </path>
         </clipPath>
