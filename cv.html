@@ -268,7 +268,15 @@ main, .topbar, .marquee-top, footer { position: relative; z-index: 2; }
     transform: translateY(-1px);
   }
   .topbar .print-btn .print-label{ display: none; }
-  .topbar .print-btn .print-ico{ width: 17px; height: 17px; flex: 0 0 17px; }
+  /* SVG 16px (taille paire + même technique de centrage absolu que
+     .theme-toggle svg) → marges entières dans le cadre 34px, pas de
+     demi-pixel arrondi qui décalerait l'icône d'1px par rapport au
+     toggle de thème voisin. */
+  .topbar .print-btn{ position: relative; }
+  .topbar .print-btn .print-ico{
+    width: 16px; height: 16px; flex: 0 0 16px;
+    position: absolute; inset: 0; margin: auto;
+  }
   html[data-theme="dark"] .topbar .print-btn{
     background: oklch(0.24 0.016 285 / .6);
     border-color: oklch(0.96 0.006 285 / .15);
@@ -445,6 +453,19 @@ h1.name em{
   --x: 50%; --y: 50%; --r: 0px;
   transition: transform .6s var(--ease-out), box-shadow .4s;
   animation: floatIdle 8s ease-in-out infinite;
+  /* Sur mobile l'appui long sur une <img> ouvre le menu natif
+     "Enregistrer / Ouvrir dans un nouvel onglet…", ce qui interrompt
+     l'effet de loupe au doigt. On désactive ce menu et la sélection. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.profile-img img{
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;          /* le conteneur capte les events de loupe */
 }
 @keyframes floatIdle{
   0%, 100% { transform: translateY(0); }
@@ -2091,6 +2112,10 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
     reveal.style.transition = 'clip-path .4s var(--ease-out)';
     profileLens.style.setProperty('--r', '0px');
   });
+  // Désactive le menu contextuel (Android Chrome) sur appui long :
+  // la CSS -webkit-touch-callout couvre iOS Safari, mais Android n'en
+  // tient pas compte. Sans ça, l'appui long interrompt l'effet de loupe.
+  profileLens.addEventListener('contextmenu', (e) => e.preventDefault());
 })();
 
 /* ============================================================
