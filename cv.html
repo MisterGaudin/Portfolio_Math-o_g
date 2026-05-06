@@ -459,12 +459,14 @@ h1.name em{
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
-  /* Sans `touch-action: none`, le navigateur capte tout glissement de
-     doigt comme un scroll et coupe les `pointermove` → la loupe n'apparaît
-     qu'au point de contact initial sans suivre le doigt.
-     Tradeoff : on ne peut plus défiler la page en posant le doigt sur
-     la photo, mais le visuel d'ailleurs ne fait que ~64mm de haut, donc
-     ce n'est pas gênant. */
+  /* touch-action: auto par défaut → un swipe sur la photo défile la page
+     normalement. Bascule à `none` uniquement quand la classe .lens-active
+     est posée par le JS (après détection d'un appui long), pour que la
+     loupe puisse suivre le doigt sans que le navigateur ne vole le geste
+     en le traitant comme du scroll. */
+  touch-action: auto;
+}
+.profile-img.lens-active{
   touch-action: none;
 }
 .profile-img img{
@@ -478,7 +480,8 @@ h1.name em{
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-6px); }
 }
-.profile-img:hover{
+.profile-img:hover,
+.profile-img.lens-active{
   box-shadow: 0 32px 70px oklch(0.83 0.09 310 / .3);
   animation-play-state: paused;
 }
@@ -486,7 +489,8 @@ h1.name em{
   position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
 }
 .profile-img .img-base{ z-index: 1; filter: grayscale(18%) contrast(1.02); transition: filter .5s; }
-.profile-img:hover .img-base{ filter: grayscale(0%); }
+.profile-img:hover .img-base,
+.profile-img.lens-active .img-base{ filter: grayscale(0%); }
 .profile-img .img-reveal{
   z-index: 2; clip-path: circle(var(--r) at var(--x) var(--y));
   pointer-events: none;
@@ -501,7 +505,8 @@ h1.name em{
   opacity: 0;
   transition: opacity .3s;
 }
-.profile-img:hover .lens-ring{ opacity: 1; }
+.profile-img:hover .lens-ring,
+.profile-img.lens-active .lens-ring{ opacity: 1; }
 
 .profile-badge{
   position: absolute; bottom: 16px; left: 16px;
@@ -1045,7 +1050,8 @@ html[data-theme="dark"] .stat:hover{
 
 /* Profile portrait — shadow + badge */
 html[data-theme="dark"] .profile-img{ box-shadow: 0 24px 60px oklch(0 0 0 / .45); }
-html[data-theme="dark"] .profile-img:hover{ box-shadow: 0 32px 70px oklch(0.55 0.18 320 / .35); }
+html[data-theme="dark"] .profile-img:hover,
+html[data-theme="dark"] .profile-img.lens-active{ box-shadow: 0 32px 70px oklch(0.55 0.18 320 / .35); }
 html[data-theme="dark"] .profile-img .img-base{ filter: grayscale(10%) contrast(1.05); }
 html[data-theme="dark"] .profile-badge{
   background: oklch(0.21 0.016 285 / .85);
@@ -2103,25 +2109,95 @@ html[data-theme="dark"] .theme-toggle .ico-moon{ opacity: 0; transform: rotate(1
   const profileLens = document.getElementById('profileLens');
   if (!profileLens) return;
   const reveal = profileLens.querySelector('.img-reveal');
-  profileLens.addEventListener('pointermove', (e) => {
+
+  function updatePos(clientX, clientY){
     const rect = profileLens.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    profileLens.style.setProperty('--x', x + 'px');
-    profileLens.style.setProperty('--y', y + 'px');
-  });
-  profileLens.addEventListener('pointerenter', () => {
+    profileLens.style.setProperty('--x', (clientX - rect.left) + 'px');
+    profileLens.style.setProperty('--y', (clientY - rect.top) + 'px');
+  }
+  function activate(){
+    profileLens.classList.add('lens-active');
     reveal.style.transition = 'clip-path .4s var(--ease-out)';
     profileLens.style.setProperty('--r', '150px');
     setTimeout(() => { reveal.style.transition = 'none'; }, 420);
-  });
-  profileLens.addEventListener('pointerleave', () => {
+  }
+  function deactivate(){
+    profileLens.classList.remove('lens-active');
     reveal.style.transition = 'clip-path .4s var(--ease-out)';
     profileLens.style.setProperty('--r', '0px');
-  });
-  // Désactive le menu contextuel (Android Chrome) sur appui long :
-  // la CSS -webkit-touch-callout couvre iOS Safari, mais Android n'en
-  // tient pas compte. Sans ça, l'appui long interrompt l'effet de loupe.
+  }
+
+  const isTouch = matchMedia('(hover: none), (pointer: coarse)').matches;
+
+  if (!isTouch){
+    // Desktop : la loupe suit la souris au survol (comportement initial).
+    profileLens.addEventListener('pointermove', (e) => updatePos(e.clientX, e.clientY));
+    profileLens.addEventListener('pointerenter', activate);
+    profileLens.addEventListener('pointerleave', deactivate);
+  } else {
+    // Mobile : un swipe court défile la page normalement (touch-action:auto).
+    // Un appui long (~400ms sans bouger) active la loupe, qui suit ensuite
+    // le doigt jusqu'à un tap en dehors de la photo.
+    const PRESS_DELAY = 400;
+    const MOVE_TOLERANCE = 10;
+    let pressTimer = null;
+    let startX = 0, startY = 0;
+    let activePointerId = null;
+
+    profileLens.addEventListener('pointerdown', (e) => {
+      activePointerId = e.pointerId;
+      // Si la loupe est déjà active, on remet juste à jour la position
+      // sous le doigt et on continue de tracker.
+      if (profileLens.classList.contains('lens-active')){
+        updatePos(e.clientX, e.clientY);
+        try { profileLens.setPointerCapture(e.pointerId); } catch(_){}
+        return;
+      }
+      startX = e.clientX; startY = e.clientY;
+      pressTimer = setTimeout(() => {
+        pressTimer = null;
+        updatePos(startX, startY);
+        activate();
+        try { profileLens.setPointerCapture(e.pointerId); } catch(_){}
+        if (navigator.vibrate) navigator.vibrate(35);
+      }, PRESS_DELAY);
+    });
+
+    // passive:false pour pouvoir preventDefault et bloquer le scroll de la
+    // geste en cours (le changement touch-action via la classe ne s'applique
+    // qu'à la prochaine geste, pas à celle qui a déjà commencé en touch:auto).
+    profileLens.addEventListener('pointermove', (e) => {
+      if (e.pointerId !== activePointerId) return;
+      if (profileLens.classList.contains('lens-active')){
+        updatePos(e.clientX, e.clientY);
+        e.preventDefault();
+      } else if (pressTimer){
+        const dx = e.clientX - startX, dy = e.clientY - startY;
+        if (dx*dx + dy*dy > MOVE_TOLERANCE * MOVE_TOLERANCE){
+          // L'utilisateur a bougé avant les 400ms → c'était un scroll, on annule.
+          clearTimeout(pressTimer); pressTimer = null;
+        }
+      }
+    }, { passive: false });
+
+    const cancelPress = () => {
+      if (pressTimer){ clearTimeout(pressTimer); pressTimer = null; }
+      activePointerId = null;
+    };
+    profileLens.addEventListener('pointerup', cancelPress);
+    profileLens.addEventListener('pointercancel', cancelPress);
+
+    // Tap en dehors de la photo → on referme la loupe.
+    document.addEventListener('pointerdown', (e) => {
+      if (profileLens.classList.contains('lens-active') && !profileLens.contains(e.target)){
+        deactivate();
+      }
+    });
+  }
+
+  // Désactive le menu contextuel natif (Android Chrome) sur appui long :
+  // la CSS -webkit-touch-callout couvre iOS Safari, mais Android n'en tient
+  // pas compte. Sans ça, l'appui long interrompt l'effet de loupe.
   profileLens.addEventListener('contextmenu', (e) => e.preventDefault());
 })();
 
