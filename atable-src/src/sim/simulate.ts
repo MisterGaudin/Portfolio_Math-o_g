@@ -1,5 +1,5 @@
 // Simulation IA contre IA : statistiques d'équilibrage et diagnostic des règles.
-import { createGame, createRng, nextRound, playBotTurn, shuffle, type Difficulty, type MenuDuJourRule, type MenuType, type Phase } from '../engine';
+import { createGame, createRng, nextRound, playBotTurn, shuffle, type Difficulty, type MenuType, type Phase, type Rules } from '../engine';
 
 export type SimDifficulty = Difficulty | 'mixte';
 
@@ -8,19 +8,18 @@ export interface SimOptions {
   players: number;
   difficulty: SimDifficulty;
   seed?: number;
-  /** Variante du Menu du Jour à tester (règle officielle : 'standard'). */
-  menuDuJour?: MenuDuJourRule;
+  /** Réglages de règles à tester. */
+  rules?: Partial<Rules>;
 }
 
 export interface SimStats {
   games: number;
-  menuDuJour: MenuDuJourRule;
   players: number;
   difficulty: SimDifficulty;
   rounds: number;
   avgRoundsPerGame: number;
   avgTurns: number;
-  /** Part des manches de plus de 15 tours. */
+  /** Part des manches de plus de 50 tours. */
   pctLongRounds: number;
   /** Manches arrêtées par la sécurité (aucun gagnant). */
   pctCapped: number;
@@ -48,7 +47,7 @@ const LEVELS: Difficulty[] = ['facile', 'moyen', 'difficile'];
 export function simulate(opts: SimOptions): SimStats {
   const { games, players: n, difficulty } = opts;
   const rng = createRng(opts.seed ?? 2026);
-  const menus: Record<MenuType, number> = { gastronomique: 0, maison: 0, vole: 0, jour: 0 };
+  const menus: Record<MenuType, number> = { gastronomique: 0, maison: 0, vole: 0 };
   const gameWins = Array(n).fill(0);
   const roundWins = Array(n).fill(0);
   const byLevel: Partial<Record<Difficulty, { games: number; wins: number }>> = {};
@@ -59,7 +58,7 @@ export function simulate(opts: SimOptions): SimStats {
     // En mode mixte, les niveaux sont répartis au hasard autour de la table à chaque partie
     // (sinon on mesurerait l'effet des voisins plutôt que celui du niveau).
     const levels: Difficulty[] = difficulty === 'mixte' ? shuffle(rng, Array.from({ length: n }, (_, i) => LEVELS[(i + g) % 3])) : Array(n).fill(difficulty);
-    const s = createGame(levels.map((d, i) => ({ name: `IA ${i + 1}`, isHuman: false, difficulty: d })), rng, { menuDuJour: opts.menuDuJour });
+    const s = createGame(levels.map((d, i) => ({ name: `IA ${i + 1}`, isHuman: false, difficulty: d })), rng, { rules: opts.rules });
     // Nombre de places tenues par chaque niveau (pour un taux de victoire par place).
     for (const d of levels) (byLevel[d] ??= { games: 0, wins: 0 }).games += 1;
 
@@ -80,7 +79,7 @@ export function simulate(opts: SimOptions): SimStats {
         const r = s.lastRound!;
         rounds++;
         turns += r.turns;
-        if (r.turns > 15) long++;
+        if (r.turns > 50) long++;
         denunciations += s.stats.denunciations;
         correct += s.stats.correctDenunciations;
         vaisselle += s.stats.vaisselleMoves;
@@ -103,7 +102,6 @@ export function simulate(opts: SimOptions): SimStats {
   const pct = (a: number, b: number) => (b ? (100 * a) / b : 0);
   const stats: SimStats = {
     games,
-    menuDuJour: opts.menuDuJour ?? 'standard',
     players: n,
     difficulty,
     rounds,
@@ -132,12 +130,11 @@ export function simulate(opts: SimOptions): SimStats {
 export function diagnose(s: SimStats): string[] {
   const w: string[] = [];
   const f = (x: number) => x.toFixed(0);
-  if (s.menus.jour > 50) w.push(`Le Menu du Jour gagne ${f(s.menus.jour)} % des manches : les menus régionaux sont trop rares. Compare les variantes du Menu du Jour proposées ci-dessus.`);
-  if (s.menus.gastronomique < 5) w.push(`Le Gastronomique ne gagne que ${f(s.menus.gastronomique)} % des manches : viser sa région rapporte peu.`);
-  if (s.avgTurns > 15) w.push(`Manches longues : ${s.avgTurns.toFixed(1)} tours en moyenne (objectif ≈ 6-12).`);
+  if (s.menus.vole > 40) w.push(`Le menu Volé gagne ${f(s.menus.vole)} % des manches : viser ses propres régions rapporte peu.`);
+  if (s.avgTurns > 40) w.push(`Manches longues : ${s.avgTurns.toFixed(1)} tours en moyenne (objectif ≈ 10-30).`);
   if (s.avgTurns < 3) w.push(`Manches très courtes : ${s.avgTurns.toFixed(1)} tours en moyenne, le hasard de la donne décide trop.`);
   if (s.pctCapped > 1) w.push(`${f(s.pctCapped)} % des manches n'ont jamais fini (arrêt de sécurité).`);
-  if (s.pctLongRounds > 20) w.push(`${f(s.pctLongRounds)} % des manches dépassent 15 tours.`);
+  if (s.pctLongRounds > 20) w.push(`${f(s.pctLongRounds)} % des manches dépassent 50 tours.`);
   const expected = 100 / s.players;
   s.gameWinBySeat.forEach((v, i) => {
     if (s.games >= 200 && Math.abs(v - expected) > Math.max(5, expected * 0.25))

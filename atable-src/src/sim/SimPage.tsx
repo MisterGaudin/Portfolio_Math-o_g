@@ -1,20 +1,19 @@
 // Page /sim : N parties IA contre IA à 2, 3 et 4 joueurs, statistiques et diagnostic.
 import { useState } from 'react';
-import { MENU_LABELS, type MenuDuJourRule, type MenuType } from '../engine';
+import { DEFAULT_RULES, MENU_LABELS, type MenuType, type Rules } from '../engine';
 import { simulate, type SimDifficulty, type SimStats } from './simulate';
 
-const VARIANTS: { id: MenuDuJourRule; label: string }[] = [
-  { id: 'standard', label: 'Règle officielle' },
-  { id: 'sansBaguette', label: 'Menu du Jour sans Baguette' },
-  { id: 'deuxRegions', label: 'Menu du Jour : 2 régions max' },
-  { id: 'deuxMaison', label: 'Menu du Jour : 2 cartes de ta région' },
-  { id: 'interdit', label: 'Pas de Menu du Jour' },
+const LIMITS: { id: Rules['denounceLimit']; label: string }[] = [
+  { id: 'protege', label: 'Un joueur démasqué est protégé (règle du jeu)' },
+  { id: 'unique', label: 'Une seule dénonciation par joueur et par manche' },
+  { id: 'aucune', label: 'Aucune limite' },
 ];
 
 export function SimPage() {
   const [games, setGames] = useState(1000);
   const [difficulty, setDifficulty] = useState<SimDifficulty>('moyen');
-  const [variant, setVariant] = useState<MenuDuJourRule>('standard');
+  const [limit, setLimit] = useState<Rules['denounceLimit']>(DEFAULT_RULES.denounceLimit);
+  const [headStart, setHeadStart] = useState(DEFAULT_RULES.headStart);
   const [results, setResults] = useState<SimStats[]>([]);
   const [running, setRunning] = useState<number | null>(null);
 
@@ -26,7 +25,7 @@ export function SimPage() {
       if (n > 4) return setRunning(null);
       setRunning(n);
       setTimeout(() => {
-        const s = simulate({ games, players: n, difficulty, seed: seed + n, menuDuJour: variant });
+        const s = simulate({ games, players: n, difficulty, seed: seed + n, rules: { denounceLimit: limit, headStart } });
         const next = [...acc, s];
         setResults(next);
         step(n + 1, next);
@@ -39,8 +38,8 @@ export function SimPage() {
   const rows: { label: string; value: (s: SimStats) => string }[] = [
     { label: 'Manches simulées', value: (s) => `${s.rounds} (${f(s.avgRoundsPerGame)}/partie)` },
     { label: 'Tours moyens par manche', value: (s) => f(s.avgTurns) },
-    { label: 'Manches > 15 tours', value: (s) => `${f(s.pctLongRounds)} %` },
-    ...(['gastronomique', 'maison', 'vole', 'jour'] as MenuType[]).map((m) => ({ label: `Gagnées en ${MENU_LABELS[m]}`, value: (s: SimStats) => `${f(s.menus[m])} %` })),
+    { label: 'Manches > 50 tours', value: (s) => `${f(s.pctLongRounds)} %` },
+    ...(['gastronomique', 'maison', 'vole'] as MenuType[]).map((m) => ({ label: `Gagnées en ${MENU_LABELS[m]}`, value: (s: SimStats) => `${f(s.menus[m])} %` })),
     { label: 'Dénonciations par manche', value: (s) => f(s.denunciationsPerRound, 2) },
     { label: 'Dénonciations réussies', value: (s) => (s.denunciationsPerRound ? `${f(s.pctDenunciationsCorrect)} %` : '—') },
     { label: 'Passages de la Vaisselle / manche', value: (s) => f(s.avgVaisselleMoves, 2) },
@@ -72,11 +71,22 @@ export function SimPage() {
         </div>
       </div>
       <label className="field">
-        <span>Variante à tester</span>
-        <select value={variant} onChange={(e) => setVariant(e.target.value as MenuDuJourRule)}>
-          {VARIANTS.map((v) => (
+        <span>Dénonciations</span>
+        <select value={limit} onChange={(e) => setLimit(e.target.value as Rules['denounceLimit'])}>
+          {LIMITS.map((v) => (
             <option key={v.id} value={v.id}>
               {v.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="field">
+        <span>Coup de pouce à la donne (cartes garanties par région)</span>
+        <select value={headStart} onChange={(e) => setHeadStart(+e.target.value)}>
+          {[0, 1, 2].map((n) => (
+            <option key={n} value={n}>
+              {n === 0 ? 'Aucun (donne au hasard)' : `${n} carte${n > 1 ? 's' : ''} de chaque région`}
+              {n === DEFAULT_RULES.headStart ? ' — règle du jeu' : ''}
             </option>
           ))}
         </select>

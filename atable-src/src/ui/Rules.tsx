@@ -9,32 +9,31 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b>But :</b> gagner 3 Toques et devenir <b>Grand Chef</b>.
         </p>
         <p>
-          <b>Ta région secrète</b> : ses 4 cartes (Entrée, Plat, Fromage, Dessert) forment le meilleur menu. Tu as toujours 4 cartes.
+          Chaque manche, tu reçois <b>2 régions secrètes</b> et 8 cartes. Gagne en réunissant leurs <b>2 menus complets</b> (Entrée, Plat, Fromage,
+          Dessert de chaque région), sans mélange.
         </p>
         <p>
           <b>Chaque tour</b>, tout le monde en même temps :
         </p>
         <ol>
           <li>
-            <b>Dénoncer</b> (facultatif, un seul par tour) : « Je te démasque : Alsace ! ». Juste : il prend la Vaisselle et change de région. Faux : c’est toi qui la prends.
-          </li>
-          <li>
             Choisis une carte : <b>Passer</b> (à ton voisin de gauche, face cachée) ou <b>Marché</b> (face visible à la défausse, ton voisin pioche à la place).
           </li>
           <li>Tout le monde valide, les cartes glissent vers la gauche.</li>
           <li>
-            Menu complet ? Crie <b>« À TABLE ! »</b>
+            Menus complets ? Crie <b>« À TABLE ! »</b>
           </li>
         </ol>
         <p>
-          <b>Menus</b>, du plus fort au plus faible : <b>Gastronomique</b> (ta région, sans Baguette) › <b>Maison</b> (ta région + Baguette) › <b>Volé</b>{' '}
-          (une autre région) › <b>Menu du Jour</b> (régions mélangées).
+          🍽️ <b>Vaisselle</b> : impossible d’annoncer avec, jamais au Marché. Mais elle seule permet de <b>dénoncer</b> : « Je te démasque : Alsace ! ». Juste :
+          il prend ta Vaisselle et change cette région, puis il est protégé jusqu’à la fin de la manche. Faux : tu la gardes et tu attends un tour.
         </p>
         <p>
-          🥖 <b>Baguette</b> : joker. 🍽️ <b>Vaisselle</b> : impossible d’annoncer avec, et jamais au Marché.
+          🥖 <b>Baguette</b> : remplace un plat manquant.
         </p>
         <p>
-          <b>Égalité</b> : le plus proche à gauche du porteur de la Vaisselle gagne. En fin de manche, chacun révèle sa région !
+          <b>Annonces</b> : Gastronomique (tes régions) › Maison (avec la Baguette) › Volé (une autre région). Égalité : le plus proche à gauche du porteur de
+          la Vaisselle gagne.
         </p>
       </div>
     </Modal>

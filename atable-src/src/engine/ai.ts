@@ -1,8 +1,8 @@
 // Intelligence des ordinateurs, en 3 niveaux.
-// L'IA ne lit que ce qu'un vrai joueur saurait : sa main, sa région, les cartes
+// L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { countRegion, evaluateMenu } from './deck';
-import { leftOf } from './game';
+import { evaluateMenu } from './deck';
+import { checkDenounce, leftOf, vaisselleHolder } from './game';
 import { pick, type Rng } from './rng';
 import type { Card, Choice, DishCard, GameState, RegionId } from './types';
 
@@ -11,38 +11,39 @@ const DUMP_FACTOR = 0.3;
 /** Seuil de confiance au-delà duquel l'IA difficile dénonce. */
 export const DENOUNCE_CONFIDENCE = 0.7;
 /** Probabilité, à chaque tour, de continuer à attendre le Gastronomique. */
-const PATIENCE = 0.75;
+const PATIENCE = 0.3;
 /** Après ce nombre de tours sans annonce, l'IA renouvelle ses cartes au Marché. */
-const STALL_TURNS = 6;
+const STALL_TURNS = 12;
 
+/** Pour chaque autre joueur : probabilité que chaque région soit l'une de ses 2 régions. */
 export type Beliefs = Record<number, Record<RegionId, number>>;
 
 /**
- * Ce que `observer` peut déduire de la région secrète des autres joueurs.
- * - un joueur qui envoie une carte au Marché (public) n'est sans doute pas de cette région ;
+ * Ce que `observer` peut déduire des régions secrètes des autres joueurs.
+ * - un joueur qui envoie une carte au Marché (public) n'a sans doute pas cette région ;
  * - pareil pour une carte qu'il NOUS passe ;
  * - une fausse accusation écarte la région accusée ;
- * - une accusation juste remet tout à zéro (le joueur a pioché une nouvelle région).
- * Renvoie, pour chaque autre joueur, une probabilité par région possible.
+ * - une accusation juste écarte la région démasquée et brouille les indices
+ *   (le joueur a pioché une nouvelle région à la place).
+ * Chaque joueur a 2 régions : la probabilité d'une région R tient compte de toutes
+ * les paires possibles (R, autre région).
  */
 export function beliefs(state: GameState, observer: number): Beliefs {
   const n = state.players.length;
-  const own = state.players[observer].region;
+  const own = state.players[observer].regions;
   const out: Beliefs = {};
   for (let q = 0; q < n; q++) {
     if (q === observer) continue;
-    let weights: Record<RegionId, number> = {};
-    let excluded = new Set<RegionId>([own]);
-    const reset = (alsoExclude?: RegionId) => {
-      weights = Object.fromEntries(state.regionsInPlay.map((r) => [r, 1]));
-      excluded = new Set([own, ...(alsoExclude ? [alsoExclude] : [])]);
-    };
-    reset();
-    const denunciations = [...state.history.map((h) => ({ d: h.denunciation, moves: h.moves })), { d: state.denunciation ?? undefined, moves: [] }];
-    for (const { d, moves } of denunciations) {
+    const weights: Record<RegionId, number> = Object.fromEntries(state.regionsInPlay.map((r) => [r, 1]));
+    let excluded = new Set<RegionId>(own);
+    const steps = [...state.history.map((h) => ({ d: h.denunciation, moves: h.moves })), { d: state.denunciation ?? undefined, moves: [] }];
+    for (const { d, moves } of steps) {
       if (d && d.target === q) {
-        if (d.correct) reset(d.region);
-        else excluded.add(d.region);
+        if (d.correct) {
+          // Nouvelle région inconnue : les indices d'avant ne valent plus qu'à moitié.
+          for (const r of Object.keys(weights)) weights[r] = Math.sqrt(weights[r]);
+          excluded = new Set([...own, d.region]);
+        } else excluded.add(d.region);
       }
       for (const m of moves) {
         if (m.player !== q || m.card.kind !== 'dish') continue;
@@ -50,8 +51,11 @@ export function beliefs(state: GameState, observer: number): Beliefs {
       }
     }
     const candidates = state.regionsInPlay.filter((r) => !excluded.has(r));
-    const total = candidates.reduce((s, r) => s + weights[r], 0) || 1;
-    out[q] = Object.fromEntries(candidates.map((r) => [r, weights[r] / total]));
+    const total = candidates.reduce((sum, r) => sum + weights[r], 0);
+    const squares = candidates.reduce((sum, r) => sum + weights[r] ** 2, 0);
+    const pairs = (total * total - squares) / 2 || 1;
+    // P(R fait partie de ses 2 régions) = somme des poids des paires contenant R.
+    out[q] = Object.fromEntries(candidates.map((r) => [r, Math.min(1, (weights[r] * (total - weights[r])) / pairs)]));
   }
   return out;
 }
@@ -66,13 +70,14 @@ export function mostLikely(b: Record<RegionId, number>): { region: RegionId | nu
 
 const isDish = (c: Card): c is DishCard => c.kind === 'dish';
 
-/** DÉNONCIATION : seule l'IA difficile dénonce, quand sa confiance dépasse 70 %. */
+/** DÉNONCIATION : seule l'IA difficile dénonce, avec la Vaisselle, quand sa confiance dépasse 70 %. */
 export function aiDenounce(state: GameState, player: number): { target: number; region: RegionId } | null {
   const me = state.players[player];
-  if (me.difficulty !== 'difficile') return null;
+  if (me.difficulty !== 'difficile' || checkDenounce(state, player)) return null;
   const b = beliefs(state, player);
   let best: { target: number; region: RegionId; p: number } | null = null;
   for (const [q, dist] of Object.entries(b)) {
+    if (state.rules.denounceLimit === 'protege' && state.unmasked.includes(+q)) continue;
     const { region, p } = mostLikely(dist);
     if (region && p > DENOUNCE_CONFIDENCE && (!best || p > best.p)) best = { target: +q, region, p };
   }
@@ -83,12 +88,15 @@ export function aiDenounce(state: GameState, player: number): { target: number; 
 export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   const me = state.players[player];
   const hand = me.hand;
-  const own = me.region;
+  const own = me.regions;
+  const mine = (c: Card) => isDish(c) && own.includes(c.region);
 
-  // Facile : une carte au hasard qui n'est pas de sa région, toujours passée.
+  // Facile : une carte au hasard qui n'est pas de ses régions, passée à gauche
+  // (et de temps en temps au Marché, sinon la pioche ne tournerait jamais).
   if (me.difficulty === 'facile') {
-    const notMine = hand.filter((c) => !(isDish(c) && c.region === own));
-    return { cardId: pick(rng, notMine.length ? notMine : hand).id, mode: 'pass' };
+    const notMine = hand.filter((c) => !mine(c));
+    const card = pick(rng, notMine.length ? notMine : hand);
+    return { cardId: card.id, mode: card.kind !== 'vaisselle' && rng() < 0.3 ? 'market' : 'pass' };
   }
 
   // Moyen et Difficile : on refile toujours la Vaisselle.
@@ -98,15 +106,15 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   const hard = me.difficulty === 'difficile';
   const left = leftOf(state, player);
   const leftBelief = beliefs(state, player)[left] ?? {};
-  const k = Object.keys(leftBelief).length || 1;
+  // Probabilité « moyenne » d'une région (le voisin en a 2 parmi les candidates).
+  const uniform = 2 / (Object.keys(leftBelief).length || 1);
   // Une carte est « utile au voisin » tant que rien ne prouve le contraire
   // (il s'est déjà débarrassé de cette région au Marché ou en nous la passant).
   // Si la manche s'éternise, on considère que plus rien n'intéresse personne (on relance via le Marché).
   const stalled = state.turn > STALL_TURNS;
-  const usefulToLeft = (c: DishCard) => !stalled && (leftBelief[c.region] ?? 0) > 0.5 / k;
-  // Difficile : la région probable du voisin (nettement au-dessus de la moyenne).
-  const top = mostLikely(leftBelief);
-  const risky = (c: Card) => c.kind === 'baguette' || (isDish(c) && top.region === c.region && top.p > 1.2 / k);
+  const usefulToLeft = (c: DishCard) => !stalled && (leftBelief[c.region] ?? 0) > 0.5 * uniform;
+  // Difficile : une région probable du voisin (nettement au-dessus de la moyenne).
+  const risky = (c: Card) => c.kind === 'baguette' || (isDish(c) && (leftBelief[c.region] ?? 0) > 1.5 * uniform);
 
   // Une carte « en double » (même type de plat qu'une autre carte de la main) ne peut
   // servir à aucun menu : c'est elle qu'on lâche en priorité.
@@ -116,7 +124,7 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
     return pick(rng, cards.filter((c) => doubles(c) === max));
   };
 
-  let junk = hand.filter(isDish).filter((c) => c.region !== own);
+  let junk = hand.filter(isDish).filter((c) => !own.includes(c.region));
   // Difficile : bluff, on garde une carte d'une autre région pour brouiller les pistes
   // (de préférence une qui bouche un trou du menu).
   if (hard && junk.length >= 2) {
@@ -132,9 +140,11 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
     choice = harmless.length ? { cardId: worst(harmless).id, mode: 'market' } : { cardId: worst(junk).id, mode: 'pass' };
   } else {
     // Que des cartes utiles : on lâche la Baguette en premier (on vise le Gastronomique),
-    // sinon une carte de sa région, en dernier recours.
+    // sinon une carte de la région la moins avancée, en dernier recours.
     const baguette = hand.find((c) => c.kind === 'baguette');
-    choice = { cardId: (baguette ?? pick(rng, hand)).id, mode: 'pass' };
+    const weakest = [...own].sort((a, b) => countOf(hand, a) - countOf(hand, b))[0];
+    const fallback = hand.filter((c) => isDish(c) && c.region === weakest);
+    choice = { cardId: (baguette ?? pick(rng, fallback.length ? fallback : hand)).id, mode: 'pass' };
   }
 
   // Difficile : ne jamais passer au voisin une carte qui pourrait compléter sa région probable.
@@ -145,14 +155,16 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   return choice;
 }
 
+const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => isDish(c) && c.region === region).length;
+
 /** ANNONCE : l'ordinateur crie-t-il « À TABLE ! » ? */
 export function aiAnnounce(state: GameState, player: number, rng: Rng): boolean {
   const me = state.players[player];
-  const menu = evaluateMenu(me.hand, me.region, state.menuDuJour);
+  if (vaisselleHolder(state) === player) return false;
+  const menu = evaluateMenu(me.hand, me.regions);
   if (!menu) return false;
-  if (me.difficulty === 'facile' || menu.type === 'gastronomique') return true;
-  // Moyen / Difficile : avec 3 cartes de sa région, on tente d'attendre le Gastronomique
+  if (me.difficulty === 'facile' || menu.type !== 'maison') return true;
+  // Moyen / Difficile : avec la Baguette, on tente d'attendre le Gastronomique
   // (avec une patience limitée, sinon la manche pourrait ne jamais finir).
-  if (countRegion(me.hand, me.region) === 3) return rng() > PATIENCE;
-  return true;
+  return rng() > PATIENCE;
 }

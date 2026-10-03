@@ -10,7 +10,9 @@
   --green: #2e8b57;
   --red: #c0392b;
   --radius: 12px;
-  --hand-w: min(calc((100vw - 32px - 24px) / 4), 108px);
+  --hand-w: min(calc((100vw - 32px - 24px) / 4), 96px);
+  /* Hauteur des cartes en main (8 cartes sur 2 rangées). */
+  --hand-h: calc(var(--hand-w) * 1.22);
   font-family: 'Trebuchet MS', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: #fff;
   background: var(--wine-dark);
@@ -209,7 +211,7 @@ button.chip.active {
 }
 .card-hand {
   width: var(--hand-w);
-  height: calc(var(--hand-w) * 1.45);
+  height: var(--hand-h);
   border: 3px solid var(--rc, #ccc);
 }
 .card-small {
@@ -240,7 +242,7 @@ button.chip.active {
   padding: 2px 1px;
 }
 .card-icon {
-  font-size: calc(var(--hand-w) * 0.34);
+  font-size: calc(var(--hand-w) * 0.27);
   line-height: 1.15;
   margin-top: 4px;
 }
@@ -250,7 +252,7 @@ button.chip.active {
 }
 .card-name {
   font-weight: 900;
-  font-size: clamp(11px, calc(var(--hand-w) * 0.15), 16px);
+  font-size: clamp(10px, calc(var(--hand-w) * 0.14), 14px);
   line-height: 1.05;
   padding: 0 3px;
   flex: 1;
@@ -617,48 +619,64 @@ button.chip.active {
   font-size: 11px;
   opacity: 0.7;
 }
-.gauge {
+.gauges {
   display: grid;
-  grid-template-columns: repeat(4, 1fr) 1.3fr;
-  gap: 4px;
-  margin: 6px 0 8px;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  margin: 6px 0;
   border-radius: 10px;
+  align-items: center;
+}
+.gauge {
+  background: #ffffff10;
+  border-radius: 8px;
+  padding: 3px;
+}
+.gauge-title {
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+  border-radius: 5px;
+  padding: 1px 2px;
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gauge-cells {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
 }
 .gauge-cell {
-  border-radius: 8px;
+  border-radius: 6px;
   background: #ffffff14;
   border: 2px dashed #fff4;
   text-align: center;
-  padding: 2px 0;
-  line-height: 1.1;
-  opacity: 0.6;
+  font-size: 14px;
+  line-height: 1.4;
+  opacity: 0.55;
 }
 .gauge-cell.full {
   border: 2px solid #fffa;
   opacity: 1;
 }
-.gauge-cell small {
-  display: block;
-  font-size: 9px;
-  font-weight: 700;
-}
 .gauge-label {
-  display: flex;
-  align-items: center;
-  justify-content: center;
   font-size: 11px;
   font-weight: 800;
   text-align: center;
   opacity: 0.7;
+  min-width: 42px;
 }
 .gauge-label.ok {
   opacity: 1;
   color: #8ff0ab;
 }
 .hand {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, var(--hand-w));
   justify-content: center;
-  gap: 8px;
+  gap: 6px 8px;
   padding-top: 14px;
   border-radius: 12px;
 }
@@ -761,7 +779,7 @@ button.chip.active {
   position: fixed;
   left: 50%;
   translate: -50% 0;
-  top: 30%;
+  top: max(52px, env(safe-area-inset-top));
   width: min(92vw, 440px);
   z-index: 70;
   background: var(--cream);
@@ -773,7 +791,7 @@ button.chip.active {
 }
 .bubble.low {
   top: auto;
-  bottom: 32%;
+  bottom: 42%;
 }
 .bubble.top {
   top: max(10px, env(safe-area-inset-top));
@@ -922,7 +940,8 @@ button.chip.active {
 /* Petits écrans (iPhone SE…) : on resserre tout pour tenir sans défiler. */
 @media (max-height: 740px) {
   :root {
-    --hand-w: min(calc((100vw - 32px - 24px) / 4), 80px);
+    --hand-w: min(calc((100vw - 32px - 24px) / 4), 76px);
+    --hand-h: calc(var(--hand-w) * 1.12);
   }
   .topbar {
     padding: 2px 8px;
@@ -962,8 +981,8 @@ button.chip.active {
   .me-info {
     min-height: 34px;
   }
-  .gauge {
-    margin: 4px 0;
+  .gauges {
+    margin: 3px 0;
   }
   .hand {
     padding-top: 10px;
@@ -975,4 +994,50 @@ button.chip.active {
   .btn {
     min-height: 42px;
   }
+}
+
+/* ----------------------------- 8 cartes, 2 régions ----------------------------- */
+.seat-cards.overlap .card-mini + .card-mini {
+  margin-left: -12px;
+}
+.seat-cards.overlap {
+  gap: 0;
+}
+.region-corner.open {
+  gap: 3px;
+}
+.intro-cards {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin: 14px 0;
+  perspective: 600px;
+}
+.intro-card .card-hand {
+  --hand-w: 110px;
+  width: 110px;
+  height: 150px;
+}
+.intro-card .card-region .card-icon {
+  font-size: 46px;
+}
+.intro-card .card-region .card-name {
+  font-size: 18px;
+}
+.atable-shout.small {
+  font-size: 28px;
+}
+.show-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 56px);
+  gap: 4px;
+  justify-content: center;
+}
+.card-hand .card-course {
+  font-size: 9px;
+  padding-bottom: 2px;
+}
+.card-hand .card-band {
+  font-size: 10px;
+  padding: 2px;
 }

@@ -1,7 +1,7 @@
 # À TABLE !
 
 Jeu de cartes familial sur les spécialités des régions de France, jouable au doigt sur téléphone.
-Tu affrontes 1 à 3 ordinateurs. Le but : réunir un menu complet (Entrée, Plat, Fromage, Dessert) et décrocher 3 Toques pour devenir **Grand Chef**.
+Tu affrontes 1 à 3 ordinateurs. Le but : terminer les menus de tes 2 régions secrètes (Entrée, Plat, Fromage, Dessert) et décrocher 3 Toques pour devenir **Grand Chef**.
 
 - **Vite + React + TypeScript**, sans backend : tout tourne dans le navigateur.
 - **Moteur de règles pur** dans `src/engine/` (aucune dépendance à l'UI), testé avec **Vitest**.
@@ -62,8 +62,8 @@ en `/` et `dist`).
 ## Simulation
 
 - Dans le navigateur : `/atable/sim` (ou le lien en bas de l'accueil). Nombre de parties (1000 par défaut),
-  niveau des IA (dont « mixte », niveaux répartis au hasard autour de la table) et variante de règle à tester.
-- En ligne de commande : `npm run sim -- 1000 moyen standard` (parties, niveau, variante, puis éventuellement les nombres de joueurs).
+  niveau des IA (dont « mixte », niveaux répartis au hasard autour de la table), protection après dénonciation et coup de pouce à la donne.
+- En ligne de commande : `npm run sim -- 1000 moyen` (parties, niveau, puis éventuellement les nombres de joueurs).
 
 ## Arborescence
 
@@ -76,62 +76,75 @@ public/       manifest PWA (chemins en /atable/), service worker, icônes, cards
 scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG depuis icon.svg)
 ```
 
-## Précisions de règles retenues
+## Règles (version 2)
 
-Là où l'énoncé laissait un choix, voici ce que fait le moteur :
+- **Toutes les régions** (12) sont en jeu à chaque manche : 48 plats + Baguette + Vaisselle = 50 cartes.
+- **2 régions secrètes par joueur**, découvertes au début de chaque manche (écran « Découvrir mes régions »).
+  Les cartes Région non distribuées forment la **réserve des régions**.
+- **8 cartes en main.** On gagne la manche avec **2 menus complets** : les 4 plats (Entrée, Plat, Fromage, Dessert)
+  d'une même région, deux fois. **Plus de régions mélangées.** La **Baguette** remplace un seul plat manquant.
+- **Annonces**, de la plus forte à la plus faible : **Gastronomique** (tes 2 régions, sans Baguette) ›
+  **Maison** (tes 2 régions, avec la Baguette) › **Volé** (au moins un menu d'une région qui n'est pas à toi).
+- **Dénonciation réservée au porteur de la Vaisselle** (avant de choisir sa carte, une par tour) :
+  - juste (c'est une des 2 régions de l'accusé) : l'accusé prend la Vaisselle (et rend une carte au hasard pour
+    que chacun garde 8 cartes), défausse la région démasquée et en **pioche une nouvelle dans la réserve** ;
+    l'ancienne retourne dans la réserve. Ce qu'on savait sur lui ne sert plus à rien : **pas d'anti-jeu possible**.
+    Un joueur démasqué est ensuite **protégé 🛡️ jusqu'à la fin de la manche** ;
+  - fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
+- **Coup de pouce à la donne** : chacun reçoit au moins 1 carte de chacune de ses régions.
+- Inchangé : échange simultané vers la gauche, Marché, Vaisselle jamais au Marché ni d'annonce avec,
+  départage par la Vaisselle, 3 Toques pour devenir Grand Chef.
 
-- **Régions en jeu publiques** : elles sont affichées sur la table (elles se devinent de toute façon avec les cartes).
-- **Réserve des régions** = les 2 régions leurres non distribuées. Après une dénonciation juste, l'accusé pioche
-  une nouvelle région dans la réserve, puis y remet l'ancienne (la réserve garde 2 cartes).
-- **Vaisselle lors d'une dénonciation** : pour que chacun garde 4 cartes, celui qui reçoit la Vaisselle rend à son
-  ancien porteur une carte tirée au hasard. Si l'accusé (ou l'accusateur, si c'est faux) l'avait déjà, rien ne bouge.
-- **Ordre des dénonciations** : en début de tour, les ordinateurs décident d'abord (le premier dans l'ordre des
-  joueurs l'emporte). S'aucun n'a dénoncé, tu peux le faire tant que tu n'as pas validé ta carte. Une dénonciation
-  annule les choix déjà faits ce tour-ci (les mains ont changé).
+Les réglages « protection » et « coup de pouce » sont dans `DEFAULT_RULES` (`src/engine/game.ts`) et se testent
+sur la page `/sim`.
+
+## Précisions techniques
+
+- **Ordre des dénonciations** : en début de tour, l'ordinateur qui a la Vaisselle décide d'abord. Sinon, tu peux
+  dénoncer (si tu as la Vaisselle) tant que tu n'as pas validé ta carte. Une dénonciation annule les choix déjà
+  faits ce tour-ci (les mains ont changé).
 - **Marché** : les cartes du Marché arrivent sur la défausse, puis les voisins piochent dans l'ordre des joueurs.
   Si la pioche se vide, la défausse est remélangée (y compris pendant l'échange).
 - **Annonce** : simultanée, après l'échange. Le joueur humain peut aussi choisir « Attendre ».
-- **Sécurité** : au-delà de 60 tours sans annonce, la manche s'arrête sans gagnant (ça n'arrive pas en pratique).
+- **Sécurité** : au-delà de 200 tours sans annonce, la manche s'arrête sans gagnant.
+- Les régions et leur avancement sont cachés à l'écran tant que tu ne tapes pas sur « Mes régions ».
 
 ## IA
 
-- **Facile** : passe au hasard une carte qui n'est pas de sa région, annonce dès qu'elle peut, ne dénonce jamais.
+- **Facile** : passe au hasard une carte qui n'est pas de ses régions (parfois au Marché, sinon la pioche ne
+  tournerait jamais), annonce dès qu'elle peut, ne dénonce jamais.
 - **Moyen** : garde ses cartes de région, refile toujours la Vaisselle, lâche d'abord les cartes « en double »
-  (même type de plat). Une carte inutile *pour elle et pour son voisin* (il s'est déjà débarrassé de cette région)
-  part au Marché, sinon elle est passée. Avec 3 cartes de sa région, elle attend le Gastronomique (patience limitée).
-  Si la manche s'éternise (plus de 6 tours), elle renouvelle ses cartes au Marché.
-- **Difficile** : tout ça, plus le suivi de la défausse et des cartes reçues (probabilité de région pour chaque
-  adversaire), dénonciation au-delà de 70 % de confiance, bluff (garde une carte d'une autre région) et jamais de
-  carte de la région probable du voisin (ni de Baguette) passée à gauche : elle va au Marché à la place.
+  (même type de plat). Une carte inutile *pour elle et pour son voisin* part au Marché, sinon elle est passée.
+  Avec la Baguette, elle tente parfois d'attendre le Gastronomique. Si la manche s'éternise (plus de 12 tours),
+  elle renouvelle ses cartes au Marché.
+- **Difficile** : tout ça, plus le suivi de la défausse et des cartes reçues (probabilité de chaque région pour
+  chaque adversaire, en tenant compte des 2 régions), dénonciation avec la Vaisselle au-delà de 70 % de confiance,
+  bluff (garde une carte d'une autre région) et jamais de carte d'une région probable du voisin (ni de Baguette)
+  passée à gauche : elle va au Marché à la place.
 - Chaque action des ordinateurs prend 600 à 900 ms.
 
 ## Équilibrage : ce que dit la simulation
 
-1000 parties par configuration, règle officielle :
+300 parties par configuration, règles par défaut (protection + coup de pouce) :
 
 | | 2 joueurs | 3 joueurs | 4 joueurs |
 |---|---|---|---|
-| Tours moyens par manche (moyen) | 3,7 | 2,3 | 1,6 |
-| Manches gagnées en Menu du Jour | 93 % | 97 % | 99 % |
-| Manches gagnées en Gastronomique | 2,5 % | 1,2 % | 0,5 % |
-| Manches au départage | 0 % | 15 % | 27 % |
-| Gagnées grâce au Marché | 61 % | 9 % | 0,6 % |
-| Dénonciations réussies (difficile) | 100 % (0,19/manche) | rares | aucune |
-| Avantage selon la place | aucun | aucun | aucun |
+| Tours moyens par manche (IA moyennes) | 82 | 62 | 41 |
+| Tours moyens par manche (niveaux mélangés) | 66 | 44 | 31 |
+| Gagnées en Gastronomique / Maison / Volé | 61 / 39 / 0 % | 70 / 29 / 1 % | 73 / 27 / 0 % |
+| Dénonciations par manche (niveaux mélangés) | 0,5 | 0,5 | 0,1 |
+| Dénonciations réussies | 100 % | 100 % | 100 % |
+| Victoires par niveau (facile / moyen / difficile) | — | 11 / 31 / 58 % | 13 / 28 / 35 % |
+| Avantage selon la place | aucun | aucun | faible |
 
-**⚠ Le Menu du Jour est beaucoup trop facile.** Avec 6 régions, 4 cartes de types différents arrivent presque
-toutes seules : à 4 joueurs, une manche dure moins de 2 tours et la donne décide presque tout. Les menus régionaux,
-la dénonciation et le bluff n'ont pas le temps de compter. Variantes testées (`/sim`, niveau mixte) :
+**⚠ À surveiller :**
+- **Les manches sont longues, surtout à 2 joueurs** (60 à 80 tours, 120 entre IA difficiles). Il faut réunir 8 cartes
+  précises parmi 50, et on n'en reçoit qu'une par tour. À 4 joueurs, on est autour de 30 à 40 tours.
+- **Sans la protection après une dénonciation**, les IA difficiles se dénoncent en boucle : chaque dénonciation
+  juste fait changer une région, et plus personne ne termine. Avec 2 joueurs, 76 % des manches n'aboutissaient pas.
+- Le menu **Volé** ne gagne quasiment jamais : il faudrait réunir 4 cartes d'une région qui n'est pas la tienne.
+- Les dénonciations de l'IA difficile réussissent toujours : un joueur qui garde sa région et refile le reste
+  se trahit vite.
 
-| Variante du Menu du Jour | Tours (2 / 3 / 4 j.) | Menu du Jour gagnant |
-|---|---|---|
-| Règle officielle | 3,7 / 2,3 / 1,7 | 90 % / 96 % / 98 % |
-| Sans Baguette | 6,5 / 3,5 / 2,4 | 73 % / 91 % / 96 % |
-| 2 régions maximum | 6,1 / 4,9 / 4,5 | 83 % / 89 % / 91 % |
-| Au moins 2 cartes de ta région | 7,2 / 5,2 / 4,6 | 83 % / 90 % / 93 % |
-| Pas de Menu du Jour | 17 / 15 / 14 | 0 % (Gastronomique 54-68 %) |
-
-Pistes : supprimer le Menu du Jour, ou le garder mais en ne rapportant qu'une demi-Toque, ou interdire d'annoncer
-au premier tour. Sans Menu du Jour, le niveau difficile prend nettement l'avantage (87 % à 2 joueurs) : la déduction
-compte enfin. Autre point : à 2 joueurs, la dénonciation de l'IA difficile réussit toujours. Le voisin passe chaque
-carte refusée à son seul adversaire, ce qui trahit sa région.
+Pistes pour raccourcir si besoin : coup de pouce de 2 cartes par région (environ −30 % de tours), ou 2 Toques pour
+gagner au lieu de 3.

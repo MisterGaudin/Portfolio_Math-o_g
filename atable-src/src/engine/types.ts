@@ -48,27 +48,32 @@ export interface PlayerSetup {
 
 export interface Player extends PlayerSetup {
   hand: Card[];
-  /** Carte Région secrète. */
-  region: RegionId;
+  /** Les 2 cartes Région secrètes : les 2 menus à terminer. */
+  regions: RegionId[];
   toques: number;
 }
 
-/** Les 4 menus, du plus fort (4) au plus faible (1). */
-export type MenuType = 'gastronomique' | 'maison' | 'vole' | 'jour';
+/**
+ * Les 3 annonces possibles, du plus fort (3) au plus faible (1). Une main gagnante,
+ * ce sont 2 menus complets (4 plats d'une même région chacun) :
+ * - Gastronomique : tes 2 régions secrètes, sans Baguette ;
+ * - Maison : tes 2 régions secrètes, la Baguette remplaçant un plat manquant ;
+ * - Volé : au moins un des 2 menus est d'une autre région que les tiennes.
+ */
+export type MenuType = 'gastronomique' | 'maison' | 'vole';
 
-export const MENU_RANK: Record<MenuType, number> = { gastronomique: 4, maison: 3, vole: 2, jour: 1 };
+export const MENU_RANK: Record<MenuType, number> = { gastronomique: 3, maison: 2, vole: 1 };
 export const MENU_LABELS: Record<MenuType, string> = {
   gastronomique: 'Gastronomique',
   maison: 'Maison',
   vole: 'Volé',
-  jour: 'Menu du Jour',
 };
 
 export interface Menu {
   type: MenuType;
   rank: number;
-  /** Région du menu (Gastronomique, Maison, Volé). */
-  region?: RegionId;
+  /** Les 2 régions des menus. */
+  regions: RegionId[];
 }
 
 /** Résultat public d'une dénonciation. */
@@ -114,7 +119,7 @@ export interface RoundResult {
   /** Mains révélées des annonceurs. */
   hands: Record<number, Card[]>;
   /** Régions secrètes de tout le monde en fin de manche. */
-  regions: RegionId[];
+  regions: RegionId[][];
   turns: number;
   /** Comment l'égalité a été tranchée, le cas échéant. */
   tieBreak: 'none' | 'vaisselle' | 'hasard';
@@ -122,21 +127,24 @@ export interface RoundResult {
   thanksToMarket: boolean;
 }
 
-/**
- * Variantes du Menu du Jour (pour l'équilibrage) :
- * - standard : règle officielle (4 types, régions mélangées, Baguette autorisée) ;
- * - sansBaguette : Baguette interdite dans le Menu du Jour ;
- * - deuxRegions : cartes de 2 régions au maximum ;
- * - deuxMaison : au moins 2 cartes de SA région ;
- * - interdit : pas de Menu du Jour du tout.
- */
-export type MenuDuJourRule = 'standard' | 'sansBaguette' | 'deuxRegions' | 'deuxMaison' | 'interdit';
+/** Réglages de règles, ajustables pour l'équilibrage (page /sim). */
+export interface Rules {
+  /**
+   * Limite des dénonciations :
+   * - 'aucune' : pas de limite ;
+   * - 'protege' : un joueur démasqué est protégé jusqu'à la fin de la manche ;
+   * - 'unique' : chaque joueur ne peut dénoncer qu'une fois par manche.
+   */
+  denounceLimit: 'aucune' | 'protege' | 'unique';
+  /** Cartes de chacune de ses régions garanties dans la main de départ (0 = donne au hasard). */
+  headStart: number;
+}
 
 export interface GameState {
   players: Player[];
-  /** Régions en jeu pour la manche (joueurs + 2 leurres). Publiques. */
+  /** Régions en jeu : toutes les régions du jeu, à chaque manche. */
   regionsInPlay: RegionId[];
-  /** Cartes Région non distribuées, face cachée. */
+  /** Cartes Région non distribuées, face cachée (pioche des régions). */
   regionReserve: RegionId[];
   /** Pioche face cachée : le dessus est la FIN du tableau. */
   drawPile: Card[];
@@ -160,8 +168,12 @@ export interface GameState {
   toquesToWin: number;
   /** Sécurité : au-delà, la manche s'arrête sans gagnant. */
   maxTurns: number;
-  /** Variante du Menu du Jour ('standard' = règle officielle). */
-  menuDuJour: MenuDuJourRule;
+  /** Un joueur qui a fait une fausse dénonciation ne peut pas dénoncer avant ce tour. */
+  denounceBanUntil: Record<number, number>;
+  /** Joueurs déjà démasqués cette manche (protégés jusqu'à la fin de la manche). */
+  unmasked: number[];
+  /** Réglages de la partie (voir GameOptions). */
+  rules: Rules;
 }
 
 /** Événements renvoyés par le moteur pour l'UI (animations, journal). */

@@ -63,10 +63,14 @@ export function Home({ initial, onStart, onTutorial, onRules }: { initial: Setup
 }
 
 /** Petites phrases pour la révélation des régions. */
-function reveal(name: string, region: string, isMe: boolean) {
+function withArticle(region: string) {
   const r = REGION_BY_ID[region].name;
   const article = /^[AEIOUÉ]/.test(r) ? 'l’' : ['Sud-Ouest', 'Nord', 'Lyonnais'].includes(r) ? 'le ' : 'la ';
-  return isMe ? `Toi, tu étais ${article}${r}.` : `Ah, c’était ${name} ${article}${r} !`;
+  return article + r;
+}
+function reveal(name: string, regions: string[], isMe: boolean) {
+  const both = regions.map(withArticle).join(' et ');
+  return isMe ? `Toi, tu avais ${both}.` : `Ah, c’était ${name} ${both} !`;
 }
 
 export function RoundEnd({ state, onNext, tutorial }: { state: GameState; onNext: () => void; tutorial?: boolean }) {
@@ -86,8 +90,10 @@ export function RoundEnd({ state, onNext, tutorial }: { state: GameState; onNext
       <div className="reveal-list">
         {state.players.map((p, i) => (
           <motion.div key={i} className="reveal-row" initial={{ x: -30, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.25 + i * 0.35 }}>
-            <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ delay: 0.25 + i * 0.35, duration: 0.4 }}>
-              <RegionCardView region={r.regions[i]} size="small" />
+            <motion.div className="row" initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ delay: 0.25 + i * 0.35, duration: 0.4 }}>
+              {r.regions[i].map((reg) => (
+                <RegionCardView key={reg} region={reg} size="small" />
+              ))}
             </motion.div>
             <div>
               <div>{reveal(p.name, r.regions[i], i === 0)}</div>
@@ -96,7 +102,7 @@ export function RoundEnd({ state, onNext, tutorial }: { state: GameState; onNext
           </motion.div>
         ))}
       </div>
-      {tutorial && <p className="big-line">Mamie a changé de région après ta dénonciation ! Tutoriel terminé : à toi de jouer pour de vrai.</p>}
+      {tutorial && <p className="big-line">Mamie a changé une région après ta dénonciation ! Tutoriel terminé : à toi de jouer pour de vrai.</p>}
       <button className="btn btn-gold big block" onClick={onNext}>
         {tutorial ? 'Terminer le tutoriel ✓' : over ? 'Qui est le Grand Chef ? 👑' : 'Manche suivante ▸'}
       </button>

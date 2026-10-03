@@ -19,6 +19,10 @@ Une image absente est simplement remplacée par la carte provisoire. Proportions
 - `region-lyonnais.png` — Lyonnais
 - `region-bretagne.png` — Bretagne
 - `region-nord.png` — Nord
+- `region-bourgogne.png` — Bourgogne
+- `region-auvergne.png` — Auvergne
+- `region-corse.png` — Corse
+- `region-lorraine.png` — Lorraine
 
 ## Spécialités
 
@@ -77,3 +81,31 @@ Une image absente est simplement remplacée par la carte provisoire. Proportions
 - `nord-plat.png` — Carbonade flamande
 - `nord-fromage.png` — Maroilles
 - `nord-dessert.png` — Gaufre
+
+### Bourgogne
+
+- `bourgogne-entree.png` — Escargots
+- `bourgogne-plat.png` — Bœuf bourguignon
+- `bourgogne-fromage.png` — Époisses
+- `bourgogne-dessert.png` — Pain d'épices
+
+### Auvergne
+
+- `auvergne-entree.png` — Pounti
+- `auvergne-plat.png` — Truffade
+- `auvergne-fromage.png` — Saint-Nectaire
+- `auvergne-dessert.png` — Pompe aux pommes
+
+### Corse
+
+- `corse-entree.png` — Figatellu
+- `corse-plat.png` — Civet de sanglier
+- `corse-fromage.png` — Brocciu
+- `corse-dessert.png` — Fiadone
+
+### Lorraine
+
+- `lorraine-entree.png` — Quiche lorraine
+- `lorraine-plat.png` — Potée lorraine
+- `lorraine-fromage.png` — Carré de l'Est
+- `lorraine-dessert.png` — Madeleines

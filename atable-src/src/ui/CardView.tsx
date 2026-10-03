@@ -51,8 +51,8 @@ export function CardView({ card, size = 'hand', selected, dim, onClick, own }: {
   selected?: boolean;
   dim?: boolean;
   onClick?: () => void;
-  /** Région secrète du joueur : met en valeur ses propres cartes. */
-  own?: RegionId;
+  /** Régions secrètes du joueur (si affichées) : met en valeur ses propres cartes. */
+  own?: readonly RegionId[];
 }) {
   const cls = ['card', `card-${size}`, `card-${card.kind}`, selected && 'selected', dim && 'dim', onClick && 'tappable'].filter(Boolean).join(' ');
   const Tag = onClick ? 'button' : 'div';
@@ -63,7 +63,7 @@ export function CardView({ card, size = 'hand', selected, dim, onClick, own }: {
       <Tag className={cls} style={{ ['--rc' as string]: r.color, ['--ri' as string]: r.ink }} onClick={onClick} aria-label={`${card.name}, ${COURSE_LABELS[card.course]}, ${r.name}`}>
         <span className="card-band">
           {r.name}
-          {own === card.region && <span className="card-star" title="Ta région"> ★</span>}
+          {own?.includes(card.region) && <span className="card-star" title="Ta région"> ★</span>}
         </span>
         <span className="card-icon">{COURSE_ICONS[card.course]}</span>
         <span className="card-name">{card.name}</span>

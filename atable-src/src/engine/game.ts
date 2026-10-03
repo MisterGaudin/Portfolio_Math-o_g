@@ -1,37 +1,39 @@
 // Règles d'« À TABLE ! » : mise en place, dénonciation, échange simultané,
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
+import { HAND_SIZE, REGIONS_PER_PLAYER } from '../config/cards';
 import { ALL_REGION_IDS, buildDeck, evaluateMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
-import type { Card, Choice, Denunciation, GameEvent, GameState, Menu, MenuDuJourRule, Move, PlayerSetup, RegionId, RoundResult } from './types';
+import type { Card, Choice, Denunciation, GameEvent, GameState, Menu, Move, PlayerSetup, RegionId, RoundResult, Rules } from './types';
 
 export interface GameOptions {
   /** Toques nécessaires pour devenir Grand Chef (3 par défaut). */
   toquesToWin?: number;
   /** Au-delà de ce nombre de tours, la manche s'arrête sans gagnant (sécurité). */
   maxTurns?: number;
-  /** Variante d'équilibrage du Menu du Jour (règle officielle : 'standard'). */
-  menuDuJour?: MenuDuJourRule;
+  /** Réglages d'équilibrage (voir Rules). */
+  rules?: Partial<Rules>;
 }
+
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1 };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
-  regionsInPlay: RegionId[];
-  /** Région secrète de chaque joueur. */
-  regions: RegionId[];
-  /** Mains de départ (4 cartes chacune). */
+  /** Les 2 régions secrètes de chaque joueur. */
+  regions: RegionId[][];
+  /** Mains de départ (8 cartes chacune). */
   hands: Card[][];
   /** Pioche : la PREMIÈRE carte du tableau est le dessus de la pioche. */
   drawPile: Card[];
 }
 
-export const DEFAULT_MAX_TURNS = 60;
+export const DEFAULT_MAX_TURNS = 200;
 
 /** Crée une partie et distribue la première manche. 2 à 4 joueurs. */
 export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = {}, preset?: RoundPreset): GameState {
   if (setups.length < 2 || setups.length > 4) throw new Error('Il faut 2 à 4 joueurs');
   const state: GameState = {
-    players: setups.map((s) => ({ ...s, hand: [], region: '', toques: 0 })),
+    players: setups.map((s) => ({ ...s, hand: [], regions: [], toques: 0 })),
     regionsInPlay: [],
     regionReserve: [],
     drawPile: [],
@@ -48,7 +50,9 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
     winner: null,
     toquesToWin: opts.toquesToWin ?? 3,
     maxTurns: opts.maxTurns ?? DEFAULT_MAX_TURNS,
-    menuDuJour: opts.menuDuJour ?? 'standard',
+    denounceBanUntil: {},
+    unmasked: [],
+    rules: { ...DEFAULT_RULES, ...opts.rules },
   };
   dealRound(state, rng, preset);
   return state;
@@ -58,7 +62,7 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
 export function cloneState(s: GameState): GameState {
   return {
     ...s,
-    players: s.players.map((p) => ({ ...p, hand: [...p.hand] })),
+    players: s.players.map((p) => ({ ...p, hand: [...p.hand], regions: [...p.regions] })),
     regionsInPlay: [...s.regionsInPlay],
     regionReserve: [...s.regionReserve],
     drawPile: [...s.drawPile],
@@ -67,20 +71,25 @@ export function cloneState(s: GameState): GameState {
     history: [...s.history],
     origins: { ...s.origins },
     stats: { ...s.stats },
+    denounceBanUntil: { ...s.denounceBanUntil },
+    unmasked: [...s.unmasked],
   };
 }
 
 /**
  * Distribue une manche :
- * 1. régions en jeu = nombre de joueurs + 2 leurres, au hasard ;
- * 2. une carte Région secrète par joueur, le reste forme la réserve ;
- * 3. 4 cartes par joueur, la Vaisselle TOUJOURS dans une main au hasard ;
+ * 1. toutes les régions du jeu sont en jeu (4 cartes chacune + Baguette + Vaisselle) ;
+ * 2. chaque joueur reçoit en secret 2 cartes Région : ses 2 menus à terminer.
+ *    Les cartes Région non distribuées forment la réserve des régions ;
+ * 3. 8 cartes par joueur, la Vaisselle TOUJOURS dans une main au hasard ;
  * 4. le reste forme la pioche, la défausse est vide.
  */
 export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): void {
   const n = state.players.length;
   state.choices = {};
   state.denunciation = null;
+  state.denounceBanUntil = {};
+  state.unmasked = [];
   state.history = [];
   state.origins = {};
   state.discard = [];
@@ -88,26 +97,32 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
   state.phase = 'choose';
   state.lastRound = null;
   state.stats = { vaisselleMoves: 0, denunciations: 0, correctDenunciations: 0, reshuffles: 0 };
+  state.regionsInPlay = [...ALL_REGION_IDS];
 
   if (preset) {
-    state.regionsInPlay = [...preset.regionsInPlay];
-    state.regionReserve = preset.regionsInPlay.filter((r) => !preset.regions.includes(r));
+    const dealt = preset.regions.flat();
+    state.regionReserve = ALL_REGION_IDS.filter((r) => !dealt.includes(r));
     state.players.forEach((p, i) => {
-      p.region = preset.regions[i];
+      p.regions = [...preset.regions[i]];
       p.hand = [...preset.hands[i]];
     });
     state.drawPile = [...preset.drawPile].reverse(); // le dessus est la fin du tableau
   } else {
-    state.regionsInPlay = shuffle(rng, [...ALL_REGION_IDS]).slice(0, n + 2);
-    const secret = shuffle(rng, [...state.regionsInPlay]);
-    state.players.forEach((p, i) => (p.region = secret[i]));
-    state.regionReserve = secret.slice(n);
+    const secret = shuffle(rng, [...ALL_REGION_IDS]);
+    state.players.forEach((p) => (p.regions = secret.splice(0, REGIONS_PER_PLAYER)));
+    state.regionReserve = secret;
 
-    const deck = shuffle(rng, buildDeck(state.regionsInPlay).filter((c) => c.kind !== 'vaisselle'));
+    const deck = shuffle(rng, buildDeck(ALL_REGION_IDS).filter((c) => c.kind !== 'vaisselle'));
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
+    // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
+    // (mises de côté pour tout le monde avant la donne au hasard).
+    const boosts = state.players.map((p) => p.regions.flatMap((r) => deck.filter((c) => c.kind === 'dish' && c.region === r).slice(0, state.rules.headStart)));
+    for (const c of boosts.flat()) deck.splice(deck.indexOf(c), 1);
     state.players.forEach((p, i) => {
-      p.hand = deck.splice(0, i === unlucky ? 3 : 4);
-      if (i === unlucky) p.hand.splice(randInt(rng, 4), 0, VAISSELLE);
+      const boost = boosts[i];
+      p.hand = [...boost, ...deck.splice(0, (i === unlucky ? HAND_SIZE - 1 : HAND_SIZE) - boost.length)];
+      shuffle(rng, p.hand);
+      if (i === unlucky) p.hand.splice(randInt(rng, HAND_SIZE), 0, VAISSELLE);
     });
     state.drawPile = deck;
   }
@@ -153,50 +168,66 @@ function drawCard(state: GameState, rng: Rng): { card: Card; reshuffled: boolean
 }
 
 /**
- * DÉNONCIATION : « Je te démasque : Alsace ! » (une seule par tour, avant les choix).
- * - Juste : l'accusé reçoit la Vaisselle, défausse sa carte Région et en pioche une
- *   nouvelle dans la réserve (l'ancienne retourne dans la réserve).
- * - Fausse : l'accusateur reçoit la Vaisselle.
- * Pour garder 4 cartes chacun, celui qui reçoit la Vaisselle rend en échange une
- * carte tirée au hasard (ou `swapCardId`, utilisé par le tutoriel) à son ancien porteur.
+ * Peut-on dénoncer ? Seulement avec la Vaisselle en main, avant les choix du tour,
+ * une seule fois par tour, et pas juste après une fausse accusation.
+ * Renvoie un message d'erreur, ou null si c'est permis.
+ */
+export function checkDenounce(state: GameState, accuser: number): string | null {
+  if (state.phase !== 'choose') return 'On ne peut dénoncer qu’avant de choisir sa carte';
+  if (state.denunciation) return 'Il y a déjà eu une dénonciation ce tour-ci';
+  if (vaisselleHolder(state) !== accuser) return 'Il faut avoir la Vaisselle pour dénoncer';
+  if ((state.denounceBanUntil[accuser] ?? 0) > state.turn) return 'Après une fausse accusation, il faut attendre un tour';
+  if (state.rules.denounceLimit === 'unique' && state.history.some((h) => h.denunciation?.accuser === accuser))
+    return 'Tu as déjà dénoncé quelqu’un cette manche';
+  return null;
+}
+
+/**
+ * DÉNONCIATION : « Je te démasque : Alsace ! » — réservée au porteur de la Vaisselle.
+ * - Juste (c'est une des 2 régions de l'accusé) : l'accusé reçoit la Vaisselle. Il défausse
+ *   la carte Région démasquée et en pioche une nouvelle dans la réserve (les régions non
+ *   distribuées), puis l'ancienne y retourne. Ce que les autres ont appris ne sert donc
+ *   plus à rien : impossible de le bloquer en ne lui passant jamais ses cartes.
+ * - Fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
+ * Pour garder 8 cartes chacun, l'accusé rend en échange de la Vaisselle une carte tirée
+ * au hasard (ou `swapCardId`, utilisé par le tutoriel).
  * Les choix déjà faits ce tour-ci sont annulés (les mains ont pu changer).
  */
 export function denounce(state: GameState, accuser: number, target: number, region: RegionId, rng: Rng, swapCardId?: string): GameEvent[] {
-  if (state.phase !== 'choose') throw new Error('On ne peut dénoncer qu’avant de choisir sa carte');
-  if (state.denunciation) throw new Error('Il y a déjà eu une dénonciation ce tour-ci');
-  if (accuser === target || !state.players[accuser] || !state.players[target]) throw new Error('Accusation impossible');
+  const err = checkDenounce(state, accuser);
+  if (err) throw new Error(err);
+  if (accuser === target || !state.players[target]) throw new Error('Accusation impossible');
+  if (state.rules.denounceLimit === 'protege' && state.unmasked.includes(target)) throw new Error(`${state.players[target].name} a déjà été démasqué : il est protégé jusqu’à la fin de la manche`);
   if (!state.regionsInPlay.includes(region)) throw new Error('Cette région n’est pas en jeu');
 
-  const correct = state.players[target].region === region;
-  const receiver = correct ? target : accuser;
-  const holder = vaisselleHolder(state);
+  const p = state.players[target];
+  const correct = p.regions.includes(region);
   let vaisselleTo: number | null = null;
   let vaisselleFrom: number | null = null;
 
-  if (holder !== null && holder !== receiver) {
-    const from = state.players[holder];
-    const to = state.players[receiver];
+  if (correct) {
+    // La Vaisselle passe à l'accusé, qui rend une carte à la place.
+    const from = state.players[accuser];
     const vIndex = from.hand.findIndex((c) => c.kind === 'vaisselle');
-    let gIndex = swapCardId ? to.hand.findIndex((c) => c.id === swapCardId) : -1;
-    if (gIndex < 0) gIndex = randInt(rng, to.hand.length);
-    const given = to.hand[gIndex];
-    // Échange en place : la Vaisselle prend la place de la carte rendue.
-    to.hand[gIndex] = from.hand[vIndex];
+    let gIndex = swapCardId ? p.hand.findIndex((c) => c.id === swapCardId) : -1;
+    if (gIndex < 0) gIndex = randInt(rng, p.hand.length);
+    const given = p.hand[gIndex];
+    p.hand[gIndex] = from.hand[vIndex];
     from.hand[vIndex] = given;
     state.origins[VAISSELLE.id] = 'swap';
     state.origins[given.id] = 'swap';
     state.stats.vaisselleMoves += 1;
-    vaisselleTo = receiver;
-    vaisselleFrom = holder;
-  }
+    vaisselleTo = target;
+    vaisselleFrom = accuser;
 
-  if (correct) {
-    // L'accusé change de région : il en pioche une nouvelle, puis remet l'ancienne.
-    const p = state.players[target];
+    // Anti-jeu : la région démasquée est remplacée par une région de la réserve.
     const fresh = pick(rng, state.regionReserve);
-    state.regionReserve = [...state.regionReserve.filter((r) => r !== fresh), p.region];
-    p.region = fresh;
+    state.regionReserve = [...state.regionReserve.filter((r) => r !== fresh), region];
+    p.regions = p.regions.map((r) => (r === region ? fresh : r));
+    state.unmasked.push(target);
     state.stats.correctDenunciations += 1;
+  } else {
+    state.denounceBanUntil[accuser] = state.turn + 2;
   }
   state.stats.denunciations += 1;
   state.choices = {};
@@ -229,7 +260,7 @@ export const allChosen = (state: GameState) => state.players.every((_, i) => sta
  * - Passer : la carte va au voisin de gauche.
  * - Marché : la carte va face visible à la défausse, le voisin de gauche reçoit
  *   la carte du dessus de la pioche (remélange de la défausse si la pioche est vide).
- * Chaque carte reçue prend la place de la carte donnée : tout le monde garde 4 cartes.
+ * Chaque carte reçue prend la place de la carte donnée : tout le monde garde 8 cartes.
  */
 export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
   if (state.phase !== 'choose') throw new Error('Pas d’échange en cours');
@@ -285,7 +316,7 @@ export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
 /** Menu d'un joueur s'il a le droit d'annoncer (pas de Vaisselle en main), sinon null. */
 export function announceableMenu(state: GameState, player: number): Menu | null {
   const p = state.players[player];
-  return evaluateMenu(p.hand, p.region, state.menuDuJour);
+  return evaluateMenu(p.hand, p.regions);
 }
 
 /**
@@ -332,7 +363,7 @@ function finishRound(state: GameState, announcers: number[], winner: number | nu
     menu,
     announcers,
     hands: Object.fromEntries(announcers.map((a) => [a, [...state.players[a].hand]])),
-    regions: state.players.map((p) => p.region),
+    regions: state.players.map((p) => [...p.regions]),
     turns: state.turn,
     tieBreak,
     thanksToMarket: winner !== null && state.players[winner].hand.some((c) => state.origins[c.id] === 'market'),

@@ -49,7 +49,16 @@ export const REGIONS: RegionConfig[] = [
   { id: 'lyonnais', name: 'Lyonnais', color: '#e07b1f', ink: '#1d1300', emblem: '🦁', dishes: ['Salade lyonnaise', 'Quenelles', 'Saint-Marcellin', 'Bugnes'] },
   { id: 'bretagne', name: 'Bretagne', color: '#1f2d44', ink: '#ffffff', emblem: '⚓', dishes: ['Huîtres de Cancale', 'Kig ha farz', 'Curé nantais', 'Crêpes'] },
   { id: 'nord', name: 'Nord', color: '#d9a404', ink: '#1d1300', emblem: '🍺', dishes: ['Potjevleesch', 'Carbonade flamande', 'Maroilles', 'Gaufre'] },
+  { id: 'bourgogne', name: 'Bourgogne', color: '#9c2b6b', ink: '#ffffff', emblem: '🍷', dishes: ['Escargots', 'Bœuf bourguignon', 'Époisses', "Pain d'épices"] },
+  { id: 'auvergne', name: 'Auvergne', color: '#6d4c2f', ink: '#ffffff', emblem: '🌋', dishes: ['Pounti', 'Truffade', 'Saint-Nectaire', 'Pompe aux pommes'] },
+  { id: 'corse', name: 'Corse', color: '#13877a', ink: '#ffffff', emblem: '🐗', dishes: ['Figatellu', 'Civet de sanglier', 'Brocciu', 'Fiadone'] },
+  { id: 'lorraine', name: 'Lorraine', color: '#58708a', ink: '#ffffff', emblem: '🏰', dishes: ['Quiche lorraine', 'Potée lorraine', "Carré de l'Est", 'Madeleines'] },
 ];
+
+/** Nombre de régions secrètes par joueur (2 menus à terminer). */
+export const REGIONS_PER_PLAYER = 2;
+/** Nombre de cartes en main (2 menus de 4 cartes). */
+export const HAND_SIZE = 8;
 
 /** Cartes spéciales. */
 export const SPECIALS = {

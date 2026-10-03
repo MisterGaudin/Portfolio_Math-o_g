@@ -31,6 +31,7 @@ export interface Setup {
 
 /**
  * Étapes vues par l'interface :
+ * intro      — début de manche : on découvre ses 2 régions secrètes ;
  * thinking   — début de tour, les ordinateurs envisagent une dénonciation ;
  * choosing   — chacun choisit sa carte en secret ;
  * revealing  — animation de l'échange simultané ;
@@ -39,7 +40,7 @@ export interface Setup {
  * roundEnd   — tout le monde révèle sa région ;
  * gameOver   — le Grand Chef est couronné.
  */
-export type Stage = 'thinking' | 'choosing' | 'revealing' | 'announcing' | 'showdown' | 'roundEnd' | 'gameOver';
+export type Stage = 'intro' | 'thinking' | 'choosing' | 'revealing' | 'announcing' | 'showdown' | 'roundEnd' | 'gameOver';
 
 export interface ExchangeFx {
   key: number;
@@ -109,7 +110,7 @@ export function useGame() {
       setScript(null);
       commit(createGame(players, rng.current));
       setLastDenunciation(null);
-      setStage('thinking');
+      setStage('intro');
     },
     [commit],
   );
@@ -120,7 +121,7 @@ export function useGame() {
       setScript(s);
       commit(createGame(players, createRng(42), {}, s.preset));
       setLastDenunciation(null);
-      setStage('thinking');
+      setStage('intro');
     },
     [commit],
   );
@@ -136,7 +137,7 @@ export function useGame() {
   const applyDenounce = useCallback(
     (accuser: number, target: number, region: RegionId) => {
       const d = mutate((s) => {
-        const receiver = s.players[target].region === region ? target : accuser;
+        const receiver = s.players[target].regions.includes(region) ? target : accuser;
         const swap = script?.swapCard?.(s, receiver);
         const [ev] = denounce(s, accuser, target, region, rng.current, swap);
         return ev.type === 'denounce' ? ev.denunciation : null;
@@ -153,9 +154,12 @@ export function useGame() {
     (target: number, region: RegionId): string | null => {
       const s = stateRef.current;
       if (!s || stage !== 'choosing') return 'Pas maintenant';
-      if (s.denunciation) return 'Il y a déjà eu une dénonciation ce tour-ci';
       if (s.choices[0]) return 'Tu as déjà validé ta carte';
-      applyDenounce(0, target, region);
+      try {
+        applyDenounce(0, target, region);
+      } catch (e) {
+        return (e as Error).message;
+      }
       return null;
     },
     [stage, applyDenounce],
@@ -200,8 +204,10 @@ export function useGame() {
   const goNextRound = useCallback(() => {
     mutate((s) => nextRound(s, rng.current));
     setLastDenunciation(null);
-    setStage('thinking');
+    setStage('intro');
   }, [mutate]);
+  /** Fin de la découverte des régions : la manche commence. */
+  const beginRound = useCallback(() => setStage('thinking'), []);
 
   // ─── Boucle des ordinateurs ─────────────────────────────────────────────
   useEffect(() => {
@@ -288,6 +294,7 @@ export function useGame() {
     goRoundEnd,
     goGameOver,
     goNextRound,
+    beginRound,
     setPaused,
     setToast,
   };

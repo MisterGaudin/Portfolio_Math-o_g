@@ -1,10 +1,13 @@
-// Tests du moteur de règles d'« À TABLE ! ».
+// Tests du moteur de règles d'« À TABLE ! » (2 régions secrètes, 8 cartes en main).
 import { describe, expect, it } from 'vitest';
+import { REGIONS } from '../config/cards';
 import {
   aiChoose,
+  ALL_REGION_IDS,
   BAGUETTE,
   beliefs,
   cardById,
+  checkDenounce,
   createGame,
   createRng,
   denounce,
@@ -21,6 +24,7 @@ import {
   type Difficulty,
   type GameState,
   type RoundPreset,
+  type Rules,
 } from './index';
 
 const setups = (n: number, difficulty: Difficulty = 'moyen') =>
@@ -28,43 +32,44 @@ const setups = (n: number, difficulty: Difficulty = 'moyen') =>
 
 const c = (id: string): Card => cardById(id);
 const R = (region: string) => regionCards(region);
+const ids = (cards: Card[]) => cards.map((x) => x.id);
+const TOTAL = REGIONS.length * 4 + 2;
+const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length;
 
 /**
  * Partie à 3 joueurs avec une mise en place connue :
- * J0 = Alsace, J1 = Savoie, J2 = Bretagne ; leurres : Nord, Provence.
+ * J0 = Alsace + Savoie (a la Vaisselle), J1 = Bretagne + Nord, J2 = Provence + Corse.
  */
 function preset3(): RoundPreset {
   return {
-    regionsInPlay: ['alsace', 'savoie', 'bretagne', 'nord', 'provence'],
-    regions: ['alsace', 'savoie', 'bretagne'],
-    hands: [
-      [c('alsace-entree'), c('alsace-plat'), c('savoie-fromage'), VAISSELLE],
-      [c('savoie-entree'), c('savoie-plat'), c('bretagne-dessert'), c('nord-entree')],
-      [c('bretagne-entree'), c('bretagne-plat'), c('alsace-fromage'), BAGUETTE],
+    regions: [
+      ['alsace', 'savoie'],
+      ['bretagne', 'nord'],
+      ['provence', 'corse'],
     ],
-    drawPile: [c('nord-plat'), c('nord-fromage'), c('provence-entree'), c('provence-plat')],
+    hands: [
+      ['alsace-entree', 'alsace-plat', 'alsace-fromage', 'alsace-dessert', 'savoie-entree', 'savoie-plat', 'lorraine-entree', 'vaisselle'].map(c),
+      ['bretagne-entree', 'bretagne-plat', 'bretagne-fromage', 'nord-entree', 'nord-plat', 'auvergne-plat', 'normandie-entree', 'lyonnais-entree'].map(c),
+      ['provence-entree', 'provence-plat', 'corse-entree', 'corse-plat', 'bourgogne-entree', 'sud-ouest-entree', 'baguette', 'savoie-fromage'].map(c),
+    ],
+    drawPile: ['nord-fromage', 'nord-dessert', 'provence-fromage', 'provence-dessert'].map(c),
   };
 }
-
-const game3 = () => createGame(setups(3), createRng(1), {}, preset3());
-const ids = (cards: Card[]) => cards.map((x) => x.id);
-const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length;
+const game3 = (rules: Partial<Rules> = {}) => createGame(setups(3), createRng(1), { rules }, preset3());
 
 describe('distribution', () => {
-  it.each([2, 3, 4])('à %i joueurs : régions, cartes, Vaisselle en main', (n) => {
+  it.each([2, 3, 4])('à %i joueurs : toutes les régions, 2 régions secrètes, 8 cartes, Vaisselle en main', (n) => {
     for (let seed = 1; seed <= 50; seed++) {
       const s = createGame(setups(n), createRng(seed));
-      expect(s.regionsInPlay).toHaveLength(n + 2);
-      expect(new Set(s.regionsInPlay).size).toBe(n + 2);
-      // Une région secrète différente par joueur, parmi les régions en jeu ; 2 dans la réserve.
-      const secrets = s.players.map((p) => p.region);
-      expect(new Set(secrets).size).toBe(n);
-      secrets.forEach((r) => expect(s.regionsInPlay).toContain(r));
-      expect(s.regionReserve).toHaveLength(2);
-      expect([...secrets, ...s.regionReserve].sort()).toEqual([...s.regionsInPlay].sort());
-      // 4 cartes chacun, (n + 2) × 4 + Baguette + Vaisselle au total.
-      s.players.forEach((p) => expect(p.hand).toHaveLength(4));
-      expect(totalCards(s)).toBe((n + 2) * 4 + 2);
+      expect(s.regionsInPlay.sort()).toEqual([...ALL_REGION_IDS].sort());
+      // 2 régions secrètes différentes par joueur ; les autres forment la réserve.
+      const secrets = s.players.flatMap((p) => p.regions);
+      s.players.forEach((p) => expect(p.regions).toHaveLength(2));
+      expect(new Set(secrets).size).toBe(2 * n);
+      expect(s.regionReserve).toHaveLength(ALL_REGION_IDS.length - 2 * n);
+      expect([...secrets, ...s.regionReserve].sort()).toEqual([...ALL_REGION_IDS].sort());
+      s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+      expect(totalCards(s)).toBe(TOTAL);
       // La Vaisselle est TOUJOURS dans une main, jamais dans la pioche.
       expect(s.drawPile.some((x) => x.kind === 'vaisselle')).toBe(false);
       expect(vaisselleHolder(s)).not.toBeNull();
@@ -72,8 +77,11 @@ describe('distribution', () => {
     }
   });
 
-  it('à 4 joueurs : 26 cartes', () => {
-    expect(totalCards(createGame(setups(4), createRng(7)))).toBe(26);
+  it('coup de pouce : au moins une carte de chacune de ses régions au départ', () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const s = createGame(setups(4), createRng(seed), { rules: { headStart: 1 } });
+      for (const p of s.players) for (const r of p.regions) expect(p.hand.some((x) => x.kind === 'dish' && x.region === r)).toBe(true);
+    }
   });
 
   it('la Vaisselle tombe chez chacun selon la graine', () => {
@@ -86,7 +94,6 @@ describe('échange', () => {
   it('la Vaisselle ne va jamais au Marché', () => {
     const s = game3();
     expect(() => submitChoice(s, 0, { cardId: 'vaisselle', mode: 'market' })).toThrow(/Vaisselle/);
-    // La Baguette, elle, peut y aller.
     expect(() => submitChoice(s, 2, { cardId: 'baguette', mode: 'market' })).not.toThrow();
   });
 
@@ -104,13 +111,13 @@ describe('échange', () => {
   it('échange simultané : chacun donne à gauche et reçoit de droite, à la même place', () => {
     const s = game3();
     submitChoice(s, 0, { cardId: 'vaisselle', mode: 'pass' });
-    submitChoice(s, 1, { cardId: 'nord-entree', mode: 'pass' });
-    submitChoice(s, 2, { cardId: 'alsace-fromage', mode: 'pass' });
+    submitChoice(s, 1, { cardId: 'lyonnais-entree', mode: 'pass' });
+    submitChoice(s, 2, { cardId: 'savoie-fromage', mode: 'pass' });
     resolveExchange(s, createRng(1));
-    expect(ids(s.players[0].hand)).toEqual(['alsace-entree', 'alsace-plat', 'savoie-fromage', 'alsace-fromage']);
-    expect(ids(s.players[1].hand)).toEqual(['savoie-entree', 'savoie-plat', 'bretagne-dessert', 'vaisselle']);
-    expect(ids(s.players[2].hand)).toEqual(['bretagne-entree', 'bretagne-plat', 'nord-entree', 'baguette']);
-    s.players.forEach((p) => expect(p.hand).toHaveLength(4));
+    expect(s.players[0].hand[7].id).toBe('savoie-fromage');
+    expect(s.players[1].hand[7].id).toBe('vaisselle');
+    expect(s.players[2].hand[7].id).toBe('lyonnais-entree');
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
     expect(s.phase).toBe('announce');
     expect(s.stats.vaisselleMoves).toBe(1);
   });
@@ -124,16 +131,16 @@ describe('échange', () => {
   it('Marché : la carte va face visible à la défausse, le voisin reçoit le dessus de la pioche', () => {
     const s = game3();
     submitChoice(s, 0, { cardId: 'vaisselle', mode: 'pass' });
-    submitChoice(s, 1, { cardId: 'nord-entree', mode: 'market' });
+    submitChoice(s, 1, { cardId: 'lyonnais-entree', mode: 'market' });
     submitChoice(s, 2, { cardId: 'baguette', mode: 'market' });
     const [ev] = resolveExchange(s, createRng(1));
-    expect(ids(s.discard)).toEqual(['nord-entree', 'baguette']);
-    // J1 (premier dans l'ordre) fait piocher J2 en premier : nord-plat, puis J0 reçoit nord-fromage.
-    expect(s.players[2].hand[3].id).toBe('nord-plat');
-    expect(s.players[0].hand[3].id).toBe('nord-fromage');
+    expect(ids(s.discard)).toEqual(['lyonnais-entree', 'baguette']);
+    // J1 (premier dans l'ordre) fait piocher J2 en premier : nord-fromage, puis J0 reçoit nord-dessert.
+    expect(s.players[2].hand[6].id).toBe('nord-fromage');
+    expect(s.players[0].hand[7].id).toBe('nord-dessert');
     expect(s.drawPile).toHaveLength(2);
-    expect(s.origins['nord-plat']).toBe('market');
-    expect(ev.type === 'exchange' && ev.moves[1].drawn?.id).toBe('nord-plat');
+    expect(s.origins['nord-fromage']).toBe('market');
+    expect(ev.type === 'exchange' && ev.moves[1].drawn?.id).toBe('nord-fromage');
   });
 });
 
@@ -142,7 +149,7 @@ describe('remélange de la pioche', () => {
     const s = game3();
     s.discard = s.drawPile.splice(0, 3); // il ne reste qu'une carte dans la pioche
     submitChoice(s, 0, { cardId: 'vaisselle', mode: 'pass' });
-    submitChoice(s, 1, { cardId: 'nord-entree', mode: 'market' });
+    submitChoice(s, 1, { cardId: 'lyonnais-entree', mode: 'market' });
     submitChoice(s, 2, { cardId: 'baguette', mode: 'market' });
     const before = totalCards(s);
     const events = resolveExchange(s, createRng(3));
@@ -150,148 +157,170 @@ describe('remélange de la pioche', () => {
     expect(s.stats.reshuffles).toBeGreaterThan(0);
     expect(totalCards(s)).toBe(before);
     expect(s.drawPile.length).toBeGreaterThan(0);
-    s.players.forEach((p) => expect(p.hand).toHaveLength(4));
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
   });
 
   it('les cartes ne disparaissent jamais sur une longue partie', () => {
     const s = createGame(setups(4, 'difficile'), createRng(11), { toquesToWin: 50, maxTurns: 400 });
     const rng = createRng(12);
-    for (let t = 0; t < 300 && s.phase === 'choose'; t++) {
-      playBotTurn(s, rng);
-      expect(totalCards(s)).toBe(26);
-      expect(s.players.filter((p) => p.hand.some((x) => x.kind === 'vaisselle'))).toHaveLength(1);
+    for (let t = 0; t < 300 && (s.phase as string) !== 'gameOver'; t++) {
       if ((s.phase as string) === 'roundOver') nextRound(s, rng);
+      else playBotTurn(s, rng);
+      expect(totalCards(s)).toBe(TOTAL);
+      expect(s.players.filter((p) => p.hand.some((x) => x.kind === 'vaisselle'))).toHaveLength(1);
+      s.players.forEach((p) => expect(p.hand).toHaveLength(8));
     }
   });
 });
 
 describe('dénonciation', () => {
-  it('juste : l’accusé prend la Vaisselle et change de région', () => {
+  it('seul le porteur de la Vaisselle peut dénoncer', () => {
     const s = game3();
-    submitChoice(s, 1, { cardId: 'nord-entree', mode: 'pass' });
-    const [ev] = denounce(s, 0, 1, 'savoie', createRng(4), 'nord-entree');
+    expect(checkDenounce(s, 0)).toBeNull();
+    expect(checkDenounce(s, 1)).toMatch(/Vaisselle/);
+    expect(() => denounce(s, 1, 2, 'provence', createRng(4))).toThrow(/Vaisselle/);
+  });
+
+  it('juste : l’accusé prend la Vaisselle et remplace la région démasquée par une région de la réserve', () => {
+    const s = game3();
+    submitChoice(s, 1, { cardId: 'lyonnais-entree', mode: 'pass' });
+    const reserveBefore = [...s.regionReserve];
+    const [ev] = denounce(s, 0, 1, 'nord', createRng(4), 'normandie-entree');
     expect(ev.type === 'denounce' && ev.denunciation.correct).toBe(true);
-    // J0 (porteur) donne la Vaisselle à J1, qui lui rend une carte (ici la nord-entree).
+    // J0 donne la Vaisselle à J1, qui lui rend une carte (ici les Huîtres d'Isigny).
     expect(vaisselleHolder(s)).toBe(1);
-    expect(ids(s.players[0].hand)).toContain('nord-entree');
-    expect(s.players[1].region).not.toBe('savoie');
-    expect(['nord', 'provence']).toContain(s.players[1].region);
-    expect(s.regionReserve).toContain('savoie');
-    expect(s.regionReserve).toHaveLength(2);
-    // Les choix du tour sont annulés, et on ne peut plus dénoncer ce tour-ci.
+    expect(ids(s.players[0].hand)).toContain('normandie-entree');
+    // La Bretagne reste, le Nord est remplacé par une région de la réserve (pas encore distribuée).
+    expect(s.players[1].regions[0]).toBe('bretagne');
+    expect(s.players[1].regions[1]).not.toBe('nord');
+    expect(reserveBefore).toContain(s.players[1].regions[1]);
+    expect(s.regionReserve).toContain('nord');
+    expect(s.regionReserve).toHaveLength(reserveBefore.length);
+    // Les choix du tour sont annulés, une seule dénonciation par tour.
     expect(s.choices).toEqual({});
-    expect(() => denounce(s, 2, 0, 'alsace', createRng(4))).toThrow(/déjà/);
-    s.players.forEach((p) => expect(p.hand).toHaveLength(4));
+    expect(() => denounce(s, 1, 2, 'corse', createRng(4))).toThrow(/déjà/);
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
   });
 
-  it('juste sur le porteur de la Vaisselle : il la garde et change de région', () => {
+  it('fausse : l’accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant', () => {
     const s = game3();
-    denounce(s, 2, 0, 'alsace', createRng(4));
-    expect(vaisselleHolder(s)).toBe(0);
-    expect(s.players[0].region).not.toBe('alsace');
-    expect(s.stats.vaisselleMoves).toBe(0);
-  });
-
-  it('fausse : l’accusateur reçoit la Vaisselle', () => {
-    const s = game3();
-    const [ev] = denounce(s, 2, 1, 'nord', createRng(4));
+    const [ev] = denounce(s, 0, 1, 'corse', createRng(4));
     expect(ev.type === 'denounce' && ev.denunciation.correct).toBe(false);
-    expect(vaisselleHolder(s)).toBe(2);
-    expect(s.players[1].region).toBe('savoie');
-    expect(s.stats.vaisselleMoves).toBe(1);
+    expect(vaisselleHolder(s)).toBe(0);
+    expect(s.players[1].regions).toEqual(['bretagne', 'nord']);
+    // Tour suivant : interdit ; le tour d'après : de nouveau permis.
+    ['lorraine-entree', 'lyonnais-entree', 'savoie-fromage'].forEach((id, p) => submitChoice(s, p, { cardId: id, mode: 'pass' }));
+    resolveExchange(s, createRng(1));
+    resolveAnnouncements(s, [], createRng(1));
+    expect(s.turn).toBe(2);
+    expect(checkDenounce(s, 0)).toMatch(/attendre/);
+    s.turn = 3;
+    expect(checkDenounce(s, 0)).toBeNull();
   });
 
-  it('l’IA difficile en tire des déductions', () => {
+  it('un joueur démasqué est protégé jusqu’à la fin de la manche', () => {
+    const s = game3({ denounceLimit: 'protege' });
+    denounce(s, 0, 1, 'nord', createRng(4));
+    // La Vaisselle est maintenant chez J1 ; on la rend à J0 pour essayer de redénoncer J1.
+    s.denunciation = null;
+    const v = s.players[1].hand.findIndex((x) => x.kind === 'vaisselle');
+    [s.players[0].hand[0], s.players[1].hand[v]] = [s.players[1].hand[v], s.players[0].hand[0]];
+    expect(() => denounce(s, 0, 1, 'bretagne', createRng(4))).toThrow(/protégé/);
+    expect(() => denounce(s, 0, 2, 'provence', createRng(4))).not.toThrow();
+  });
+
+  it('l’IA en tire des déductions', () => {
     const s = game3();
-    s.players.forEach((p) => (p.difficulty = 'difficile'));
-    // J2 envoie deux fois de l'Alsace et du Nord au Marché : il n'est sans doute ni l'un ni l'autre.
+    // J2 envoie du Nord et de la Bretagne au Marché : il n'a sans doute ni l'un ni l'autre.
     s.history.push({
       turn: 1,
       reshuffled: false,
       moves: [
-        { player: 2, mode: 'market', card: c('nord-plat'), to: 0 },
-        { player: 2, mode: 'market', card: c('provence-plat'), to: 0 },
+        { player: 2, mode: 'market', card: c('nord-dessert'), to: 0 },
+        { player: 2, mode: 'market', card: c('bretagne-dessert'), to: 0 },
       ],
     });
     const b = beliefs(s, 0)[2];
     expect(b.alsace).toBeUndefined(); // c'est ma région : impossible pour lui
-    expect(b.bretagne).toBeGreaterThan(b.nord);
-    expect(b.savoie).toBeGreaterThan(b.provence);
+    expect(b.provence).toBeGreaterThan(b.nord);
+    expect(b.corse).toBeGreaterThan(b.bretagne);
   });
 });
 
-describe('menus', () => {
-  const own = 'alsace';
-  it('Gastronomique : les 4 cartes de sa région, sans Baguette', () => {
-    expect(evaluateMenu(R('alsace'), own)?.type).toBe('gastronomique');
+describe('menus (8 cartes, 2 régions)', () => {
+  const own = ['alsace', 'savoie'];
+  it('Gastronomique : les 8 cartes de tes 2 régions, sans Baguette', () => {
+    expect(evaluateMenu([...R('alsace'), ...R('savoie')], own)?.type).toBe('gastronomique');
   });
-  it('Maison : sa région complétée par la Baguette', () => {
-    expect(evaluateMenu([...R('alsace').slice(0, 3), BAGUETTE], own)?.type).toBe('maison');
+  it('Maison : tes 2 régions, la Baguette remplaçant un plat', () => {
+    expect(evaluateMenu([...R('alsace'), ...R('savoie').slice(1), BAGUETTE], own)?.type).toBe('maison');
   });
-  it('Volé : les 4 cartes d’une autre région (Baguette autorisée)', () => {
-    expect(evaluateMenu(R('nord'), own)?.type).toBe('vole');
-    expect(evaluateMenu([BAGUETTE, ...R('nord').slice(1)], own)?.type).toBe('vole');
+  it('Volé : au moins un menu d’une autre région (Baguette autorisée)', () => {
+    expect(evaluateMenu([...R('alsace'), ...R('nord')], own)?.type).toBe('vole');
+    expect(evaluateMenu([...R('corse'), ...R('nord').slice(1), BAGUETTE], own)?.type).toBe('vole');
   });
-  it('Menu du Jour : 4 types différents, régions mélangées', () => {
-    const hand = [c('nord-entree'), c('alsace-plat'), c('savoie-fromage'), c('bretagne-dessert')];
-    expect(evaluateMenu(hand, own)?.type).toBe('jour');
-    expect(evaluateMenu([BAGUETTE, ...hand.slice(1)], own)?.type).toBe('jour');
+  it('invalide : régions mélangées, un seul menu, ou la Vaisselle en main', () => {
+    const mixed = [c('nord-entree'), c('alsace-plat'), c('savoie-fromage'), c('bretagne-dessert')];
+    expect(evaluateMenu([...R('alsace'), ...mixed], own)).toBeNull();
+    expect(evaluateMenu([...R('alsace'), ...R('savoie').slice(0, 3), c('nord-entree')], own)).toBeNull();
+    expect(evaluateMenu([...R('alsace'), ...R('savoie').slice(1), VAISSELLE], own)).toBeNull();
+    // La Baguette ne bouche qu'un seul trou.
+    expect(evaluateMenu([...R('alsace').slice(1), ...R('savoie').slice(1), BAGUETTE, c('nord-entree')], own)).toBeNull();
   });
-  it('invalide : deux plats du même type, ou la Vaisselle en main', () => {
-    expect(evaluateMenu([c('nord-entree'), c('alsace-entree'), c('savoie-fromage'), c('bretagne-dessert')], own)).toBeNull();
-    expect(evaluateMenu([...R('alsace').slice(0, 3), VAISSELLE], own)).toBeNull();
-  });
-  it('classement : Gastronomique > Maison > Volé > Menu du Jour', () => {
+  it('classement : Gastronomique > Maison > Volé', () => {
     const ranks = [
-      evaluateMenu(R('alsace'), own)!,
-      evaluateMenu([...R('alsace').slice(0, 3), BAGUETTE], own)!,
-      evaluateMenu(R('nord'), own)!,
-      evaluateMenu([c('nord-entree'), c('alsace-plat'), c('savoie-fromage'), c('bretagne-dessert')], own)!,
+      evaluateMenu([...R('alsace'), ...R('savoie')], own)!,
+      evaluateMenu([...R('alsace'), ...R('savoie').slice(1), BAGUETTE], own)!,
+      evaluateMenu([...R('alsace'), ...R('nord')], own)!,
     ].map((m) => m.rank);
-    expect(ranks).toEqual([4, 3, 2, 1]);
+    expect(ranks).toEqual([3, 2, 1]);
   });
 });
 
 describe('annonces et départage', () => {
-  /** Met le jeu en phase d'annonce avec des mains imposées. */
-  function announceState(hands: Card[][], regions: string[]) {
+  /** Met le jeu en phase d'annonce avec des mains et régions imposées. */
+  function announceState(hands: Card[][], regions: string[][]) {
     const s = createGame(setups(hands.length), createRng(5));
     s.players.forEach((p, i) => {
       p.hand = hands[i];
-      p.region = regions[i];
+      p.regions = regions[i];
     });
     s.phase = 'announce';
     return s;
   }
-  const jour = (dessert: string) => [c('nord-entree'), c('alsace-plat'), c('savoie-fromage'), c(dessert)];
+  const junk = () => [...R('lyonnais'), ...R('lorraine')];
+  const junkV = () => [...R('lyonnais'), ...R('lorraine').slice(0, 3), VAISSELLE];
 
-  it('on ne peut pas annoncer sans menu valide, ni avec la Vaisselle', () => {
-    const s = announceState([[...R('alsace').slice(0, 3), VAISSELLE], jour('bretagne-dessert'), R('nord')], ['alsace', 'savoie', 'nord']);
+  it('on ne peut pas annoncer sans 2 menus complets, ni avec la Vaisselle', () => {
+    const s = announceState([[...R('alsace'), ...R('savoie').slice(1), VAISSELLE], [...R('nord'), ...R('corse')]], [['alsace', 'savoie'], ['nord', 'corse']]);
     expect(() => resolveAnnouncements(s, [0], createRng(1))).toThrow();
   });
 
   it('sans annonce, on passe au tour suivant', () => {
-    const s = announceState([[...R('alsace').slice(0, 3), VAISSELLE], R('savoie'), R('nord')], ['alsace', 'savoie', 'nord']);
+    const s = announceState([junkV(), junk()], [['alsace', 'savoie'], ['nord', 'corse']]);
     resolveAnnouncements(s, [], createRng(1));
     expect(s.phase).toBe('choose');
     expect(s.turn).toBe(2);
   });
 
-  it('le meilleur menu gagne la Toque', () => {
-    const s = announceState([[...R('alsace').slice(0, 3), VAISSELLE], jour('bretagne-dessert'), R('nord')], ['alsace', 'savoie', 'nord']);
+  it('la meilleure annonce gagne la Toque', () => {
+    const s = announceState(
+      [junkV(), [...R('alsace'), ...R('savoie')], [...R('nord'), ...R('corse').slice(1), BAGUETTE]],
+      [['provence', 'bourgogne'], ['alsace', 'savoie'], ['nord', 'corse']],
+    );
     resolveAnnouncements(s, [1, 2], createRng(1));
-    expect(s.lastRound?.winner).toBe(2);
+    expect(s.lastRound?.winner).toBe(1);
     expect(s.lastRound?.menu?.type).toBe('gastronomique');
-    expect(s.players[2].toques).toBe(1);
+    expect(s.players[1].toques).toBe(1);
     expect(s.phase).toBe('roundOver');
-    expect(s.lastRound?.regions).toEqual(['alsace', 'savoie', 'nord']);
+    expect(s.lastRound?.regions[1]).toEqual(['alsace', 'savoie']);
   });
 
   it('égalité : le plus proche à gauche du porteur de la Vaisselle gagne', () => {
-    // 4 joueurs, J1 a la Vaisselle. J0 et J3 font un Menu du Jour : J3 est plus près à gauche de J1 (J2, J3, J0).
+    // 4 joueurs, J1 a la Vaisselle. J0 et J3 font un Volé : J3 est plus près à gauche de J1 (J2, J3, J0).
     const s = announceState(
-      [jour('bretagne-dessert'), [...R('alsace').slice(0, 3), VAISSELLE], [...R('provence').slice(0, 2), c('provence-plat'), c('provence-plat')], jour('normandie-dessert')],
-      ['provence', 'alsace', 'savoie', 'bretagne'],
+      [[...R('nord'), ...R('corse')], junkV(), junk(), [...R('alsace'), ...R('savoie')]],
+      [['provence', 'auvergne'], ['bretagne', 'normandie'], ['bourgogne', 'sud-ouest'], ['provence', 'bourgogne']],
     );
     resolveAnnouncements(s, [0, 3], createRng(1));
     expect(s.lastRound?.winner).toBe(3);
@@ -299,7 +328,7 @@ describe('annonces et départage', () => {
   });
 
   it('égalité sans Vaisselle en main : au hasard', () => {
-    const s = announceState([jour('bretagne-dessert'), jour('normandie-dessert')], ['provence', 'lyonnais']);
+    const s = announceState([[...R('nord'), ...R('corse')], [...R('alsace'), ...R('savoie')]], [['nord', 'corse'], ['alsace', 'savoie']]);
     resolveAnnouncements(s, [0, 1], createRng(1));
     expect([0, 1]).toContain(s.lastRound?.winner);
     expect(s.lastRound?.tieBreak).toBe('hasard');
@@ -310,8 +339,8 @@ describe('victoire', () => {
   it('le premier à 3 Toques est Grand Chef', () => {
     const s = createGame(setups(2), createRng(9));
     s.players[0].toques = 2;
-    s.players[0].hand = R(s.players[0].region);
-    s.players[1].hand = [VAISSELLE, ...s.players[1].hand.filter((x) => x.kind !== 'vaisselle').slice(0, 3)];
+    s.players[0].hand = [...R(s.players[0].regions[0]), ...R(s.players[0].regions[1])];
+    s.players[1].hand = [VAISSELLE, ...R('lyonnais'), ...R('lorraine').slice(0, 3)];
     s.phase = 'announce';
     const events = resolveAnnouncements(s, [0], createRng(1));
     expect(s.phase).toBe('gameOver');
@@ -324,8 +353,8 @@ describe('victoire', () => {
       const s = createGame(setups(n, d), createRng(n * 31));
       const rng = createRng(n);
       let guard = 0;
-      while (s.phase !== 'gameOver' && guard++ < 5000) {
-        if ((s.phase as string) === 'roundOver') nextRound(s, rng);
+      while (s.phase !== 'gameOver' && guard++ < 20000) {
+        if (s.phase === 'roundOver') nextRound(s, rng);
         else playBotTurn(s, rng);
       }
       expect(s.phase).toBe('gameOver');
