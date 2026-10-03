@@ -68,9 +68,9 @@ export function evaluateMenu(hand: readonly Card[], own: readonly RegionId[]): M
 
 /**
  * Variante « un menu » : il suffit de terminer UNE des régions secrètes.
- * Chaque carte Région fournit déjà un plat (`bonus`), il faut donc les 3 autres
+ * Chaque carte Région compte déjà comme un plat (`bonus`), il faut donc les 3 autres
  * (ou 2 + la Baguette). Les autres cartes de la main n'ont pas d'importance.
- * Volé : les 4 plats d'une autre région (ou 3 + la Baguette).
+ * Pas de menu Volé : seule sa propre région permet d'annoncer.
  */
 export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[], bonus: readonly (Course | null)[]): Menu | null {
   if (hand.some((c) => c.kind === 'vaisselle')) return null;
@@ -83,12 +83,7 @@ export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[],
     const type: MenuType | null = missing === 0 ? 'gastronomique' : missing === 1 && joker ? 'maison' : null;
     if (type && (!best || MENU_RANK[type] > best.rank)) best = { type, rank: MENU_RANK[type], regions: [region] };
   });
-  if (best) return best;
-  for (const region of new Set(hand.filter(isDish).map((c) => c.region))) {
-    const missing = 4 - have(region).size;
-    if (!own.includes(region) && (missing === 0 || (missing === 1 && joker))) return { type: 'vole', rank: MENU_RANK.vole, regions: [region] };
-  }
-  return null;
+  return best;
 }
 
 /** Avancement de chaque région secrète : combien de ses 4 plats sont en main. */

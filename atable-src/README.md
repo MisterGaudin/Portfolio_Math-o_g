@@ -86,8 +86,8 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
   la donner est un **bluff** (le voisin croira qu'il n'a pas cette région). Les cartes Région non distribuées
   forment la réserve.
 - **8 cartes en main, 2 cartes données par tour** : chacune passée au voisin de gauche ou mise au Marché.
-- **Annonces** : **Gastronomique** (ta région, sans Baguette) › **Maison** (ta région, la Baguette remplace un plat)
-  › **Volé** (les 4 plats d'une autre région, ou 3 + la Baguette). Plus de régions mélangées.
+- **Annonces** : **Gastronomique** (ta région, sans Baguette) › **Maison** (ta région, la Baguette remplace un plat).
+  **Pas de menu Volé** : seule sa propre région permet d'annoncer. Plus de régions mélangées.
 - **Dénonciation réservée au porteur de la Vaisselle** (avant de choisir ses cartes, une par tour) :
   - juste : l'accusé prend la Vaisselle (et rend une carte au hasard), remplace sa carte Région par une carte de la
     réserve (d'une autre région) et l'ancienne y retourne : ce qu'on savait sur lui ne sert plus, **pas d'anti-jeu** ;
@@ -131,10 +131,10 @@ Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne 
 
 | | 2 joueurs | 3 joueurs | 4 joueurs |
 |---|---|---|---|
-| Tours moyens par manche | 10 | 8 | 6 |
+| Tours moyens par manche | 12 | 9 | 6 |
 | Manches sans fin | 0 % | 0 % | 0 % |
-| Gagnées en Gastronomique / Maison / Volé | 37 / 32 / 31 % | 39 / 26 / 35 % | 45 / 25 / 29 % |
-| Victoires par niveau (facile / moyen / difficile) | 24 / 62 / 65 % | 16 / 41 / 43 % | 14 / 26 / 35 % |
+| Gagnées en Gastronomique / Maison | 57 / 43 % | 67 / 33 % | 69 / 31 % |
+| Victoires par niveau (facile / moyen / difficile) | 42 / 48 / 61 % | 29 / 35 / 37 % | 24 / 26 / 25 % |
 | Avantage selon la place | aucun | aucun | faible |
 
 Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
@@ -146,8 +146,10 @@ Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
 | v2 avec des plats en 2 exemplaires | 122 / 93 / 72 (pire) |
 | v2 avec 2 cartes données par tour | 172 / 155 / 120 (pire) |
 | v3a : 1 région avec un plat fourni (régions partagées), 2 cartes par tour | 11 / 9 / 6 (blocages possibles à 2 sur la même région) |
-| **v3b : 1 région unique dont la carte compte comme un plat, 2 cartes par tour** | **10 / 8 / 6** |
+| v3b : 1 région unique dont la carte compte comme un plat, 2 cartes par tour | 10 / 8 / 6 (le Volé gagnait 1/3 des manches) |
+| **v3c : v3b sans menu Volé** | **12 / 9 / 6** |
 
-**À surveiller :** le menu **Volé** gagne environ un tiers des manches. Avec 8 cartes en main et 2 cartes qui
-tournent par tour, réunir les 4 plats d'une autre région arrive assez souvent. Si on veut que sa propre région
-compte davantage, on peut interdire le Volé ou exiger qu'il soit sans Baguette.
+Le menu **Volé** (les 4 plats d'une autre région) a été supprimé : il gagnait environ un tiers des manches.
+À 4 joueurs, les manches sont courtes (6 tours) et les 3 niveaux d'IA gagnent à peu près autant : la chance
+de la donne pèse beaucoup. Le coup de pouce de départ créait un avantage pour les derniers joueurs (34 % contre
+19 %) : corrigé, les places sont maintenant équilibrées.

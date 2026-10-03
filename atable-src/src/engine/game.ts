@@ -149,7 +149,11 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).
-    const boosts = state.players.map((p) => p.regions.flatMap((r) => deck.filter((c) => c.kind === 'dish' && c.region === r).slice(0, state.rules.headStart)));
+    // Tirées au hasard (et jamais le plat que représente déjà la carte Région) : prendre
+    // les premières du paquet repoussait les autres vers le fond, au profit des derniers joueurs.
+    const boosts = state.players.map((p) =>
+      p.regions.flatMap((r, k) => shuffle(rng, deck.filter((c) => c.kind === 'dish' && c.region === r && c.course !== p.bonus[k])).slice(0, state.rules.headStart)),
+    );
     for (const c of boosts.flat()) deck.splice(deck.indexOf(c), 1);
     state.players.forEach((p, i) => {
       const boost = boosts[i];

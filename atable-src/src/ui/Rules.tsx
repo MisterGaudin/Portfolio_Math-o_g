@@ -25,7 +25,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           🥖 <b>Baguette</b> : remplace un plat manquant.
         </p>
         <p>
-          <b>Annonces</b> : Gastronomique (ta région) › Maison (avec la Baguette) › Volé (les 4 plats d’une autre région). Égalité : le plus proche à gauche du
+          <b>Annonces</b> : Gastronomique (ta région complète) › Maison (avec la Baguette à la place d’un plat). Égalité : le plus proche à gauche du
           porteur de la Vaisselle gagne.
         </p>
       </div>

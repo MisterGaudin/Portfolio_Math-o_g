@@ -310,6 +310,20 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
     }
   });
 
+  it('coup de pouce : une carte utile de sa région, sans avantage pour les derniers joueurs', () => {
+    const useful = [0, 0, 0, 0];
+    for (let g = 0; g < 2000; g++) {
+      const s = createGame(setups(4), createRng(g + 1));
+      s.players.forEach((p, i) => {
+        const mine = p.hand.filter((x) => x.kind === 'dish' && x.region === p.regions[0] && x.course !== p.bonus[0]);
+        expect(mine.length).toBeGreaterThanOrEqual(1);
+        useful[i] += new Set(mine.map((x) => (x.kind === 'dish' ? x.course : ''))).size;
+      });
+    }
+    const avg = useful.map((u) => u / 2000);
+    expect(Math.max(...avg) - Math.min(...avg)).toBeLessThan(0.06);
+  });
+
   it('la vraie carte du plat de sa carte Région ne compte pas en double', () => {
     // Savoie : la carte Région compte comme la Tartiflette.
     const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert'].map(c);
@@ -386,7 +400,8 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
     expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), c('alsace-dessert'), ...junk], own, [...bonus])?.type).toBe('gastronomique');
     expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), BAGUETTE, ...junk], own, [...bonus])?.type).toBe('maison');
     expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), ...junk, c('normandie-plat')], own, [...bonus])).toBeNull();
-    expect(evaluateOneMenu([...R('nord'), ...junk.slice(1)], own, [...bonus])?.type).toBe('vole');
+    // Plus de menu Volé : les 4 plats d'une autre région ne suffisent pas.
+    expect(evaluateOneMenu([...R('nord'), ...junk.slice(1)], own, [...bonus])).toBeNull();
     expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), c('alsace-dessert'), VAISSELLE, ...junk.slice(1)], own, [...bonus])).toBeNull();
   });
 

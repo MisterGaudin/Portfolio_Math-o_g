@@ -10,7 +10,7 @@ const DUMP_FACTOR = 0.3;
 /** Seuil de confiance au-delà duquel l'IA difficile dénonce. */
 export const DENOUNCE_CONFIDENCE = 0.7;
 /** Probabilité, à chaque tour, de continuer à attendre le Gastronomique. */
-const PATIENCE = 0.3;
+const PATIENCE = 0;
 /** Après ce nombre de tours sans annonce, l'IA renouvelle ses cartes au Marché. */
 const STALL_TURNS = 12;
 

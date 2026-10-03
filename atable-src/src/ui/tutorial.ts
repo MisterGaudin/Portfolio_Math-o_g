@@ -72,7 +72,7 @@ const STEPS: Step[] = [
   { text: 'Bien vu ! Mamie prend ta Vaisselle (elle te rend une carte en échange) et remplace sa carte Région par une autre de la réserve : ses cartes de Bretagne ne lui servent plus. Démasquée, elle est protégée 🛡️ jusqu’à la fin de la manche. Une fausse accusation, et tu gardais la Vaisselle !', expect: { kind: 'next' } },
   { text: 'Donne-lui le Saint-Marcellin et la Carbonade, inutiles pour toi, puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: pass('lyonnais-fromage', 'nord-plat') } },
   { text: 'Échange…', expect: { kind: 'wait', until: (st) => st === 'announcing' } },
-  { text: 'Mamie t’a passé le Gâteau de Savoie : ton menu est complet, sans Baguette. C’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat : Maison. Avec les 4 plats d’une autre région : Volé.) Crie « À TABLE ! »', focus: 'announce', expect: { kind: 'announce' } },
+  { text: 'Mamie t’a passé le Gâteau de Savoie : ton menu est complet, sans Baguette. C’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! »', focus: 'announce', expect: { kind: 'announce' } },
   { text: 'On révèle les mains…', expect: { kind: 'wait', until: (st) => st === 'showdown' } },
   { text: 'Gagné ! Tu remportes une Toque 🧑‍🍳. Le premier à 3 Toques devient Grand Chef. En cas d’égalité, le plus proche à gauche du porteur de la Vaisselle gagne.', expect: { kind: 'next' } },
   { text: 'Fin de manche : tout le monde révèle sa région. À toi de jouer pour de vrai !', expect: { kind: 'wait', until: (st) => st === 'roundEnd' } },
