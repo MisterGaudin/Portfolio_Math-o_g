@@ -1,7 +1,10 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [{ "source": "/boulet/sim", "destination": "/boulet/index.html" }],
+  "rewrites": [
+    { "source": "/boulet/sim", "destination": "/boulet/index.html" },
+    { "source": "/atable/sim", "destination": "/atable/index.html" }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
