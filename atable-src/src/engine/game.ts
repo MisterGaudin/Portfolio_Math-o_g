@@ -1,7 +1,7 @@
 // Règles d'« À TABLE ! » : mise en place, dénonciation, échange simultané,
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
-import { COURSES, HAND_SIZE, type Course } from '../config/cards';
+import { COURSES, HAND_SIZE, REGION_BY_ID, type Course } from '../config/cards';
 import { ALL_REGION_IDS, buildDeck, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
 import type { Card, Choice, Denunciation, GameEvent, GameState, Menu, Move, PlayerSetup, RegionId, RoundResult, Rules } from './types';
@@ -19,7 +19,7 @@ export interface GameOptions {
  * Règles du jeu par défaut : 1 région secrète par joueur (sa carte apporte déjà un plat,
  * il en reste 3 à trouver), 2 cartes données par tour, 8 cartes en main.
  */
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1 };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1, regionCards: 'uniques' };
 /** Ancienne version « 2 menus » (2 régions, 8 cartes à réunir, 1 carte par tour). */
 export const TWO_MENUS_RULES: Partial<Rules> = { mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1 };
 
@@ -117,7 +117,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     });
     if (state.rules.mode === 'unMenu') {
       const taken = state.players.flatMap((p) => p.regions.map((r, k) => `${r}|${p.bonus[k]}`));
-      state.regionReserve = ALL_REGION_IDS.flatMap((r) => COURSES.map((c) => `${r}|${c}`)).filter((x) => !taken.includes(x));
+      state.regionReserve = regionDeck(state.rules).filter((x) => !taken.includes(x) && !taken.some((t) => state.rules.regionCards === 'uniques' && t.split('|')[0] === x.split('|')[0]));
     }
     state.drawPile = [...preset.drawPile].reverse(); // le dessus est la fin du tableau
   } else {
@@ -130,10 +130,9 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     });
     state.regionReserve = secret;
     if (state.rules.mode === 'unMenu') {
-      // Une carte Région par région ET par plat : « Alsace + Plat »… Plusieurs joueurs
-      // peuvent tirer la même région (avec des plats différents). La réserve garde
-      // les cartes Région restantes, notées « région|plat ».
-      const cards = shuffle(rng, state.regionsInPlay.flatMap((r) => COURSES.map((c) => `${r}|${c}`)));
+      // Cartes Région notées « région|plat » (le plat qu'elles représentent). La réserve
+      // garde les cartes Région non distribuées.
+      const cards = shuffle(rng, regionDeck(state.rules, state.regionsInPlay));
       state.players.forEach((p) => {
         const mine: string[] = [];
         while (mine.length < state.rules.regionsPerPlayer) {
@@ -161,6 +160,14 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     state.drawPile = deck;
   }
   for (const p of state.players) for (const c of p.hand) state.origins[c.id] = 'deal';
+}
+
+/**
+ * Les cartes Région de la règle « un menu », notées « région|plat » :
+ * une par région (plat fixe de la config) ou une par région et par plat.
+ */
+export function regionDeck(rules: Rules, regions: RegionId[] = ALL_REGION_IDS): string[] {
+  return rules.regionCards === 'uniques' ? regions.map((r) => `${r}|${REGION_BY_ID[r].regionCourse}`) : regions.flatMap((r) => COURSES.map((c) => `${r}|${c}`));
 }
 
 /** Passe à la manche suivante (après un écran de fin de manche). */

@@ -53,7 +53,7 @@ function MenuGauge({ state, revealed, focus }: { state: GameState; revealed: boo
                     key={course}
                     className={`gauge-cell${full || joker ? ' full' : ''}`}
                     style={full ? { background: revealed ? r.color : '#c98a2b' } : joker ? { background: '#d9a441' } : undefined}
-                    title={fromRegion ? `${COURSE_LABELS[course]} : déjà fourni par ta carte Région` : COURSE_LABELS[course]}
+                    title={fromRegion ? `${COURSE_LABELS[course]} : c’est ta carte Région` : COURSE_LABELS[course]}
                   >
                     {joker ? '🥖' : COURSE_ICONS[course]}
                     {fromRegion && <span className="gauge-gift">★</span>}
@@ -206,7 +206,7 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
         {!flipped
           ? `Tu reçois ${one ? 'ta carte Région secrète' : '2 cartes Région secrètes'}. Cache bien ton écran…`
           : one && me.bonus[0]
-            ? `Ta région secrète ! Elle t’apporte déjà ${REGION_BY_ID[regions[0]].dishes[COURSES.indexOf(me.bonus[0])]} (${COURSE_LABELS[me.bonus[0]]}) : trouve les 3 autres plats.`
+            ? `Ta région secrète ! Cette carte compte comme un de ses plats : ${REGION_BY_ID[regions[0]].dishes[COURSES.indexOf(me.bonus[0])]} (${COURSE_LABELS[me.bonus[0]]}) : trouve les 3 autres plats. La vraie carte ne te sert à rien… sauf pour bluffer !`
             : 'Tes 2 régions secrètes : termine leurs 2 menus !'}
       </p>
       <div className="intro-cards" onClick={() => setFlipped(true)}>

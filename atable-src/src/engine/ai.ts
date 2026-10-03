@@ -49,8 +49,8 @@ export function beliefs(state: GameState, observer: number): Beliefs {
         if (m.mode === 'market' || m.to === observer) weights[m.card.region] *= DUMP_FACTOR;
       }
     }
-    // Variante « un menu » : les régions peuvent être partagées, la mienne reste possible.
-    if (state.rules.mode === 'unMenu') for (const r of own) if (!steps.some((x) => x.d?.target === q && x.d.region === r)) excluded.delete(r);
+    // Cartes Région partagées : la région des autres peut être la mienne.
+    if (state.rules.mode === 'unMenu' && state.rules.regionCards === 'partagees') for (const r of own) if (!steps.some((x) => x.d?.target === q && x.d.region === r)) excluded.delete(r);
     const candidates = state.regionsInPlay.filter((r) => !excluded.has(r));
     const total = candidates.reduce((sum, r) => sum + weights[r], 0);
     if (state.rules.regionsPerPlayer === 1) {

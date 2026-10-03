@@ -286,24 +286,35 @@ describe('menus (8 cartes, 2 régions)', () => {
   });
 });
 
-describe('règles par défaut : 1 région (avec un plat fourni), 2 cartes par tour', () => {
-  it.each([2, 3, 4])('à %i joueurs : 1 région secrète avec son plat, 8 cartes, réserve des cartes Région', (n) => {
+describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 cartes par tour', () => {
+  it.each([2, 3, 4])('à %i joueurs : 1 région secrète différente pour chacun, 8 cartes, réserve des cartes Région', (n) => {
     for (let seed = 1; seed <= 40; seed++) {
       const s = createGame(setups(n), createRng(seed));
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(1);
-        expect(p.bonus).toHaveLength(1);
+        // La carte Région compte toujours comme le même plat de sa région (config).
+        expect(p.bonus).toEqual([REGIONS.find((r) => r.id === p.regions[0])!.regionCourse]);
         expect(p.hand).toHaveLength(8);
       });
-      expect(s.regionReserve).toHaveLength(12 * 4 - n);
+      expect(new Set(s.players.map((p) => p.regions[0])).size).toBe(n);
+      expect(s.regionReserve).toHaveLength(12 - n);
       expect(totalCards(s)).toBe(TOTAL);
       expect(vaisselleHolder(s)).not.toBeNull();
     }
   });
 
-  it('plusieurs joueurs peuvent avoir la même région', () => {
-    const shared = Array.from({ length: 200 }, (_, i) => createGame(setups(4), createRng(i))).some((s) => new Set(s.players.map((p) => p.regions[0])).size < 4);
-    expect(shared).toBe(true);
+  it('chaque région n’existe qu’une fois : jamais deux joueurs sur la même région', () => {
+    for (let i = 0; i < 200; i++) {
+      const s = createGame(setups(4), createRng(i));
+      expect(new Set(s.players.map((p) => p.regions[0])).size).toBe(4);
+    }
+  });
+
+  it('la vraie carte du plat de sa carte Région ne compte pas en double', () => {
+    // Savoie : la carte Région compte comme la Tartiflette.
+    const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert'].map(c);
+    expect(evaluateOneMenu([c('savoie-entree'), c('savoie-fromage'), c('savoie-dessert'), c('savoie-plat'), ...junk], ['savoie'], ['plat'])?.type).toBe('gastronomique');
+    expect(evaluateOneMenu([c('savoie-entree'), c('savoie-plat'), c('savoie-dessert'), c('auvergne-plat'), ...junk], ['savoie'], ['plat'])).toBeNull();
   });
 
   it('il faut donner exactement 2 cartes, chacune à gauche ou au Marché', () => {
@@ -355,7 +366,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   it('distribution : 2 régions par joueur avec un plat fourni, régions partagées possibles', () => {
     let shared = false;
     for (let seed = 1; seed <= 60; seed++) {
-      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4 } });
+      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees' } });
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(2);
         expect(new Set(p.regions).size).toBe(2);
@@ -380,7 +391,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   });
 
   it('4 cartes données par tour : chacun garde 8 cartes et une partie se termine', () => {
-    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4 } });
+    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees' } });
     const rng = createRng(4);
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 5000) {

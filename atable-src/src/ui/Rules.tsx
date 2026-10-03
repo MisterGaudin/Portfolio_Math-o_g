@@ -9,8 +9,8 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b>But :</b> gagner 3 Toques et devenir <b>Grand Chef</b>.
         </p>
         <p>
-          Chaque manche, tu reçois <b>une région secrète</b> et 8 cartes. Ta carte Région t’apporte déjà un plat (★) : trouve les <b>3 autres</b> (Entrée, Plat,
-          Fromage, Dessert de ta région). Plusieurs joueurs peuvent avoir la même région.
+          Chaque manche, tu reçois <b>une région secrète</b> (chacun la sienne) et 8 cartes. Ta carte Région compte comme un de ses plats (★) : trouve les{' '}
+          <b>3 autres</b>. La vraie carte de ce plat ne te sert à rien : donne-la pour <b>bluffer</b> !
         </p>
         <p>
           <b>Chaque tour</b>, tout le monde en même temps choisit <b>2 cartes</b> : chacune est <b>passée</b> au voisin de gauche, face cachée, ou va au{' '}

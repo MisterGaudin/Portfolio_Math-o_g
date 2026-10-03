@@ -38,21 +38,26 @@ export interface RegionConfig {
   emblem: string;
   /** Les 4 spécialités, dans l'ordre Entrée / Plat / Fromage / Dessert. */
   dishes: [string, string, string, string];
+  /**
+   * Le plat que représente la carte Région secrète : elle compte (cachée) comme ce plat
+   * dans ta recette. La vraie carte de ce plat ne te sert donc à rien… et peut servir à bluffer.
+   */
+  regionCourse: Course;
 }
 
 export const REGIONS: RegionConfig[] = [
-  { id: 'normandie', name: 'Normandie', color: '#4f8a3c', ink: '#ffffff', emblem: '🍏', dishes: ["Huîtres d'Isigny", "Poulet Vallée d'Auge", 'Camembert', 'Teurgoule'] },
-  { id: 'alsace', name: 'Alsace', color: '#c0392b', ink: '#ffffff', emblem: '🥨', dishes: ['Tarte flambée', 'Choucroute', 'Munster', 'Kougelhopf'] },
-  { id: 'savoie', name: 'Savoie', color: '#2f6db5', ink: '#ffffff', emblem: '🏔️', dishes: ['Salade savoyarde', 'Tartiflette', 'Reblochon', 'Gâteau de Savoie'] },
-  { id: 'provence', name: 'Provence', color: '#8e5cc4', ink: '#ffffff', emblem: '🌿', dishes: ['Tapenade', 'Bouillabaisse', 'Banon', 'Calissons'] },
-  { id: 'sud-ouest', name: 'Sud-Ouest', color: '#8a2846', ink: '#ffffff', emblem: '🦆', dishes: ['Foie gras', 'Cassoulet', 'Ossau-Iraty', 'Canelé'] },
-  { id: 'lyonnais', name: 'Lyonnais', color: '#e07b1f', ink: '#1d1300', emblem: '🦁', dishes: ['Salade lyonnaise', 'Quenelles', 'Saint-Marcellin', 'Bugnes'] },
-  { id: 'bretagne', name: 'Bretagne', color: '#1f2d44', ink: '#ffffff', emblem: '⚓', dishes: ['Huîtres de Cancale', 'Kig ha farz', 'Curé nantais', 'Crêpes'] },
-  { id: 'nord', name: 'Nord', color: '#d9a404', ink: '#1d1300', emblem: '🍺', dishes: ['Potjevleesch', 'Carbonade flamande', 'Maroilles', 'Gaufre'] },
-  { id: 'bourgogne', name: 'Bourgogne', color: '#9c2b6b', ink: '#ffffff', emblem: '🍷', dishes: ['Escargots', 'Bœuf bourguignon', 'Époisses', "Pain d'épices"] },
-  { id: 'auvergne', name: 'Auvergne', color: '#6d4c2f', ink: '#ffffff', emblem: '🌋', dishes: ['Pounti', 'Truffade', 'Saint-Nectaire', 'Pompe aux pommes'] },
-  { id: 'corse', name: 'Corse', color: '#13877a', ink: '#ffffff', emblem: '🐗', dishes: ['Figatellu', 'Civet de sanglier', 'Brocciu', 'Fiadone'] },
-  { id: 'lorraine', name: 'Lorraine', color: '#58708a', ink: '#ffffff', emblem: '🏰', dishes: ['Quiche lorraine', 'Potée lorraine', "Carré de l'Est", 'Madeleines'] },
+  { id: 'normandie', name: 'Normandie', color: '#4f8a3c', ink: '#ffffff', emblem: '🍏', dishes: ["Huîtres d'Isigny", "Poulet Vallée d'Auge", 'Camembert', 'Teurgoule'], regionCourse: 'fromage' },
+  { id: 'alsace', name: 'Alsace', color: '#c0392b', ink: '#ffffff', emblem: '🥨', dishes: ['Tarte flambée', 'Choucroute', 'Munster', 'Kougelhopf'], regionCourse: 'plat' },
+  { id: 'savoie', name: 'Savoie', color: '#2f6db5', ink: '#ffffff', emblem: '🏔️', dishes: ['Salade savoyarde', 'Tartiflette', 'Reblochon', 'Gâteau de Savoie'], regionCourse: 'plat' },
+  { id: 'provence', name: 'Provence', color: '#8e5cc4', ink: '#ffffff', emblem: '🌿', dishes: ['Tapenade', 'Bouillabaisse', 'Banon', 'Calissons'], regionCourse: 'entree' },
+  { id: 'sud-ouest', name: 'Sud-Ouest', color: '#8a2846', ink: '#ffffff', emblem: '🦆', dishes: ['Foie gras', 'Cassoulet', 'Ossau-Iraty', 'Canelé'], regionCourse: 'entree' },
+  { id: 'lyonnais', name: 'Lyonnais', color: '#e07b1f', ink: '#1d1300', emblem: '🦁', dishes: ['Salade lyonnaise', 'Quenelles', 'Saint-Marcellin', 'Bugnes'], regionCourse: 'dessert' },
+  { id: 'bretagne', name: 'Bretagne', color: '#1f2d44', ink: '#ffffff', emblem: '⚓', dishes: ['Huîtres de Cancale', 'Kig ha farz', 'Curé nantais', 'Crêpes'], regionCourse: 'dessert' },
+  { id: 'nord', name: 'Nord', color: '#d9a404', ink: '#1d1300', emblem: '🍺', dishes: ['Potjevleesch', 'Carbonade flamande', 'Maroilles', 'Gaufre'], regionCourse: 'dessert' },
+  { id: 'bourgogne', name: 'Bourgogne', color: '#9c2b6b', ink: '#ffffff', emblem: '🍷', dishes: ['Escargots', 'Bœuf bourguignon', 'Époisses', "Pain d'épices"], regionCourse: 'plat' },
+  { id: 'auvergne', name: 'Auvergne', color: '#6d4c2f', ink: '#ffffff', emblem: '🌋', dishes: ['Pounti', 'Truffade', 'Saint-Nectaire', 'Pompe aux pommes'], regionCourse: 'fromage' },
+  { id: 'corse', name: 'Corse', color: '#13877a', ink: '#ffffff', emblem: '🐗', dishes: ['Figatellu', 'Civet de sanglier', 'Brocciu', 'Fiadone'], regionCourse: 'fromage' },
+  { id: 'lorraine', name: 'Lorraine', color: '#58708a', ink: '#ffffff', emblem: '🏰', dishes: ['Quiche lorraine', 'Potée lorraine', "Carré de l'Est", 'Madeleines'], regionCourse: 'entree' },
 ];
 
 /** Nombre de régions secrètes par joueur (2 menus à terminer). */

@@ -24,8 +24,8 @@ interface Step {
 const c = cardById;
 
 /**
- * Mise en place imposée : toi (Savoie, ta carte apporte la Tartiflette) contre
- * Mamie (Bretagne, sa carte apporte les Crêpes). Chacun donne 2 cartes par tour.
+ * Mise en place imposée : toi (Savoie, ta carte compte comme la Tartiflette) contre
+ * Mamie (Bretagne, sa carte compte comme les Crêpes). Chacun donne 2 cartes par tour.
  */
 function tutorialScript(): BotScript {
   const hands = [
@@ -57,8 +57,9 @@ function tutorialScript(): BotScript {
 const pass = (...ids: string[]) => ids.map((cardId) => ({ cardId, mode: 'pass' as Mode }));
 
 const STEPS: Step[] = [
-  { text: 'Bienvenue à table ! Tu affrontes Mamie. En début de manche, chacun reçoit une carte Région secrète. Tape « Découvrir ma région ».', expect: { kind: 'wait', until: (st) => st !== 'intro' } },
-  { text: 'Tu es la Savoie ! Ta carte Région t’apporte déjà un plat, la Tartiflette (★). Pour crier « À TABLE ! », il te faut les 3 autres plats de Savoie : Entrée, Fromage et Dessert. Tape « Ma région » pour la revoir.', focus: 'region', expect: { kind: 'next' } },
+  { text: 'Bienvenue à table ! Tu affrontes Mamie. En début de manche, chacun reçoit une carte Région secrète (chaque région n’existe qu’une fois). Tape « Découvrir ma région ».', expect: { kind: 'wait', until: (st) => st !== 'intro' } },
+  { text: 'Tu es la Savoie ! Ta carte Région compte comme un plat, la Tartiflette (★), sans que personne ne le voie. Pour crier « À TABLE ! », il te faut les 3 autres plats de Savoie : Entrée, Fromage et Dessert. Tape « Ma région » pour la revoir.', focus: 'region', expect: { kind: 'next' } },
+  { text: 'Astuce de chef : la vraie carte Tartiflette ne te servirait à rien. Si tu la reçois, donne-la : ton voisin croira que tu n’es pas la Savoie. C’est du bluff !', focus: 'region', expect: { kind: 'next' } },
   { text: 'La jauge montre ton menu. Tu as déjà la Salade savoyarde et le Reblochon : il ne manque que le Gâteau de Savoie !', focus: 'gauge', expect: { kind: 'next' } },
   { text: 'Mais tu as la Vaisselle 🍽️ : l’assiette sale montre qui l’a, et avec elle, pas d’annonce. Chaque tour, tout le monde donne 2 cartes à son voisin de gauche.', focus: 'vaisselle', expect: { kind: 'next' } },
   { text: 'Tape la Vaisselle et la Choucroute (« Passer », c’est déjà choisi), puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: pass('vaisselle', 'alsace-plat') } },

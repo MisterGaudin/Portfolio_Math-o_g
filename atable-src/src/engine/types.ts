@@ -159,6 +159,13 @@ export interface Rules {
   mode: 'deuxMenus' | 'unMenu';
   /** Nombre de régions secrètes par joueur. */
   regionsPerPlayer: number;
+  /**
+   * Cartes Région (règle « un menu ») :
+   * - 'uniques' : 12 cartes, une par région, chacune comptant comme un plat fixe de sa région
+   *   (voir `regionCourse` dans la config) ; deux joueurs n'ont jamais la même région ;
+   * - 'partagees' : 48 cartes (région × plat), plusieurs joueurs peuvent avoir la même région.
+   */
+  regionCards: 'uniques' | 'partagees';
 }
 
 export interface GameState {
