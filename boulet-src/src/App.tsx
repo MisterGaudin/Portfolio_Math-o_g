@@ -18,7 +18,7 @@ function loadSetup(): Setup {
   return { name: '', opponents: 2, difficulty: 'moyen' };
 }
 
-const isSimRoute = () => window.location.pathname.replace(/\/+$/, '') === '/sim' || window.location.hash === '#/sim';
+const isSimRoute = () => /\/sim\/?$/.test(window.location.pathname) || window.location.hash === '#/sim';
 
 export default function App() {
   if (isSimRoute()) return <SimPage />;

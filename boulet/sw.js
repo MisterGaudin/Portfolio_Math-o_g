@@ -4,7 +4,7 @@
 const CACHE = 'boulet-v1';
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['/', '/manifest.webmanifest', '/icons/icon.svg'])));
+  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(['./', './manifest.webmanifest', './icons/icon.svg'])));
   self.skipWaiting();
 });
 
@@ -23,10 +23,10 @@ self.addEventListener('fetch', (event) => {
       fetch(req)
         .then((res) => {
           const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put('/', copy));
+          caches.open(CACHE).then((c) => c.put('./', copy));
           return res;
         })
-        .catch(() => caches.match('/')),
+        .catch(() => caches.match('./')),
     );
     return;
   }

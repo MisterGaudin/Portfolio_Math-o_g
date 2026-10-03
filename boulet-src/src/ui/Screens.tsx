@@ -57,7 +57,7 @@ export function Home({ initial, onStart, onRules }: { initial: Setup; onStart: (
       <button className="btn big" onClick={onRules}>
         Règles
       </button>
-      <a className="sim-link" href="/sim">
+      <a className="sim-link" href={`${import.meta.env.BASE_URL}sim`}>
         Mode simulation (équilibrage)
       </a>
     </div>

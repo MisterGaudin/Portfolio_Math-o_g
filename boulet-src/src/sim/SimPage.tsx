@@ -140,7 +140,7 @@ export function SimPage() {
           {ms > 0 && <p className="hint">Calculé en {f(ms / 1000, 1)} s</p>}
         </>
       )}
-      <a className="sim-link" href="/">
+      <a className="sim-link" href={import.meta.env.BASE_URL}>
         ← Retour au jeu
       </a>
     </div>

@@ -11,5 +11,5 @@ createRoot(document.getElementById('root')!).render(
 
 // Service worker : permet de jouer hors ligne une fois l'app installée (PWA).
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+  window.addEventListener('load', () => navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch(() => {}));
 }
