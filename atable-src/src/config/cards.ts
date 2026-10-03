@@ -69,6 +69,8 @@ export const HAND_SIZE = 8;
 export const SPECIALS = {
   baguette: { id: 'baguette', name: 'Baguette', icon: '🥖', hint: 'Remplace n’importe quelle carte' },
   vaisselle: { id: 'vaisselle', name: 'Vaisselle', icon: '🍽️', hint: 'Pas d’annonce avec elle !' },
+  demitour: { id: 'demitour', name: 'Demi-tour', icon: '🔄', hint: 'Le sens de passage s’inverse' },
+  troc: { id: 'troc', name: 'Troc', icon: '🤝', hint: 'Échange ta main avec un joueur' },
 } as const;
 
 /** Format des illustrations déposées dans public/cards/. */

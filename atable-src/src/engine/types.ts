@@ -19,7 +19,19 @@ export interface DishCard {
 /** Le joker : remplace n'importe quelle carte d'un menu. */
 export interface BaguetteCard {
   kind: 'baguette';
-  id: 'baguette';
+  /** « baguette », puis « baguette-2 »… s'il y en a plusieurs. */
+  id: string;
+  name: string;
+}
+
+/** Les effets des cartes spéciales (posées sur la pile spéciale, hors jeu, une fois jouées). */
+export type Effect = 'demitour' | 'troc';
+
+/** Carte à effet : « Demi-tour » (le sens de passage s'inverse) ou « Troc » (échange de main). */
+export interface EffectCard {
+  kind: 'effect';
+  id: string;
+  effect: Effect;
   name: string;
 }
 
@@ -30,16 +42,24 @@ export interface VaisselleCard {
   name: string;
 }
 
-export type Card = DishCard | BaguetteCard | VaisselleCard;
+export type Card = DishCard | BaguetteCard | VaisselleCard | EffectCard;
 
-/** Ce qu'on fait de la carte choisie : la passer à gauche ou l'envoyer au Marché. */
-export type Mode = 'pass' | 'market';
+/**
+ * Ce qu'on fait de la carte choisie : la passer à gauche, l'envoyer au Marché, ou
+ * (carte à effet) la jouer — elle part sur la pile spéciale et le voisin pioche à la place.
+ */
+export type Mode = 'pass' | 'market' | 'effect';
 
-export interface Choice {
+export interface Pick {
   cardId: string;
   mode: Mode;
+  /** Cible d'une carte Troc. */
+  target?: number;
+}
+
+export interface Choice extends Pick {
   /** Cartes supplémentaires données en même temps (règle « passCount » > 1). */
-  extra?: { cardId: string; mode: Mode }[];
+  extra?: Pick[];
 }
 
 export interface PlayerSetup {
@@ -101,6 +121,8 @@ export interface Move {
   to: number;
   /** Carte de la pioche reçue par le voisin en cas de Marché (connue du seul receveur). */
   drawn?: Card;
+  /** Cible d'une carte Troc jouée. */
+  target?: number;
 }
 
 /** Mémoire d'un tour, utilisée par l'IA et les statistiques. */
@@ -166,6 +188,10 @@ export interface Rules {
    * - 'partagees' : 48 cartes (région × plat), plusieurs joueurs peuvent avoir la même région.
    */
   regionCards: 'uniques' | 'partagees';
+  /** Nombre de Baguettes dans le paquet (une seule peut servir par menu). */
+  baguettes: number;
+  /** Cartes à effet dans le paquet. */
+  effects: Record<Effect, number>;
 }
 
 export interface GameState {
@@ -202,6 +228,10 @@ export interface GameState {
   unmasked: number[];
   /** Réglages de la partie (voir GameOptions). */
   rules: Rules;
+  /** Sens de passage : +1 = vers la gauche (joueur suivant), -1 = vers la droite. */
+  direction: 1 | -1;
+  /** Pile spéciale : cartes à effet déjà jouées, sorties du jeu pour la manche. */
+  specialPile: Card[];
 }
 
 /** Événements renvoyés par le moteur pour l'UI (animations, journal). */

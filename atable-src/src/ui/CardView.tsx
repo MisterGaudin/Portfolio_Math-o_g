@@ -72,10 +72,10 @@ export function CardView({ card, size = 'hand', selected, dim, onClick, own }: {
       </Tag>
     );
   }
-  const special = SPECIALS[card.kind];
+  const special = SPECIALS[card.kind === 'effect' ? card.effect : card.kind];
   return (
     <Tag className={cls} onClick={onClick} aria-label={`${special.name} : ${special.hint}`}>
-      <span className="card-band">{card.kind === 'baguette' ? 'Joker' : 'À refiler !'}</span>
+      <span className="card-band">{card.kind === 'baguette' ? 'Joker' : card.kind === 'effect' ? 'Effet' : 'À refiler !'}</span>
       <span className="card-icon">{card.kind === 'vaisselle' ? <DirtyPlate size={size === 'hand' ? 40 : 24} /> : special.icon}</span>
       <span className="card-name">{special.name}</span>
       <span className="card-course">{size === 'hand' ? special.hint : ''}</span>

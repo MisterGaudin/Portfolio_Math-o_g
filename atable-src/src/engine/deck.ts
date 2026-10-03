@@ -1,6 +1,6 @@
 // Fabrication des cartes et évaluation des menus.
 import { COURSES, HAND_SIZE, REGIONS, REGION_BY_ID, SPECIALS } from '../config/cards';
-import { MENU_RANK, type BaguetteCard, type Card, type Course, type DishCard, type Menu, type MenuType, type RegionId, type VaisselleCard } from './types';
+import { MENU_RANK, type BaguetteCard, type Card, type Course, type DishCard, type Effect, type EffectCard, type Menu, type MenuType, type RegionId, type VaisselleCard } from './types';
 
 export const ALL_REGION_IDS: RegionId[] = REGIONS.map((r) => r.id);
 
@@ -18,9 +18,16 @@ export function regionCards(region: RegionId): DishCard[] {
  * Toutes les cartes d'une manche : 4 plats par région (en `copies` exemplaires) + Baguette + Vaisselle.
  * Les doubles ont un identifiant suffixé : « alsace-fromage-2 » (même illustration).
  */
-export function buildDeck(regions: RegionId[], copies = 1): Card[] {
+export function buildDeck(regions: RegionId[], copies = 1, baguettes = 1, effects: Partial<Record<Effect, number>> = {}): Card[] {
   const dishes = regions.flatMap((r) => Array.from({ length: copies }, (_, k) => regionCards(r).map((d) => (k === 0 ? d : { ...d, id: `${d.id}-${k + 1}` }))).flat());
-  return [...dishes, BAGUETTE, VAISSELLE];
+  const breads = Array.from({ length: baguettes }, (_, k) => (k === 0 ? BAGUETTE : { ...BAGUETTE, id: `baguette-${k + 1}` }));
+  const specials = (Object.entries(effects) as [Effect, number][]).flatMap(([effect, n]) => Array.from({ length: n }, (_, k) => effectCard(effect, k + 1)));
+  return [...dishes, ...breads, ...specials, VAISSELLE];
+}
+
+/** Une carte à effet (« demitour-1 », « troc-2 »…). */
+export function effectCard(effect: Effect, n: number): EffectCard {
+  return { kind: 'effect', id: `${effect}-${n}`, effect, name: SPECIALS[effect].name };
 }
 
 /** Identifiant de l'illustration d'une carte (les doubles partagent celle de l'original). */
@@ -30,6 +37,9 @@ export const imageId = (id: string) => id.replace(/-\d+$/, '');
 export function cardById(id: string): Card {
   if (id === 'baguette') return BAGUETTE;
   if (id === 'vaisselle') return VAISSELLE;
+  if (/^baguette-\d+$/.test(id)) return { ...BAGUETTE, id };
+  const fx = /^(demitour|troc)-(\d+)$/.exec(id);
+  if (fx) return effectCard(fx[1] as Effect, +fx[2]);
   const copy = /-(\d+)$/.exec(id);
   const base = copy ? id.slice(0, -copy[0].length) : id;
   const card = ALL_REGION_IDS.flatMap(regionCards).find((c) => c.id === base);

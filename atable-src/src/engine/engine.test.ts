@@ -13,6 +13,8 @@ import {
   denounce,
   evaluateMenu,
   evaluateOneMenu,
+  effectCard,
+  cloneState,
   nextRound,
   playBotTurn,
   regionCards,
@@ -365,6 +367,77 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
     for (const n of [2, 3, 4]) {
       const s = createGame(setups(n, d), createRng(n * 7));
       const rng = createRng(n);
+      let guard = 0;
+      while (s.phase !== 'gameOver' && guard++ < 5000) {
+        if (s.phase === 'roundOver') nextRound(s, rng);
+        else playBotTurn(s, rng);
+        s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+      }
+      expect(s.phase).toBe('gameOver');
+    }
+  });
+});
+
+describe('options : plusieurs Baguettes et cartes à effet', () => {
+  const opts = { rules: { baguettes: 3, effects: { demitour: 2, troc: 2 } } };
+  const total = (s: GameState) => totalCards(s) + s.specialPile.length;
+
+  it('le paquet contient les Baguettes et cartes à effet demandées', () => {
+    const s = createGame(setups(3), createRng(5), opts);
+    const all = [...s.players.flatMap((p) => p.hand), ...s.drawPile];
+    expect(all.filter((x) => x.kind === 'baguette')).toHaveLength(3);
+    expect(all.filter((x) => x.kind === 'effect')).toHaveLength(4);
+    expect(cardById('troc-2').kind).toBe('effect');
+    expect(cardById('baguette-3').kind).toBe('baguette');
+  });
+
+  it('une seule Baguette compte par menu', () => {
+    const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert'].map(c);
+    const two = [c('savoie-entree'), BAGUETTE, cardById('baguette-2'), ...junk, c('auvergne-plat')];
+    expect(evaluateOneMenu(two, ['savoie'], ['plat'])).toBeNull();
+  });
+
+  it('Demi-tour : la carte part sur la pile spéciale et le sens s’inverse au tour suivant', () => {
+    const s = createGame(setups(3), createRng(5), opts);
+    s.players[0].hand[0] = effectCard('demitour', 1);
+    s.players.forEach((p, i) => {
+      const cards = p.hand.filter((x) => x.kind !== 'effect').slice(0, 2);
+      const first = i === 0 ? { cardId: 'demitour-1', mode: 'effect' as const } : { cardId: cards[0].id, mode: 'pass' as const };
+      submitChoice(s, i, { ...first, extra: [{ cardId: (i === 0 ? cards[0] : cards[1]).id, mode: 'pass' }] });
+    });
+    const before = total(s);
+    resolveExchange(s, createRng(1));
+    expect(s.specialPile.map((x) => x.id)).toEqual(['demitour-1']);
+    expect(s.direction).toBe(-1);
+    expect(total(s)).toBe(before);
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+  });
+
+  it('Troc : les deux mains sont échangées après l’échange', () => {
+    const s = createGame(setups(3), createRng(6), opts);
+    s.players[0].hand[0] = effectCard('troc', 1);
+    s.players.forEach((p, i) => {
+      const cards = p.hand.filter((x) => x.kind !== 'effect').slice(0, 2);
+      const first = i === 0 ? { cardId: 'troc-1', mode: 'effect' as const, target: 2 } : { cardId: cards[0].id, mode: 'pass' as const };
+      submitChoice(s, i, { ...first, extra: [{ cardId: (i === 0 ? cards[0] : cards[1]).id, mode: 'pass' }] });
+    });
+    // Sans Troc, J0 aurait reçu les cartes de J2 et gardé le reste de sa main : avec le Troc,
+    // il récupère toute la main de J2 (après l'échange), et inversement.
+    const plain = cloneState(s);
+    plain.choices[0] = { ...plain.choices[0], mode: 'market', target: undefined };
+    resolveExchange(plain, createRng(1));
+    const sim = cloneState(s);
+    resolveExchange(sim, createRng(1));
+    expect(sim.specialPile.map((x) => x.id)).toEqual(['troc-1']);
+    expect(ids(sim.players[0].hand)).toEqual(ids(plain.players[2].hand));
+    expect(ids(sim.players[2].hand)).toEqual(ids(plain.players[0].hand));
+    expect(() => submitChoice(createGame(setups(3), createRng(6), opts), 0, { cardId: 'x', mode: 'effect' })).toThrow();
+  });
+
+  it('les parties entre IA se terminent avec toutes les options', () => {
+    for (const n of [2, 3, 4]) {
+      const s = createGame(setups(n, 'difficile'), createRng(n), opts);
+      const rng = createRng(n + 1);
       let guard = 0;
       while (s.phase !== 'gameOver' && guard++ < 5000) {
         if (s.phase === 'roundOver') nextRound(s, rng);

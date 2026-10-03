@@ -2,8 +2,9 @@
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
 import { announceableMenu, checkDenounce, leftOf, vaisselleHolder } from './game';
+import { menuProgress } from './deck';
 import { pick, type Rng } from './rng';
-import type { Card, Choice, DishCard, GameState, RegionId } from './types';
+import type { Card, Choice, DishCard, GameState, Pick, RegionId } from './types';
 
 /** Multiplicateur appliqué à une région quand un joueur s'en débarrasse. */
 const DUMP_FACTOR = 0.3;
@@ -98,15 +99,29 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
 
   // Facile : une carte au hasard qui n'est pas de ses régions, passée à gauche
   // (et de temps en temps au Marché, sinon la pioche ne tournerait jamais).
+  const others = state.players.map((_, i) => i).filter((i) => i !== player);
   if (me.difficulty === 'facile') {
     const notMine = hand.filter((c) => !mine(c));
     const card = pick(rng, notMine.length ? notMine : hand);
+    // Carte à effet : une fois sur deux, on la joue (au hasard).
+    if (card.kind === 'effect' && rng() < 0.5) return { cardId: card.id, mode: 'effect', target: pick(rng, others) };
     return { cardId: card.id, mode: card.kind !== 'vaisselle' && rng() < 0.3 ? 'market' : 'pass' };
   }
 
   // Moyen et Difficile : on refile toujours la Vaisselle.
   const vaisselle = hand.find((c) => c.kind === 'vaisselle');
   if (vaisselle) return { cardId: vaisselle.id, mode: 'pass' };
+
+  // Cartes à effet : le Demi-tour se joue tout de suite ; le Troc seulement si notre main
+  // est mauvaise (sinon on le jette au Marché, pour ne pas le donner au voisin).
+  const progress = Math.max(0, ...menuProgress(hand, own, me.bonus).map((p) => p.have.size));
+  const demitour = hand.find((c) => c.kind === 'effect' && c.effect === 'demitour');
+  if (demitour) return { cardId: demitour.id, mode: 'effect' };
+  const troc = hand.find((c) => c.kind === 'effect' && c.effect === 'troc');
+  if (troc) return progress <= 2 ? { cardId: troc.id, mode: 'effect', target: pick(rng, others) } : { cardId: troc.id, mode: 'market' };
+  // Baguettes en trop : une seule peut servir.
+  const breads = hand.filter((c) => c.kind === 'baguette');
+  if (breads.length > 1) return { cardId: breads[1].id, mode: 'market' };
 
   const hard = me.difficulty === 'difficile';
   const left = leftOf(state, player);
@@ -168,11 +183,11 @@ const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => 
 
 /** Choix complet : autant de cartes que la règle « passCount » l'exige, choisies une à une. */
 export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice {
-  const picks: { cardId: string; mode: Choice['mode'] }[] = [];
+  const picks: Pick[] = [];
   const view = { ...state, players: state.players.map((p) => ({ ...p, hand: [...p.hand] })) };
   for (let k = 0; k < state.rules.passCount; k++) {
     const ch = aiChoose(view, player, rng);
-    picks.push({ cardId: ch.cardId, mode: ch.mode });
+    picks.push({ cardId: ch.cardId, mode: ch.mode, target: ch.target });
     view.players[player].hand = view.players[player].hand.filter((c) => c.id !== ch.cardId);
   }
   return { ...picks[0], extra: picks.slice(1) };

@@ -19,7 +19,7 @@ export interface GameOptions {
  * Règles du jeu par défaut : 1 région secrète par joueur (sa carte apporte déjà un plat,
  * il en reste 3 à trouver), 2 cartes données par tour, 8 cartes en main.
  */
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1, regionCards: 'uniques' };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1, regionCards: 'uniques', baguettes: 1, effects: { demitour: 0, troc: 0 } };
 /** Ancienne version « 2 menus » (2 régions, 8 cartes à réunir, 1 carte par tour). */
 export const TWO_MENUS_RULES: Partial<Rules> = { mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1 };
 
@@ -61,6 +61,8 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
     denounceBanUntil: {},
     unmasked: [],
     rules: { ...DEFAULT_RULES, ...opts.rules },
+    direction: 1,
+    specialPile: [],
   };
   dealRound(state, rng, preset);
   return state;
@@ -81,6 +83,7 @@ export function cloneState(s: GameState): GameState {
     stats: { ...s.stats },
     denounceBanUntil: { ...s.denounceBanUntil },
     unmasked: [...s.unmasked],
+    specialPile: [...s.specialPile],
   };
 }
 
@@ -98,6 +101,8 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
   state.denunciation = null;
   state.denounceBanUntil = {};
   state.unmasked = [];
+  state.direction = 1;
+  state.specialPile = [];
   state.history = [];
   state.origins = {};
   state.discard = [];
@@ -145,7 +150,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       state.regionReserve = cards;
     }
 
-    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies).filter((c) => c.kind !== 'vaisselle'));
+    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, state.rules.effects).filter((c) => c.kind !== 'vaisselle'));
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).
@@ -182,10 +187,10 @@ export function nextRound(state: GameState, rng: Rng): GameEvent[] {
   return [{ type: 'roundStart', round: state.roundNumber }];
 }
 
-/** Voisin de gauche : celui qui reçoit nos cartes. */
-export const leftOf = (state: GameState, p: number) => (p + 1) % state.players.length;
-/** Voisin de droite : celui qui nous passe ses cartes. */
-export const rightOf = (state: GameState, p: number) => (p + state.players.length - 1) % state.players.length;
+/** Voisin qui reçoit nos cartes : à gauche, ou à droite après un Demi-tour. */
+export const leftOf = (state: GameState, p: number) => (p + state.direction + state.players.length) % state.players.length;
+/** Voisin qui nous passe ses cartes. */
+export const rightOf = (state: GameState, p: number) => (p - state.direction + state.players.length) % state.players.length;
 
 /** Indice du joueur qui a la Vaisselle en main (toujours quelqu'un). */
 export function vaisselleHolder(state: GameState): number | null {
@@ -292,14 +297,17 @@ export function denounce(state: GameState, accuser: number, target: number, regi
 /** Vérifie qu'un choix est autorisé (renvoie un message d'erreur, ou null). */
 export function checkChoice(state: GameState, player: number, choice: Choice): string | null {
   if (state.phase !== 'choose') return 'Ce n’est pas le moment de choisir';
-  const all = [{ cardId: choice.cardId, mode: choice.mode }, ...(choice.extra ?? [])];
+  const all = [{ cardId: choice.cardId, mode: choice.mode, target: choice.target }, ...(choice.extra ?? [])];
   if (all.length !== state.rules.passCount) return `Il faut donner ${state.rules.passCount} carte(s)`;
   if (new Set(all.map((x) => x.cardId)).size !== all.length) return 'Une même carte ne peut pas être donnée deux fois';
   for (const x of all) {
     const card = state.players[player]?.hand.find((c) => c.id === x.cardId);
     if (!card) return 'Cette carte n’est pas dans ta main';
     if (x.mode === 'market' && card.kind === 'vaisselle') return 'La Vaisselle ne va jamais au Marché !';
-    if (x.mode !== 'pass' && x.mode !== 'market') return 'Action inconnue';
+    if (x.mode === 'effect') {
+      if (card.kind !== 'effect') return 'Seule une carte à effet peut être jouée';
+      if (card.effect === 'troc' && (x.target === undefined || x.target === player || !state.players[x.target])) return 'Choisis avec qui faire le Troc';
+    } else if (x.mode !== 'pass' && x.mode !== 'market') return 'Action inconnue';
   }
   return null;
 }
@@ -323,30 +331,31 @@ export const allChosen = (state: GameState) => state.players.every((_, i) => sta
 export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
   if (state.phase !== 'choose') throw new Error('Pas d’échange en cours');
   if (!allChosen(state)) throw new Error('Tout le monde n’a pas encore choisi');
-  const n = state.players.length;
   const events: GameEvent[] = [];
 
   // 1. Chacun retire sa ou ses cartes (en mémorisant leur place dans la main).
   const slots = state.players.map((p, i) => {
     const ch = state.choices[i];
-    return [{ cardId: ch.cardId, mode: ch.mode }, ...(ch.extra ?? [])].map((x) => {
+    return [{ cardId: ch.cardId, mode: ch.mode, target: ch.target }, ...(ch.extra ?? [])].map((x) => {
       const index = p.hand.findIndex((c) => c.id === x.cardId);
-      return { index, card: p.hand[index], mode: x.mode };
+      return { index, card: p.hand[index], mode: x.mode, target: x.target };
     });
   });
-  // 2. Les cartes du Marché arrivent d'abord, face visible, sur la défausse.
+  // 2. Les cartes du Marché arrivent d'abord, face visible, sur la défausse ;
+  //    les cartes à effet jouées vont sur la pile spéciale (sorties du jeu).
   slots.flat().forEach((s) => s.mode === 'market' && state.discard.push(s.card));
+  slots.flat().forEach((s) => s.mode === 'effect' && state.specialPile.push(s.card));
 
   // 3. Chaque voisin de gauche reçoit ses cartes, aux emplacements de celles qu'il a données.
   let reshuffled = false;
   const moves: Move[] = [];
   const incoming: Card[][] = state.players.map(() => []);
   slots.forEach((list, i) => {
-    const to = (i + 1) % n;
+    const to = leftOf(state, i);
     for (const s of list) {
-      const move: Move = { player: i, mode: s.mode, card: s.card, to };
+      const move: Move = { player: i, mode: s.mode, card: s.card, to, target: s.target };
       let card = s.card;
-      if (s.mode === 'market') {
+      if (s.mode === 'market' || s.mode === 'effect') {
         const d = drawCard(state, rng);
         reshuffled ||= d.reshuffled;
         card = d.card;
@@ -362,8 +371,20 @@ export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
   });
   state.players.forEach((p, i) => slots[i].forEach((s, k) => (p.hand[s.index] = incoming[i][k])));
 
+  // 4. Effets des cartes jouées, dans l'ordre des joueurs :
+  //    Demi-tour inverse le sens (pour les tours suivants), Troc échange les mains.
+  for (const m of moves) {
+    if (m.mode !== 'effect' || m.card.kind !== 'effect') continue;
+    if (m.card.effect === 'demitour') state.direction = state.direction === 1 ? -1 : 1;
+    if (m.card.effect === 'troc' && m.target !== undefined) {
+      const a = state.players[m.player];
+      const b = state.players[m.target];
+      [a.hand, b.hand] = [b.hand, a.hand];
+    }
+  }
+
   events.push({ type: 'exchange', moves });
-  // 4. Pioche vide après l'échange : on remélange la défausse tout de suite.
+  // 5. Pioche vide après l'échange : on remélange la défausse tout de suite.
   if (state.drawPile.length === 0 && state.discard.length > 0) {
     reshuffle(state, rng);
     reshuffled = true;
