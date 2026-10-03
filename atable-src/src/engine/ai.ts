@@ -124,7 +124,8 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
     return pick(rng, cards.filter((c) => doubles(c) === max));
   };
 
-  let junk = hand.filter(isDish).filter((c) => !own.includes(c.region));
+  // Inutile : une autre région, ou un double d'un plat de sa région déjà en main.
+  let junk = hand.filter(isDish).filter((c, i) => !own.includes(c.region) || hand.findIndex((x) => isDish(x) && x.region === c.region && x.course === c.course) !== i);
   // Difficile : bluff, on garde une carte d'une autre région pour brouiller les pistes
   // (de préférence une qui bouche un trou du menu).
   if (hard && junk.length >= 2) {

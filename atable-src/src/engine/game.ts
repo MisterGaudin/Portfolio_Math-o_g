@@ -15,7 +15,7 @@ export interface GameOptions {
   rules?: Partial<Rules>;
 }
 
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1 };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0 };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
@@ -108,11 +108,13 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     });
     state.drawPile = [...preset.drawPile].reverse(); // le dessus est la fin du tableau
   } else {
-    const secret = shuffle(rng, [...ALL_REGION_IDS]);
+    const count = state.rules.regionCount ? Math.max(state.rules.regionCount, n * REGIONS_PER_PLAYER + 1) : ALL_REGION_IDS.length;
+    state.regionsInPlay = shuffle(rng, [...ALL_REGION_IDS]).slice(0, count);
+    const secret = shuffle(rng, [...state.regionsInPlay]);
     state.players.forEach((p) => (p.regions = secret.splice(0, REGIONS_PER_PLAYER)));
     state.regionReserve = secret;
 
-    const deck = shuffle(rng, buildDeck(ALL_REGION_IDS).filter((c) => c.kind !== 'vaisselle'));
+    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies).filter((c) => c.kind !== 'vaisselle'));
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).

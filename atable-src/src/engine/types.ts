@@ -138,6 +138,10 @@ export interface Rules {
   denounceLimit: 'aucune' | 'protege' | 'unique';
   /** Cartes de chacune de ses régions garanties dans la main de départ (0 = donne au hasard). */
   headStart: number;
+  /** Exemplaires de chaque plat (1 = un seul Camembert ; 2 = deux Camembert…). */
+  copies: number;
+  /** Nombre de régions en jeu (0 = toutes). */
+  regionCount: number;
 }
 
 export interface GameState {

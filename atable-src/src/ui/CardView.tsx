@@ -2,7 +2,7 @@
 // remplacée automatiquement par l'illustration public/cards/<id>.png si elle existe.
 import { useState } from 'react';
 import { CARD_IMAGE_EXT, COURSE_ICONS, COURSE_LABELS, REGION_BY_ID, SPECIALS, USE_CARD_IMAGES } from '../config/cards';
-import type { Card, RegionId } from '../engine';
+import { imageId, type Card, type RegionId } from '../engine';
 
 /** Illustrations absentes déjà repérées : on ne les redemande pas au serveur. */
 const missing = new Set<string>();
@@ -68,7 +68,7 @@ export function CardView({ card, size = 'hand', selected, dim, onClick, own }: {
         <span className="card-icon">{COURSE_ICONS[card.course]}</span>
         <span className="card-name">{card.name}</span>
         <span className="card-course">{COURSE_LABELS[card.course]}</span>
-        <CardImage id={card.id} />
+        <CardImage id={imageId(card.id)} />
       </Tag>
     );
   }
@@ -79,7 +79,7 @@ export function CardView({ card, size = 'hand', selected, dim, onClick, own }: {
       <span className="card-icon">{card.kind === 'vaisselle' ? <DirtyPlate size={size === 'hand' ? 40 : 24} /> : special.icon}</span>
       <span className="card-name">{special.name}</span>
       <span className="card-course">{size === 'hand' ? special.hint : ''}</span>
-      <CardImage id={card.id} />
+      <CardImage id={imageId(card.id)} />
     </Tag>
   );
 }

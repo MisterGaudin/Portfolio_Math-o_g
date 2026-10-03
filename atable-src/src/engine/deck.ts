@@ -14,18 +14,27 @@ export function regionCards(region: RegionId): DishCard[] {
   return COURSES.map((course, i) => ({ kind: 'dish', id: `${region}-${course}`, region, course, name: cfg.dishes[i] }));
 }
 
-/** Toutes les cartes d'une manche : 4 par région + Baguette + Vaisselle. */
-export function buildDeck(regions: RegionId[]): Card[] {
-  return [...regions.flatMap(regionCards), BAGUETTE, VAISSELLE];
+/**
+ * Toutes les cartes d'une manche : 4 plats par région (en `copies` exemplaires) + Baguette + Vaisselle.
+ * Les doubles ont un identifiant suffixé : « alsace-fromage-2 » (même illustration).
+ */
+export function buildDeck(regions: RegionId[], copies = 1): Card[] {
+  const dishes = regions.flatMap((r) => Array.from({ length: copies }, (_, k) => regionCards(r).map((d) => (k === 0 ? d : { ...d, id: `${d.id}-${k + 1}` }))).flat());
+  return [...dishes, BAGUETTE, VAISSELLE];
 }
+
+/** Identifiant de l'illustration d'une carte (les doubles partagent celle de l'original). */
+export const imageId = (id: string) => id.replace(/-\d+$/, '');
 
 /** Retrouve une carte par son identifiant (toutes régions confondues). */
 export function cardById(id: string): Card {
   if (id === 'baguette') return BAGUETTE;
   if (id === 'vaisselle') return VAISSELLE;
-  const card = ALL_REGION_IDS.flatMap(regionCards).find((c) => c.id === id);
+  const copy = /-(\d+)$/.exec(id);
+  const base = copy ? id.slice(0, -copy[0].length) : id;
+  const card = ALL_REGION_IDS.flatMap(regionCards).find((c) => c.id === base);
   if (!card) throw new Error(`Carte inconnue : ${id}`);
-  return card;
+  return copy ? { ...card, id } : card;
 }
 
 const isDish = (c: Card): c is DishCard => c.kind === 'dish';
@@ -43,9 +52,10 @@ export function evaluateMenu(hand: readonly Card[], own: readonly RegionId[]): M
   const jokers = hand.length - dishes.length; // 0 ou 1 Baguette
   const byRegion = new Map<RegionId, number>();
   for (const d of dishes) byRegion.set(d.region, (byRegion.get(d.region) ?? 0) + 1);
-  // Exactement 2 régions : 4 + 4 cartes, ou 4 + 3 cartes et la Baguette.
-  // (Chaque plat n'existe qu'en un exemplaire : 4 cartes d'une région = un menu complet.)
+  // Exactement 2 régions : 4 + 4 cartes, ou 4 + 3 cartes et la Baguette,
+  // sans deux fois le même plat (utile quand les plats existent en plusieurs exemplaires).
   if (byRegion.size !== 2) return null;
+  if (new Set(dishes.map((d) => `${d.region}-${d.course}`)).size !== dishes.length) return null;
   const counts = [...byRegion.values()].sort((a, b) => b - a);
   const ok = jokers === 0 ? counts[0] === 4 && counts[1] === 4 : counts[0] === 4 && counts[1] === 3;
   if (!ok) return null;

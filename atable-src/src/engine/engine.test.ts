@@ -267,6 +267,11 @@ describe('menus (8 cartes, 2 régions)', () => {
     // La Baguette ne bouche qu'un seul trou.
     expect(evaluateMenu([...R('alsace').slice(1), ...R('savoie').slice(1), BAGUETTE, c('nord-entree')], own)).toBeNull();
   });
+  it('avec des plats en double : il faut 4 plats différents par région', () => {
+    const doubleFromage = { ...c('savoie-fromage'), id: 'savoie-fromage-2' };
+    expect(evaluateMenu([...R('alsace'), ...R('savoie').slice(0, 3), doubleFromage], own)).toBeNull();
+    expect(cardById('savoie-fromage-2').id).toBe('savoie-fromage-2');
+  });
   it('classement : Gastronomique > Maison > Volé', () => {
     const ranks = [
       evaluateMenu([...R('alsace'), ...R('savoie')], own)!,
