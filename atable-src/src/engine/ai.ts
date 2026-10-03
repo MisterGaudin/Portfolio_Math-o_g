@@ -49,8 +49,14 @@ export function beliefs(state: GameState, observer: number): Beliefs {
         if (m.mode === 'market' || m.to === observer) weights[m.card.region] *= DUMP_FACTOR;
       }
     }
+    // Variante « un menu » : les régions peuvent être partagées, la mienne reste possible.
+    if (state.rules.mode === 'unMenu') for (const r of own) if (!steps.some((x) => x.d?.target === q && x.d.region === r)) excluded.delete(r);
     const candidates = state.regionsInPlay.filter((r) => !excluded.has(r));
     const total = candidates.reduce((sum, r) => sum + weights[r], 0);
+    if (state.rules.regionsPerPlayer === 1) {
+      out[q] = Object.fromEntries(candidates.map((r) => [r, weights[r] / (total || 1)]));
+      continue;
+    }
     const squares = candidates.reduce((sum, r) => sum + weights[r] ** 2, 0);
     const pairs = (total * total - squares) / 2 || 1;
     // P(R fait partie de ses 2 régions) = somme des poids des paires contenant R.
@@ -106,7 +112,7 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   const left = leftOf(state, player);
   const leftBelief = beliefs(state, player)[left] ?? {};
   // Probabilité « moyenne » d'une région (le voisin en a 2 parmi les candidates).
-  const uniform = 2 / (Object.keys(leftBelief).length || 1);
+  const uniform = state.rules.regionsPerPlayer / (Object.keys(leftBelief).length || 1);
   // Une carte est « utile au voisin » tant que rien ne prouve le contraire
   // (il s'est déjà débarrassé de cette région au Marché ou en nous la passant).
   // Si la manche s'éternise, on considère que plus rien n'intéresse personne (on relance via le Marché).

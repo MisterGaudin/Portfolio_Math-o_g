@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   aiAnnounce,
-  aiChoose,
+  aiChooseAll,
   aiDenounce,
   allChosen,
   announceableMenu,
@@ -154,7 +154,7 @@ export function useGame() {
     (target: number, region: RegionId): string | null => {
       const s = stateRef.current;
       if (!s || stage !== 'choosing') return 'Pas maintenant';
-      if (s.choices[0]) return 'Tu as déjà validé ta carte';
+      if (s.choices[0]) return 'Tu as déjà validé tes cartes';
       try {
         applyDenounce(0, target, region);
       } catch (e) {
@@ -228,7 +228,7 @@ export function useGame() {
       const waiting = state.players.findIndex((_, p) => p !== 0 && !state.choices[p]);
       if (waiting > 0) {
         timer = setTimeout(() => {
-          mutate((s) => submitChoice(s, waiting, script ? script.botChoice(s, waiting) : aiChoose(s, waiting, rng.current)));
+          mutate((s) => submitChoice(s, waiting, script ? script.botChoice(s, waiting) : aiChooseAll(s, waiting, rng.current)));
         }, botDelay());
       } else if (allChosen(state)) {
         // 3. Révélation : échange simultané, animé avant d'afficher les nouvelles mains.

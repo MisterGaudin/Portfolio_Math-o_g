@@ -1041,3 +1041,87 @@ button.chip.active {
   font-size: 10px;
   padding: 2px;
 }
+
+/* ----------------------------- 1 région, 2 cartes par tour ----------------------------- */
+.gauges.n1 {
+  grid-template-columns: 1fr auto;
+}
+.gauge-cell {
+  position: relative;
+}
+.gauge-gift {
+  position: absolute;
+  top: -6px;
+  right: -3px;
+  font-size: 10px;
+  color: var(--gold);
+  text-shadow: 0 1px 2px #000;
+}
+.card-bonus {
+  font-size: 10px;
+  font-weight: 800;
+  background: var(--gold);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-bottom: 4px;
+}
+.card-mini .card-bonus {
+  font-size: 8px;
+  padding: 0 2px;
+  margin: 0;
+}
+.intro-card .card-bonus {
+  font-size: 13px;
+}
+.picks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.pick {
+  background: #ffffff18;
+  border-radius: 12px;
+  padding: 4px;
+  text-align: center;
+  min-height: 44px;
+}
+.pick.empty {
+  border: 2px dashed #fff4;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  font-size: 13px;
+}
+.pick-name {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pick-modes {
+  display: flex;
+  gap: 4px;
+  margin-top: 2px;
+}
+.pick-modes button {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  background: #ffffff22;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 2px;
+  min-height: 30px;
+}
+.pick-modes button.active {
+  background: var(--cream);
+  color: var(--ink);
+}
+.pick-modes button:disabled {
+  opacity: 0.3;
+}

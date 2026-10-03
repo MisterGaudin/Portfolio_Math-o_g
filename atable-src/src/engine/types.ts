@@ -124,6 +124,8 @@ export interface RoundResult {
   hands: Record<number, Card[]>;
   /** Régions secrètes de tout le monde en fin de manche. */
   regions: RegionId[][];
+  /** Plat fourni par chaque carte Région (variante « un menu »). */
+  bonus: (Course | null)[][];
   turns: number;
   /** Comment l'égalité a été tranchée, le cas échéant. */
   tieBreak: 'none' | 'vaisselle' | 'hasard';
@@ -155,6 +157,8 @@ export interface Rules {
    *   (il en reste 3 à trouver) et plusieurs joueurs peuvent avoir la même région.
    */
   mode: 'deuxMenus' | 'unMenu';
+  /** Nombre de régions secrètes par joueur. */
+  regionsPerPlayer: number;
 }
 
 export interface GameState {

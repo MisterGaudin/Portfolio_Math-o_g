@@ -24,35 +24,39 @@ export function Toques({ n, max = 3 }: { n: number; max?: number }) {
   );
 }
 
-/** Jauges des 2 menus : pour chaque région secrète, 4 cases Entrée / Plat / Fromage / Dessert. */
-function MenuGauge({ hand, own, revealed, focus }: { hand: Card[]; own: string[]; revealed: boolean; focus: boolean }) {
-  const progress = menuProgress(hand, own);
-  const hasBaguette = hand.some((c) => c.kind === 'baguette');
-  // La Baguette bouche le trou d'un menu à qui il ne manque qu'un plat (le plus avancé).
+/** Jauge(s) de menu : pour chaque région secrète, 4 cases Entrée / Plat / Fromage / Dessert. */
+function MenuGauge({ state, revealed, focus }: { state: GameState; revealed: boolean; focus: boolean }) {
+  const me = state.players[0];
+  const progress = menuProgress(me.hand, me.regions, me.bonus);
+  const hasBaguette = me.hand.some((c) => c.kind === 'baguette');
+  // La Baguette bouche le trou d'un menu à qui il ne manque qu'un plat.
   const jokerRegion = hasBaguette ? progress.find((p) => p.have.size === 3)?.region : undefined;
-  const menu = evaluateMenu(hand, own)?.type;
+  const menu = announceableMenu(state, 0)?.type ?? (state.rules.mode === 'deuxMenus' ? evaluateMenu(me.hand, me.regions)?.type : undefined);
+  const best = Math.max(...progress.map((p) => p.have.size + (p.region === jokerRegion ? 1 : 0)));
   return (
-    <div className={`gauges${focus ? ' tuto-focus' : ''}`}>
-      {progress.map(({ region, have }, k) => {
+    <div className={`gauges n${progress.length}${focus ? ' tuto-focus' : ''}`}>
+      {progress.map(({ region, have, bonus }, k) => {
         const r = REGION_BY_ID[region];
         const missing = COURSES.find((c) => !have.has(c));
         return (
-          <div key={region} className="gauge">
+          <div key={region + k} className="gauge">
             <div className="gauge-title" style={revealed ? { background: r.color, color: r.ink } : undefined}>
-              {revealed ? `${r.emblem} ${r.name}` : `Menu ${k + 1}`}
+              {revealed ? `${r.emblem} ${r.name}` : progress.length > 1 ? `Menu ${k + 1}` : 'Mon menu'}
             </div>
             <div className="gauge-cells">
               {COURSES.map((course) => {
                 const full = have.has(course);
                 const joker = !full && jokerRegion === region && course === missing;
+                const fromRegion = course === bonus;
                 return (
                   <div
                     key={course}
                     className={`gauge-cell${full || joker ? ' full' : ''}`}
                     style={full ? { background: revealed ? r.color : '#c98a2b' } : joker ? { background: '#d9a441' } : undefined}
-                    title={COURSE_LABELS[course]}
+                    title={fromRegion ? `${COURSE_LABELS[course]} : déjà fourni par ta carte Région` : COURSE_LABELS[course]}
                   >
                     {joker ? '🥖' : COURSE_ICONS[course]}
+                    {fromRegion && <span className="gauge-gift">★</span>}
                   </div>
                 );
               })}
@@ -60,7 +64,7 @@ function MenuGauge({ hand, own, revealed, focus }: { hand: Card[]; own: string[]
           </div>
         );
       })}
-      <div className={`gauge-label${menu ? ' ok' : ''}`}>{menu ? `✓ ${MENU_LABELS[menu]}` : `${progress.reduce((n, p) => n + p.have.size, 0) + (jokerRegion ? 1 : 0)}/8`}</div>
+      <div className={`gauge-label${menu ? ' ok' : ''}`}>{menu ? `✓ ${MENU_LABELS[menu]}` : state.rules.mode === 'deuxMenus' ? `${progress.reduce((n, p) => n + p.have.size, 0) + (jokerRegion ? 1 : 0)}/8` : `${best}/4`}</div>
     </div>
   );
 }
@@ -113,25 +117,28 @@ function ExchangeOverlay({ moves, fxKey }: { moves: Move[]; fxKey: number }) {
   const dur = REVEAL_MS / 1000;
   return (
     <div className="fx-layer" aria-hidden>
-      {moves.map((m) => {
-        const from = center(rects[`seat${m.player}`]);
-        const to = center(rects[`seat${m.to}`]);
+      {moves.map((m, k) => {
+        // Plusieurs cartes par joueur : on les décale un peu pour qu'elles se voient toutes.
+        const nth = moves.slice(0, k).filter((x) => x.player === m.player).length;
+        const shift = (p: { x: number; y: number }) => ({ x: p.x + nth * 16, y: p.y + nth * 6 });
+        const from = shift(center(rects[`seat${m.player}`]));
+        const to = shift(center(rects[`seat${m.to}`]));
         // On voit sa propre carte et les cartes du Marché (publiques) ; le reste est face cachée.
         const face = m.player === 0 || m.mode === 'market';
         if (m.mode === 'pass')
           return (
-            <motion.div key={`p${m.player}`} className="fx-card" initial={from} animate={to} transition={{ duration: dur * 0.6, ease: 'easeInOut' }}>
+            <motion.div key={`p${k}`} className="fx-card" initial={from} animate={to} transition={{ duration: dur * 0.6, ease: 'easeInOut' }}>
               {face ? <CardView card={m.card} size="small" /> : <CardBack size="small" />}
             </motion.div>
           );
-        const discard = center(rects.discard);
-        const draw = center(rects.draw);
+        const discard = shift(center(rects.discard));
+        const draw = shift(center(rects.draw));
         return [
-          <motion.div key={`m${m.player}`} className="fx-card" initial={from} animate={discard} transition={{ duration: dur * 0.45, ease: 'easeOut' }}>
+          <motion.div key={`m${k}`} className="fx-card" initial={from} animate={discard} transition={{ duration: dur * 0.45, ease: 'easeOut' }}>
             <CardView card={m.card} size="small" />
           </motion.div>,
           <motion.div
-            key={`d${m.player}`}
+            key={`d${k}`}
             className="fx-card"
             initial={{ ...draw, opacity: 0 }}
             animate={{ ...to, opacity: 1 }}
@@ -155,7 +162,8 @@ function DenounceModal({ state, open, onClose, onConfirm, guide }: { state: Game
       setRegion(null);
     }
   }, [open, state.players.length]);
-  const regions = state.regionsInPlay.filter((r) => !state.players[0].regions.includes(r));
+  // Les régions peuvent être partagées (règle « un menu ») : on peut accuser de sa propre région.
+  const regions = state.rules.mode === 'unMenu' ? state.regionsInPlay : state.regionsInPlay.filter((r) => !state.players[0].regions.includes(r));
   const isProtected = (i: number) => state.rules.denounceLimit === 'protege' && state.unmasked.includes(i);
   const ok = target !== null && region !== null && (!guide || guide.allowDenounceTarget(target, region));
   return (
@@ -188,11 +196,19 @@ function DenounceModal({ state, open, onClose, onConfirm, guide }: { state: Game
 /** Début de manche : on découvre ses 2 cartes Région secrètes. */
 function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => void }) {
   const [flipped, setFlipped] = useState(false);
-  const regions = state.players[0].regions;
+  const me = state.players[0];
+  const regions = me.regions;
+  const one = regions.length === 1;
   return (
     <motion.div className="showdown intro" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}>
       <h2 className="atable-shout small">Manche {state.roundNumber}</h2>
-      <p className="center-text">{flipped ? 'Tes 2 régions secrètes : termine leurs 2 menus !' : 'Tu reçois 2 cartes Région secrètes. Cache bien ton écran…'}</p>
+      <p className="center-text">
+        {!flipped
+          ? `Tu reçois ${one ? 'ta carte Région secrète' : '2 cartes Région secrètes'}. Cache bien ton écran…`
+          : one && me.bonus[0]
+            ? `Ta région secrète ! Elle t’apporte déjà ${REGION_BY_ID[regions[0]].dishes[COURSES.indexOf(me.bonus[0])]} (${COURSE_LABELS[me.bonus[0]]}) : trouve les 3 autres plats.`
+            : 'Tes 2 régions secrètes : termine leurs 2 menus !'}
+      </p>
       <div className="intro-cards" onClick={() => setFlipped(true)}>
         {regions.map((r, i) => (
           <motion.div
@@ -202,7 +218,7 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
             transition={{ duration: 0.5, delay: i * 0.25 }}
             className="intro-card"
           >
-            {flipped ? <RegionCardView region={r} size="hand" /> : <CardBack size="hand" />}
+            {flipped ? <RegionCardView region={r} bonus={me.bonus[i]} size="hand" /> : <CardBack size="hand" />}
           </motion.div>
         ))}
       </div>
@@ -212,7 +228,7 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
         </button>
       ) : (
         <button className="btn btn-gold big block" onClick={() => setFlipped(true)}>
-          Découvrir mes régions 🔍
+          {one ? 'Découvrir ma région 🔍' : 'Découvrir mes régions 🔍'}
         </button>
       )}
     </motion.div>
@@ -269,8 +285,9 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   const state = game.state!;
   const { stage } = game;
   const me = state.players[0];
-  const [selected, setSelected] = useState<string | null>(null);
-  const [mode, setMode] = useState<Mode | null>(null);
+  /** Cartes choisies (dans l'ordre), chacune avec son action : passer ou Marché. */
+  const [picks, setPicks] = useState<{ cardId: string; mode: Mode }[]>([]);
+  const need = state.rules.passCount;
   const [showRegion, setShowRegion] = useState(false);
   const [denounceOpen, setDenounceOpen] = useState(false);
   const [nudge, setNudge] = useState<string | null>(null);
@@ -285,13 +302,10 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
 
   // Nouveau tour (ou carte disparue de la main) : on remet la sélection à zéro.
   useEffect(() => {
-    if (selected && !me.hand.some((c) => c.id === selected)) setSelected(null);
-  }, [me.hand, selected]);
+    if (picks.some((x) => !me.hand.some((c) => c.id === x.cardId))) setPicks((old) => old.filter((x) => me.hand.some((c) => c.id === x.cardId)));
+  }, [me.hand, picks]);
   useEffect(() => {
-    if (stage === 'thinking') {
-      setSelected(null);
-      setMode(null);
-    }
+    if (stage === 'thinking') setPicks([]);
   }, [stage]);
   useEffect(() => {
     game.setPaused(denounceOpen);
@@ -304,23 +318,23 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
 
   const tapCard = (c: Card) => {
     if (!choosing || validated) return;
+    if (picks.some((x) => x.cardId === c.id)) return setPicks(picks.filter((x) => x.cardId !== c.id));
     if (guide && !guide.allowCard(c.id)) return setNudge('Suis la bulle 😉');
-    setSelected(c.id === selected ? null : c.id);
-    if (c.kind === 'vaisselle' && mode === 'market') setMode('pass');
+    if (picks.length >= need) return setNudge(`${need} carte${need > 1 ? 's' : ''} maximum : retouche une carte pour l’enlever`);
+    setPicks([...picks, { cardId: c.id, mode: 'pass' }]);
   };
-  const pickMode = (m: Mode) => {
-    if (guide && !guide.allowMode(m)) return setNudge('Suis la bulle 😉');
-    setMode(m);
+  const pickMode = (cardId: string, m: Mode) => {
+    if (guide && !guide.allowMode(cardId, m)) return setNudge('Suis la bulle 😉');
+    setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, mode: m } : x)));
   };
   const validate = () => {
-    if (!selected || !mode) return;
-    const choice: Choice = { cardId: selected, mode };
+    if (picks.length !== need) return;
+    const choice: Choice = { ...picks[0], extra: picks.slice(1) };
     if (guide && !guide.allowChoice(choice)) return setNudge('Suis la bulle 😉');
     const err = game.humanChoose(choice);
     if (err) setNudge(err);
     else guide?.done();
   };
-  const selectedCard = me.hand.find((c) => c.id === selected);
   const denounceErr = checkDenounce(state, 0);
   const canDenounce = choosing && !validated && !denounceErr && (!guide || guide.allowDenounce);
 
@@ -349,34 +363,41 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     ) : (
       <div className="hint">{me.hand.some((c) => c.kind === 'vaisselle') ? 'Tu as la Vaisselle : pas d’annonce possible.' : 'Pas encore de menu complet…'}</div>
     );
-  } else if (choosing && validated) bar = <div className="hint">Carte validée ✓ — on attend les autres…</div>;
+  } else if (choosing && validated) bar = <div className="hint">Cartes validées ✓ — on attend les autres…</div>;
   else if (choosing)
     bar = (
       <div className={`actions${f('actions')}`}>
-        <div className="row">
-          <button className={`btn mode${mode === 'pass' ? ' active' : ''}`} disabled={!selectedCard} onClick={() => pickMode('pass')}>
-            ⬅ Passer à gauche
-          </button>
-          <button
-            className={`btn mode${mode === 'market' ? ' active' : ''}`}
-            disabled={!selectedCard || selectedCard.kind === 'vaisselle'}
-            onClick={() => pickMode('market')}
-            title={selectedCard?.kind === 'vaisselle' ? 'La Vaisselle ne va jamais au Marché' : undefined}
-          >
-            🧺 Marché
-          </button>
+        <div className="picks">
+          {Array.from({ length: need }, (_, k) => {
+            const pk = picks[k];
+            const card = pk && me.hand.find((c) => c.id === pk.cardId);
+            if (!pk || !card) return <div key={k} className="pick empty">Carte {k + 1} ?</div>;
+            return (
+              <div key={k} className="pick">
+                <span className="pick-name">{card.name}</span>
+                <span className="pick-modes">
+                  <button className={pk.mode === 'pass' ? 'active' : ''} onClick={() => pickMode(pk.cardId, 'pass')} aria-label="Passer à gauche">
+                    ⬅ Passer
+                  </button>
+                  <button
+                    className={pk.mode === 'market' ? 'active' : ''}
+                    disabled={card.kind === 'vaisselle'}
+                    onClick={() => pickMode(pk.cardId, 'market')}
+                    title={card.kind === 'vaisselle' ? 'La Vaisselle ne va jamais au Marché' : undefined}
+                  >
+                    🧺 Marché
+                  </button>
+                </span>
+              </div>
+            );
+          })}
         </div>
         <div className="row">
-          <button
-            className={`btn btn-red${f('denounce')}`}
-            disabled={!canDenounce}
-            onClick={() => setDenounceOpen(true)}
-            title={denounceErr ?? undefined}
-          >
+          <button className={`btn btn-red${f('denounce')}`} disabled={!canDenounce} onClick={() => setDenounceOpen(true)} title={denounceErr ?? undefined}>
             🕵️ Dénoncer{holder !== 0 ? ' 🔒' : ''}
           </button>
-          <button className="btn btn-green grow" disabled={!selectedCard || !mode} onClick={validate}>
-            {selectedCard ? (mode ? 'Valider ✓' : 'Passer ou Marché ?') : 'Choisis une carte'}
+          <button className="btn btn-green grow" disabled={picks.length !== need} onClick={validate}>
+            {picks.length === need ? 'Valider ✓' : `Choisis ${need} carte${need > 1 ? 's' : ''} (${picks.length}/${need})`}
           </button>
         </div>
       </div>
@@ -428,9 +449,9 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
         <div className="me-info">
           <button className={`region-corner${showRegion ? ' open' : ''}${f('region')}`} onClick={() => setShowRegion((v) => !v)} aria-label="Mes régions secrètes">
             {showRegion ? (
-              me.regions.map((r) => <RegionCardView key={r} region={r} size="mini" />)
+              me.regions.map((r, i) => <RegionCardView key={r} region={r} bonus={me.bonus[i]} size="mini" />)
             ) : (
-              <span className="region-hidden">🔒<small>Mes régions</small></span>
+              <span className="region-hidden">🔒<small>{me.regions.length > 1 ? 'Mes régions' : 'Ma région'}</small></span>
             )}
           </button>
           <div className="me-name">
@@ -443,15 +464,15 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
           )}
           <span className="pass-dir">⬅ vers {state.players[left].name}</span>
         </div>
-        <MenuGauge hand={me.hand} own={me.regions} revealed={showRegion} focus={guide?.focus === 'gauge'} />
+        <MenuGauge state={state} revealed={showRegion} focus={guide?.focus === 'gauge'} />
         <div className={`hand${f('hand')}`} data-seat={0}>
           {me.hand.map((c) => (
             <CardView
               key={c.id}
               card={c}
               own={showRegion ? me.regions : undefined}
-              selected={selected === c.id}
-              dim={stage === 'revealing' && selected === c.id}
+              selected={picks.some((x) => x.cardId === c.id)}
+              dim={stage === 'revealing' && picks.some((x) => x.cardId === c.id)}
               onClick={choosing && !validated ? () => tapCard(c) : undefined}
             />
           ))}

@@ -1,7 +1,7 @@
 // Règles d'« À TABLE ! » : mise en place, dénonciation, échange simultané,
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
-import { COURSES, HAND_SIZE, REGIONS_PER_PLAYER, type Course } from '../config/cards';
+import { COURSES, HAND_SIZE, type Course } from '../config/cards';
 import { ALL_REGION_IDS, buildDeck, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
 import type { Card, Choice, Denunciation, GameEvent, GameState, Menu, Move, PlayerSetup, RegionId, RoundResult, Rules } from './types';
@@ -15,12 +15,20 @@ export interface GameOptions {
   rules?: Partial<Rules>;
 }
 
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 1, mode: 'deuxMenus' };
+/**
+ * Règles du jeu par défaut : 1 région secrète par joueur (sa carte apporte déjà un plat,
+ * il en reste 3 à trouver), 2 cartes données par tour, 8 cartes en main.
+ */
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1 };
+/** Ancienne version « 2 menus » (2 régions, 8 cartes à réunir, 1 carte par tour). */
+export const TWO_MENUS_RULES: Partial<Rules> = { mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1 };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
-  /** Les 2 régions secrètes de chaque joueur. */
+  /** Les régions secrètes de chaque joueur. */
   regions: RegionId[][];
+  /** Plat fourni par chaque carte Région (règle « un menu »). */
+  bonus?: (Course | null)[][];
   /** Mains de départ (8 cartes chacune). */
   hands: Card[][];
   /** Pioche : la PREMIÈRE carte du tableau est le dessus de la pioche. */
@@ -104,16 +112,20 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     state.regionReserve = ALL_REGION_IDS.filter((r) => !dealt.includes(r));
     state.players.forEach((p, i) => {
       p.regions = [...preset.regions[i]];
-      p.bonus = p.regions.map(() => null);
+      p.bonus = preset.bonus?.[i] ? [...preset.bonus[i]] : p.regions.map(() => null);
       p.hand = [...preset.hands[i]];
     });
+    if (state.rules.mode === 'unMenu') {
+      const taken = state.players.flatMap((p) => p.regions.map((r, k) => `${r}|${p.bonus[k]}`));
+      state.regionReserve = ALL_REGION_IDS.flatMap((r) => COURSES.map((c) => `${r}|${c}`)).filter((x) => !taken.includes(x));
+    }
     state.drawPile = [...preset.drawPile].reverse(); // le dessus est la fin du tableau
   } else {
-    const count = state.rules.regionCount ? Math.max(state.rules.regionCount, n * REGIONS_PER_PLAYER + 1) : ALL_REGION_IDS.length;
+    const count = state.rules.regionCount ? Math.max(state.rules.regionCount, n * state.rules.regionsPerPlayer + 1) : ALL_REGION_IDS.length;
     state.regionsInPlay = shuffle(rng, [...ALL_REGION_IDS]).slice(0, count);
     const secret = shuffle(rng, [...state.regionsInPlay]);
     state.players.forEach((p) => {
-      p.regions = secret.splice(0, REGIONS_PER_PLAYER);
+      p.regions = secret.splice(0, state.rules.regionsPerPlayer);
       p.bonus = p.regions.map(() => null);
     });
     state.regionReserve = secret;
@@ -124,7 +136,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       const cards = shuffle(rng, state.regionsInPlay.flatMap((r) => COURSES.map((c) => `${r}|${c}`)));
       state.players.forEach((p) => {
         const mine: string[] = [];
-        while (mine.length < REGIONS_PER_PLAYER) {
+        while (mine.length < state.rules.regionsPerPlayer) {
           const k = cards.findIndex((x) => !mine.some((m) => m.split('|')[0] === x.split('|')[0]));
           mine.push(...cards.splice(k, 1));
         }
@@ -405,6 +417,7 @@ function finishRound(state: GameState, announcers: number[], winner: number | nu
     announcers,
     hands: Object.fromEntries(announcers.map((a) => [a, [...state.players[a].hand]])),
     regions: state.players.map((p) => [...p.regions]),
+    bonus: state.players.map((p) => [...p.bonus]),
     turns: state.turn,
     tieBreak,
     thanksToMarket: winner !== null && state.players[winner].hand.some((c) => state.origins[c.id] === 'market'),

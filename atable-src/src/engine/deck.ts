@@ -92,8 +92,12 @@ export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[],
 }
 
 /** Avancement de chaque région secrète : combien de ses 4 plats sont en main. */
-export function menuProgress(hand: readonly Card[], own: readonly RegionId[]): { region: RegionId; have: Set<string> }[] {
-  return own.map((region) => ({ region, have: new Set(hand.filter((c): c is DishCard => isDish(c) && c.region === region).map((c) => c.course)) }));
+export function menuProgress(hand: readonly Card[], own: readonly RegionId[], bonus: readonly (Course | null)[] = []): { region: RegionId; have: Set<string>; bonus: Course | null }[] {
+  return own.map((region, i) => {
+    const have = new Set<string>(hand.filter((c): c is DishCard => isDish(c) && c.region === region).map((c) => c.course));
+    if (bonus[i]) have.add(bonus[i]!);
+    return { region, have, bonus: bonus[i] ?? null };
+  });
 }
 
 /** Nombre de cartes de la région `region` dans la main. */

@@ -2,7 +2,7 @@
 // remplacée automatiquement par l'illustration public/cards/<id>.png si elle existe.
 import { useState } from 'react';
 import { CARD_IMAGE_EXT, COURSE_ICONS, COURSE_LABELS, REGION_BY_ID, SPECIALS, USE_CARD_IMAGES } from '../config/cards';
-import { imageId, type Card, type RegionId } from '../engine';
+import { imageId, type Card, type Course, type RegionId } from '../engine';
 
 /** Illustrations absentes déjà repérées : on ne les redemande pas au serveur. */
 const missing = new Set<string>();
@@ -94,14 +94,20 @@ export function CardBack({ size = 'mini' }: { size?: CardSize }) {
   );
 }
 
-/** Carte Région secrète (face visible). */
-export function RegionCardView({ region, size = 'small' }: { region: RegionId; size?: CardSize }) {
+/** Carte Région secrète (face visible), avec le plat qu'elle apporte déjà. */
+export function RegionCardView({ region, size = 'small', bonus }: { region: RegionId; size?: CardSize; bonus?: Course | null }) {
   const r = REGION_BY_ID[region];
   return (
     <div className={`card card-${size} card-region`} style={{ ['--rc' as string]: r.color, ['--ri' as string]: r.ink }}>
       <span className="card-band">Région</span>
       <span className="card-icon">{r.emblem}</span>
       <span className="card-name">{r.name}</span>
+      {bonus && (
+        <span className="card-bonus" title={`Apporte déjà : ${COURSE_LABELS[bonus]}`}>
+          + {COURSE_ICONS[bonus]}
+          {size === 'hand' && ` ${COURSE_LABELS[bonus]}`}
+        </span>
+      )}
       <CardImage id={`region-${region}`} />
     </div>
   );

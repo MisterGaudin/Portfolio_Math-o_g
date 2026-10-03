@@ -1,7 +1,7 @@
 # À TABLE !
 
 Jeu de cartes familial sur les spécialités des régions de France, jouable au doigt sur téléphone.
-Tu affrontes 1 à 3 ordinateurs. Le but : terminer les menus de tes 2 régions secrètes (Entrée, Plat, Fromage, Dessert) et décrocher 3 Toques pour devenir **Grand Chef**.
+Tu affrontes 1 à 3 ordinateurs. Le but : terminer le menu de ta région secrète (Entrée, Plat, Fromage, Dessert) et décrocher 3 Toques pour devenir **Grand Chef**.
 
 - **Vite + React + TypeScript**, sans backend : tout tourne dans le navigateur.
 - **Moteur de règles pur** dans `src/engine/` (aucune dépendance à l'UI), testé avec **Vitest**.
@@ -76,27 +76,27 @@ public/       manifest PWA (chemins en /atable/), service worker, icônes, cards
 scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG depuis icon.svg)
 ```
 
-## Règles (version 2)
+## Règles (version 3)
 
 - **Toutes les régions** (12) sont en jeu à chaque manche : 48 plats + Baguette + Vaisselle = 50 cartes.
-- **2 régions secrètes par joueur**, découvertes au début de chaque manche (écran « Découvrir mes régions »).
-  Les cartes Région non distribuées forment la **réserve des régions**.
-- **8 cartes en main.** On gagne la manche avec **2 menus complets** : les 4 plats (Entrée, Plat, Fromage, Dessert)
-  d'une même région, deux fois. **Plus de régions mélangées.** La **Baguette** remplace un seul plat manquant.
-- **Annonces**, de la plus forte à la plus faible : **Gastronomique** (tes 2 régions, sans Baguette) ›
-  **Maison** (tes 2 régions, avec la Baguette) › **Volé** (au moins un menu d'une région qui n'est pas à toi).
-- **Dénonciation réservée au porteur de la Vaisselle** (avant de choisir sa carte, une par tour) :
-  - juste (c'est une des 2 régions de l'accusé) : l'accusé prend la Vaisselle (et rend une carte au hasard pour
-    que chacun garde 8 cartes), défausse la région démasquée et en **pioche une nouvelle dans la réserve** ;
-    l'ancienne retourne dans la réserve. Ce qu'on savait sur lui ne sert plus à rien : **pas d'anti-jeu possible**.
-    Un joueur démasqué est ensuite **protégé 🛡️ jusqu'à la fin de la manche** ;
+- **1 région secrète par joueur**, découverte au début de chaque manche. Chaque carte Région **apporte déjà un plat**
+  (ex. « Savoie + Plat » : la Tartiflette est acquise) : il reste **3 plats à trouver**. Il existe 48 cartes Région
+  (12 régions × 4 plats) : **plusieurs joueurs peuvent avoir la même région**. Les cartes Région non distribuées
+  forment la réserve.
+- **8 cartes en main, 2 cartes données par tour** : chacune passée au voisin de gauche ou mise au Marché.
+- **Annonces** : **Gastronomique** (ta région, sans Baguette) › **Maison** (ta région, la Baguette remplace un plat)
+  › **Volé** (les 4 plats d'une autre région, ou 3 + la Baguette). Plus de régions mélangées.
+- **Dénonciation réservée au porteur de la Vaisselle** (avant de choisir ses cartes, une par tour) :
+  - juste : l'accusé prend la Vaisselle (et rend une carte au hasard), remplace sa carte Région par une carte de la
+    réserve (d'une autre région) et l'ancienne y retourne : ce qu'on savait sur lui ne sert plus, **pas d'anti-jeu** ;
+    il est ensuite **protégé 🛡️ jusqu'à la fin de la manche** ;
   - fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
-- **Coup de pouce à la donne** : chacun reçoit au moins 1 carte de chacune de ses régions.
-- Inchangé : échange simultané vers la gauche, Marché, Vaisselle jamais au Marché ni d'annonce avec,
-  départage par la Vaisselle, 3 Toques pour devenir Grand Chef.
+- **Coup de pouce à la donne** : chacun reçoit au moins 1 carte de sa région.
+- Inchangé : échange simultané vers la gauche, Vaisselle jamais au Marché ni d'annonce avec, départage par la
+  Vaisselle, 3 Toques pour devenir Grand Chef.
 
-Les réglages « protection » et « coup de pouce » sont dans `DEFAULT_RULES` (`src/engine/game.ts`) et se testent
-sur la page `/sim`.
+Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne version « 2 menus » reste disponible
+(`TWO_MENUS_RULES`) pour la simulation.
 
 ## Précisions techniques
 
@@ -125,26 +125,26 @@ sur la page `/sim`.
 
 ## Équilibrage : ce que dit la simulation
 
-300 parties par configuration, règles par défaut (protection + coup de pouce) :
+300 parties par configuration, règles par défaut (niveaux mélangés) :
 
 | | 2 joueurs | 3 joueurs | 4 joueurs |
 |---|---|---|---|
-| Tours moyens par manche (IA moyennes) | 82 | 62 | 41 |
-| Tours moyens par manche (niveaux mélangés) | 66 | 44 | 31 |
-| Gagnées en Gastronomique / Maison / Volé | 61 / 39 / 0 % | 70 / 29 / 1 % | 73 / 27 / 0 % |
-| Dénonciations par manche (niveaux mélangés) | 0,5 | 0,5 | 0,1 |
-| Dénonciations réussies | 100 % | 100 % | 100 % |
-| Victoires par niveau (facile / moyen / difficile) | — | 11 / 31 / 58 % | 13 / 28 / 35 % |
+| Tours moyens par manche | 11 | 9 | 6 |
+| Manches sans fin | 0 % | 0 % | 0 % |
+| Gagnées en Gastronomique / Maison / Volé | 35 / 39 / 26 % | 37 / 34 / 29 % | 45 / 33 / 22 % |
+| Victoires par niveau (facile / moyen / difficile) | 27 / 55 / 68 % | 12 / 38 / 50 % | 15 / 28 / 32 % |
 | Avantage selon la place | aucun | aucun | faible |
 
-**⚠ À surveiller :**
-- **Les manches sont longues, surtout à 2 joueurs** (60 à 80 tours, 120 entre IA difficiles). Il faut réunir 8 cartes
-  précises parmi 50, et on n'en reçoit qu'une par tour. À 4 joueurs, on est autour de 30 à 40 tours.
-- **Sans la protection après une dénonciation**, les IA difficiles se dénoncent en boucle : chaque dénonciation
-  juste fait changer une région, et plus personne ne termine. Avec 2 joueurs, 76 % des manches n'aboutissaient pas.
-- Le menu **Volé** ne gagne quasiment jamais : il faudrait réunir 4 cartes d'une région qui n'est pas la tienne.
-- Les dénonciations de l'IA difficile réussissent toujours : un joueur qui garde sa région et refile le reste
-  se trahit vite.
+Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
 
-Pistes pour raccourcir si besoin : coup de pouce de 2 cartes par région (environ −30 % de tours), ou 2 Toques pour
-gagner au lieu de 3.
+| Version | Tours |
+|---|---|
+| v1 : 1 région, 4 cartes en main, Menu du Jour | 4 / 2 / 2 (le Menu du Jour gagnait 95 %) |
+| v2 : 2 régions à terminer, 8 cartes, 1 carte par tour | 100 / 63 / 40 |
+| v2 avec des plats en 2 exemplaires | 122 / 93 / 72 (pire) |
+| v2 avec 2 cartes données par tour | 172 / 155 / 120 (pire) |
+| **v3 : 1 région avec un plat fourni, 2 cartes par tour** | **11 / 9 / 6** |
+
+**À surveiller :** le menu **Volé** gagne environ un quart des manches. Avec 8 cartes en main et 2 cartes qui
+tournent par tour, réunir les 4 plats d'une autre région arrive assez souvent. Si on veut que sa propre région
+compte davantage, on peut interdire le Volé ou exiger qu'il soit sans Baguette.

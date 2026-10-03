@@ -26,7 +26,10 @@ import {
   type GameState,
   type RoundPreset,
   type Rules,
+  TWO_MENUS_RULES,
 } from './index';
+
+const V2 = { rules: TWO_MENUS_RULES };
 
 const setups = (n: number, difficulty: Difficulty = 'moyen') =>
   Array.from({ length: n }, (_, i) => ({ name: `J${i}`, isHuman: false, difficulty }));
@@ -56,12 +59,12 @@ function preset3(): RoundPreset {
     drawPile: ['nord-fromage', 'nord-dessert', 'provence-fromage', 'provence-dessert'].map(c),
   };
 }
-const game3 = (rules: Partial<Rules> = {}) => createGame(setups(3), createRng(1), { rules }, preset3());
+const game3 = (rules: Partial<Rules> = {}) => createGame(setups(3), createRng(1), { rules: { ...TWO_MENUS_RULES, ...rules } }, preset3());
 
 describe('distribution', () => {
   it.each([2, 3, 4])('à %i joueurs : toutes les régions, 2 régions secrètes, 8 cartes, Vaisselle en main', (n) => {
     for (let seed = 1; seed <= 50; seed++) {
-      const s = createGame(setups(n), createRng(seed));
+      const s = createGame(setups(n), createRng(seed), V2);
       expect(s.regionsInPlay.sort()).toEqual([...ALL_REGION_IDS].sort());
       // 2 régions secrètes différentes par joueur ; les autres forment la réserve.
       const secrets = s.players.flatMap((p) => p.regions);
@@ -80,13 +83,13 @@ describe('distribution', () => {
 
   it('coup de pouce : au moins une carte de chacune de ses régions au départ', () => {
     for (let seed = 1; seed <= 30; seed++) {
-      const s = createGame(setups(4), createRng(seed), { rules: { headStart: 1 } });
+      const s = createGame(setups(4), createRng(seed), { rules: { ...TWO_MENUS_RULES, headStart: 1 } });
       for (const p of s.players) for (const r of p.regions) expect(p.hand.some((x) => x.kind === 'dish' && x.region === r)).toBe(true);
     }
   });
 
   it('la Vaisselle tombe chez chacun selon la graine', () => {
-    const holders = new Set(Array.from({ length: 60 }, (_, i) => vaisselleHolder(createGame(setups(4), createRng(i)))));
+    const holders = new Set(Array.from({ length: 60 }, (_, i) => vaisselleHolder(createGame(setups(4), createRng(i), V2))));
     expect(holders.size).toBe(4);
   });
 });
@@ -101,7 +104,7 @@ describe('échange', () => {
   it('les IA ne mettent jamais la Vaisselle au Marché', () => {
     for (const d of ['facile', 'moyen', 'difficile'] as const) {
       for (let seed = 0; seed < 200; seed++) {
-        const s = createGame(setups(4, d), createRng(seed));
+        const s = createGame(setups(4, d), createRng(seed), V2);
         const h = vaisselleHolder(s)!;
         const choice = aiChoose(s, h, createRng(seed));
         if (choice.cardId === 'vaisselle') expect(choice.mode).toBe('pass');
@@ -162,7 +165,7 @@ describe('remélange de la pioche', () => {
   });
 
   it('les cartes ne disparaissent jamais sur une longue partie', () => {
-    const s = createGame(setups(4, 'difficile'), createRng(11), { toquesToWin: 50, maxTurns: 400 });
+    const s = createGame(setups(4, 'difficile'), createRng(11), { toquesToWin: 50, maxTurns: 400, rules: TWO_MENUS_RULES });
     const rng = createRng(12);
     for (let t = 0; t < 300 && (s.phase as string) !== 'gameOver'; t++) {
       if ((s.phase as string) === 'roundOver') nextRound(s, rng);
@@ -283,11 +286,76 @@ describe('menus (8 cartes, 2 régions)', () => {
   });
 });
 
+describe('règles par défaut : 1 région (avec un plat fourni), 2 cartes par tour', () => {
+  it.each([2, 3, 4])('à %i joueurs : 1 région secrète avec son plat, 8 cartes, réserve des cartes Région', (n) => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const s = createGame(setups(n), createRng(seed));
+      s.players.forEach((p) => {
+        expect(p.regions).toHaveLength(1);
+        expect(p.bonus).toHaveLength(1);
+        expect(p.hand).toHaveLength(8);
+      });
+      expect(s.regionReserve).toHaveLength(12 * 4 - n);
+      expect(totalCards(s)).toBe(TOTAL);
+      expect(vaisselleHolder(s)).not.toBeNull();
+    }
+  });
+
+  it('plusieurs joueurs peuvent avoir la même région', () => {
+    const shared = Array.from({ length: 200 }, (_, i) => createGame(setups(4), createRng(i))).some((s) => new Set(s.players.map((p) => p.regions[0])).size < 4);
+    expect(shared).toBe(true);
+  });
+
+  it('il faut donner exactement 2 cartes, chacune à gauche ou au Marché', () => {
+    const s = createGame(setups(2), createRng(3));
+    const [a, b] = s.players[0].hand.filter((x) => x.kind !== 'vaisselle');
+    expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass' })).toThrow(/2 carte/);
+    expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: a.id, mode: 'market' }] })).toThrow(/deux fois/);
+    submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: b.id, mode: 'market' }] });
+    const [c2, d2] = s.players[1].hand.filter((x) => x.kind !== 'vaisselle');
+    submitChoice(s, 1, { cardId: c2.id, mode: 'pass', extra: [{ cardId: d2.id, mode: 'pass' }] });
+    const before = s.discard.length;
+    resolveExchange(s, createRng(1));
+    expect(s.discard.length).toBe(before + 1);
+    expect(s.players[1].hand.map((x) => x.id)).toContain(a.id);
+    expect(s.players[0].hand.map((x) => x.id)).toEqual(expect.arrayContaining([c2.id, d2.id]));
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+  });
+
+  it('dénonciation juste : la carte Région est remplacée par une autre de la réserve', () => {
+    const s = createGame(setups(3), createRng(8));
+    const h = vaisselleHolder(s)!;
+    const t = (h + 1) % 3;
+    const region = s.players[t].regions[0];
+    const reserve = s.regionReserve.length;
+    denounce(s, h, t, region, createRng(2));
+    expect(s.players[t].regions[0]).not.toBe(region);
+    expect(s.regionReserve).toHaveLength(reserve);
+    // L'ancienne carte Région retourne dans la réserve.
+    expect(s.regionReserve.some((x) => x.startsWith(`${region}|`))).toBe(true);
+    expect(vaisselleHolder(s)).toBe(t);
+  });
+
+  it.each(['facile', 'moyen', 'difficile'] as const)('une partie complète entre IA (%s) se termine', (d) => {
+    for (const n of [2, 3, 4]) {
+      const s = createGame(setups(n, d), createRng(n * 7));
+      const rng = createRng(n);
+      let guard = 0;
+      while (s.phase !== 'gameOver' && guard++ < 5000) {
+        if (s.phase === 'roundOver') nextRound(s, rng);
+        else playBotTurn(s, rng);
+        s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+      }
+      expect(s.phase).toBe('gameOver');
+    }
+  });
+});
+
 describe('variante « un menu » (une région à terminer, carte Région avec un plat)', () => {
   it('distribution : 2 régions par joueur avec un plat fourni, régions partagées possibles', () => {
     let shared = false;
     for (let seed = 1; seed <= 60; seed++) {
-      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', passCount: 4 } });
+      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4 } });
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(2);
         expect(new Set(p.regions).size).toBe(2);
@@ -312,7 +380,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   });
 
   it('4 cartes données par tour : chacun garde 8 cartes et une partie se termine', () => {
-    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', passCount: 4 } });
+    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4 } });
     const rng = createRng(4);
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 5000) {
@@ -328,7 +396,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
 describe('annonces et départage', () => {
   /** Met le jeu en phase d'annonce avec des mains et régions imposées. */
   function announceState(hands: Card[][], regions: string[][]) {
-    const s = createGame(setups(hands.length), createRng(5));
+    const s = createGame(setups(hands.length), createRng(5), V2);
     s.players.forEach((p, i) => {
       p.hand = hands[i];
       p.regions = regions[i];
@@ -385,7 +453,7 @@ describe('annonces et départage', () => {
 
 describe('victoire', () => {
   it('le premier à 3 Toques est Grand Chef', () => {
-    const s = createGame(setups(2), createRng(9));
+    const s = createGame(setups(2), createRng(9), V2);
     s.players[0].toques = 2;
     s.players[0].hand = [...R(s.players[0].regions[0]), ...R(s.players[0].regions[1])];
     s.players[1].hand = [VAISSELLE, ...R('lyonnais'), ...R('lorraine').slice(0, 3)];
@@ -398,7 +466,7 @@ describe('victoire', () => {
 
   it.each(['facile', 'moyen', 'difficile'] as const)('une partie complète entre IA (%s) se termine', (d) => {
     for (const n of [2, 3, 4]) {
-      const s = createGame(setups(n, d), createRng(n * 31));
+      const s = createGame(setups(n, d), createRng(n * 31), V2);
       const rng = createRng(n);
       let guard = 0;
       while (s.phase !== 'gameOver' && guard++ < 20000) {
