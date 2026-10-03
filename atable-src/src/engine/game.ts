@@ -1,8 +1,8 @@
 // Règles d'« À TABLE ! » : mise en place, dénonciation, échange simultané,
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
-import { HAND_SIZE, REGIONS_PER_PLAYER } from '../config/cards';
-import { ALL_REGION_IDS, buildDeck, evaluateMenu, VAISSELLE } from './deck';
+import { COURSES, HAND_SIZE, REGIONS_PER_PLAYER, type Course } from '../config/cards';
+import { ALL_REGION_IDS, buildDeck, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
 import type { Card, Choice, Denunciation, GameEvent, GameState, Menu, Move, PlayerSetup, RegionId, RoundResult, Rules } from './types';
 
@@ -15,7 +15,7 @@ export interface GameOptions {
   rules?: Partial<Rules>;
 }
 
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 1 };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 1, mode: 'deuxMenus' };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
@@ -33,7 +33,7 @@ export const DEFAULT_MAX_TURNS = 200;
 export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = {}, preset?: RoundPreset): GameState {
   if (setups.length < 2 || setups.length > 4) throw new Error('Il faut 2 à 4 joueurs');
   const state: GameState = {
-    players: setups.map((s) => ({ ...s, hand: [], regions: [], toques: 0 })),
+    players: setups.map((s) => ({ ...s, hand: [], regions: [], bonus: [], toques: 0 })),
     regionsInPlay: [],
     regionReserve: [],
     drawPile: [],
@@ -62,7 +62,7 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
 export function cloneState(s: GameState): GameState {
   return {
     ...s,
-    players: s.players.map((p) => ({ ...p, hand: [...p.hand], regions: [...p.regions] })),
+    players: s.players.map((p) => ({ ...p, hand: [...p.hand], regions: [...p.regions], bonus: [...p.bonus] })),
     regionsInPlay: [...s.regionsInPlay],
     regionReserve: [...s.regionReserve],
     drawPile: [...s.drawPile],
@@ -104,6 +104,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     state.regionReserve = ALL_REGION_IDS.filter((r) => !dealt.includes(r));
     state.players.forEach((p, i) => {
       p.regions = [...preset.regions[i]];
+      p.bonus = p.regions.map(() => null);
       p.hand = [...preset.hands[i]];
     });
     state.drawPile = [...preset.drawPile].reverse(); // le dessus est la fin du tableau
@@ -111,8 +112,27 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     const count = state.rules.regionCount ? Math.max(state.rules.regionCount, n * REGIONS_PER_PLAYER + 1) : ALL_REGION_IDS.length;
     state.regionsInPlay = shuffle(rng, [...ALL_REGION_IDS]).slice(0, count);
     const secret = shuffle(rng, [...state.regionsInPlay]);
-    state.players.forEach((p) => (p.regions = secret.splice(0, REGIONS_PER_PLAYER)));
+    state.players.forEach((p) => {
+      p.regions = secret.splice(0, REGIONS_PER_PLAYER);
+      p.bonus = p.regions.map(() => null);
+    });
     state.regionReserve = secret;
+    if (state.rules.mode === 'unMenu') {
+      // Une carte Région par région ET par plat : « Alsace + Plat »… Plusieurs joueurs
+      // peuvent tirer la même région (avec des plats différents). La réserve garde
+      // les cartes Région restantes, notées « région|plat ».
+      const cards = shuffle(rng, state.regionsInPlay.flatMap((r) => COURSES.map((c) => `${r}|${c}`)));
+      state.players.forEach((p) => {
+        const mine: string[] = [];
+        while (mine.length < REGIONS_PER_PLAYER) {
+          const k = cards.findIndex((x) => !mine.some((m) => m.split('|')[0] === x.split('|')[0]));
+          mine.push(...cards.splice(k, 1));
+        }
+        p.regions = mine.map((x) => x.split('|')[0]);
+        p.bonus = mine.map((x) => x.split('|')[1] as Course);
+      });
+      state.regionReserve = cards;
+    }
 
     const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies).filter((c) => c.kind !== 'vaisselle'));
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
@@ -223,9 +243,17 @@ export function denounce(state: GameState, accuser: number, target: number, regi
     vaisselleFrom = accuser;
 
     // Anti-jeu : la région démasquée est remplacée par une région de la réserve.
-    const fresh = pick(rng, state.regionReserve);
-    state.regionReserve = [...state.regionReserve.filter((r) => r !== fresh), region];
-    p.regions = p.regions.map((r) => (r === region ? fresh : r));
+    if (state.rules.mode === 'unMenu') {
+      const i = p.regions.indexOf(region);
+      const fresh = pick(rng, state.regionReserve.filter((x) => !p.regions.includes(x.split('|')[0])));
+      state.regionReserve = [...state.regionReserve.filter((x) => x !== fresh), `${region}|${p.bonus[i]}`];
+      p.regions[i] = fresh.split('|')[0];
+      p.bonus[i] = fresh.split('|')[1] as Course;
+    } else {
+      const fresh = pick(rng, state.regionReserve);
+      state.regionReserve = [...state.regionReserve.filter((r) => r !== fresh), region];
+      p.regions = p.regions.map((r) => (r === region ? fresh : r));
+    }
     state.unmasked.push(target);
     state.stats.correctDenunciations += 1;
   } else {
@@ -329,7 +357,7 @@ export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
 /** Menu d'un joueur s'il a le droit d'annoncer (pas de Vaisselle en main), sinon null. */
 export function announceableMenu(state: GameState, player: number): Menu | null {
   const p = state.players[player];
-  return evaluateMenu(p.hand, p.regions);
+  return state.rules.mode === 'unMenu' ? evaluateOneMenu(p.hand, p.regions, p.bonus) : evaluateMenu(p.hand, p.regions);
 }
 
 /**

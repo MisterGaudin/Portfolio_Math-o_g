@@ -1,6 +1,6 @@
 // Fabrication des cartes et évaluation des menus.
 import { COURSES, HAND_SIZE, REGIONS, REGION_BY_ID, SPECIALS } from '../config/cards';
-import { MENU_RANK, type BaguetteCard, type Card, type DishCard, type Menu, type MenuType, type RegionId, type VaisselleCard } from './types';
+import { MENU_RANK, type BaguetteCard, type Card, type Course, type DishCard, type Menu, type MenuType, type RegionId, type VaisselleCard } from './types';
 
 export const ALL_REGION_IDS: RegionId[] = REGIONS.map((r) => r.id);
 
@@ -64,6 +64,31 @@ export function evaluateMenu(hand: readonly Card[], own: readonly RegionId[]): M
   const mine = regions.every((r) => own.includes(r));
   const type: MenuType = !mine ? 'vole' : jokers === 0 ? 'gastronomique' : 'maison';
   return { type, rank: MENU_RANK[type], regions };
+}
+
+/**
+ * Variante « un menu » : il suffit de terminer UNE des régions secrètes.
+ * Chaque carte Région fournit déjà un plat (`bonus`), il faut donc les 3 autres
+ * (ou 2 + la Baguette). Les autres cartes de la main n'ont pas d'importance.
+ * Volé : les 4 plats d'une autre région (ou 3 + la Baguette).
+ */
+export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[], bonus: readonly (Course | null)[]): Menu | null {
+  if (hand.some((c) => c.kind === 'vaisselle')) return null;
+  const joker = hand.some((c) => c.kind === 'baguette');
+  const have = (region: RegionId) => new Set(hand.filter((c): c is DishCard => isDish(c) && c.region === region).map((c) => c.course));
+  let best: Menu | null = null;
+  own.forEach((region, i) => {
+    const got = have(region);
+    const missing = COURSES.filter((c) => c !== bonus[i] && !got.has(c)).length;
+    const type: MenuType | null = missing === 0 ? 'gastronomique' : missing === 1 && joker ? 'maison' : null;
+    if (type && (!best || MENU_RANK[type] > best.rank)) best = { type, rank: MENU_RANK[type], regions: [region] };
+  });
+  if (best) return best;
+  for (const region of new Set(hand.filter(isDish).map((c) => c.region))) {
+    const missing = 4 - have(region).size;
+    if (!own.includes(region) && (missing === 0 || (missing === 1 && joker))) return { type: 'vole', rank: MENU_RANK.vole, regions: [region] };
+  }
+  return null;
 }
 
 /** Avancement de chaque région secrète : combien de ses 4 plats sont en main. */

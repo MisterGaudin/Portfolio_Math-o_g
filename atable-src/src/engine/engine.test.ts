@@ -12,6 +12,7 @@ import {
   createRng,
   denounce,
   evaluateMenu,
+  evaluateOneMenu,
   nextRound,
   playBotTurn,
   regionCards,
@@ -279,6 +280,48 @@ describe('menus (8 cartes, 2 régions)', () => {
       evaluateMenu([...R('alsace'), ...R('nord')], own)!,
     ].map((m) => m.rank);
     expect(ranks).toEqual([3, 2, 1]);
+  });
+});
+
+describe('variante « un menu » (une région à terminer, carte Région avec un plat)', () => {
+  it('distribution : 2 régions par joueur avec un plat fourni, régions partagées possibles', () => {
+    let shared = false;
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', passCount: 4 } });
+      s.players.forEach((p) => {
+        expect(p.regions).toHaveLength(2);
+        expect(new Set(p.regions).size).toBe(2);
+        p.bonus.forEach((b) => expect(['entree', 'plat', 'fromage', 'dessert']).toContain(b));
+      });
+      const all = s.players.flatMap((p) => p.regions);
+      if (new Set(all).size < all.length) shared = true;
+      expect(s.regionReserve).toHaveLength(12 * 4 - 8);
+    }
+    expect(shared).toBe(true);
+  });
+
+  it('il suffit des 3 plats manquants d’une seule de ses régions', () => {
+    const own = ['alsace', 'savoie'];
+    const bonus = ['plat', 'dessert'] as const;
+    const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert', 'auvergne-plat'].map(c);
+    expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), c('alsace-dessert'), ...junk], own, [...bonus])?.type).toBe('gastronomique');
+    expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), BAGUETTE, ...junk], own, [...bonus])?.type).toBe('maison');
+    expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), ...junk, c('normandie-plat')], own, [...bonus])).toBeNull();
+    expect(evaluateOneMenu([...R('nord'), ...junk.slice(1)], own, [...bonus])?.type).toBe('vole');
+    expect(evaluateOneMenu([c('alsace-entree'), c('alsace-fromage'), c('alsace-dessert'), VAISSELLE, ...junk.slice(1)], own, [...bonus])).toBeNull();
+  });
+
+  it('4 cartes données par tour : chacun garde 8 cartes et une partie se termine', () => {
+    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', passCount: 4 } });
+    const rng = createRng(4);
+    let guard = 0;
+    while (s.phase !== 'gameOver' && guard++ < 5000) {
+      if (s.phase === 'roundOver') nextRound(s, rng);
+      else playBotTurn(s, rng);
+      expect(totalCards(s)).toBe(TOTAL);
+      s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+    }
+    expect(s.phase).toBe('gameOver');
   });
 });
 

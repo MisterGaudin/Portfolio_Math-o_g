@@ -1,8 +1,7 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { evaluateMenu } from './deck';
-import { checkDenounce, leftOf, vaisselleHolder } from './game';
+import { announceableMenu, checkDenounce, leftOf, vaisselleHolder } from './game';
 import { pick, type Rng } from './rng';
 import type { Card, Choice, DishCard, GameState, RegionId } from './types';
 
@@ -124,8 +123,11 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
     return pick(rng, cards.filter((c) => doubles(c) === max));
   };
 
-  // Inutile : une autre région, ou un double d'un plat de sa région déjà en main.
-  let junk = hand.filter(isDish).filter((c, i) => !own.includes(c.region) || hand.findIndex((x) => isDish(x) && x.region === c.region && x.course === c.course) !== i);
+  // Inutile : une autre région, un double d'un plat de sa région déjà en main,
+  // ou (variante « un menu ») le plat déjà fourni par la carte Région.
+  let junk = hand
+    .filter(isDish)
+    .filter((c, i) => !own.includes(c.region) || me.bonus[own.indexOf(c.region)] === c.course || hand.findIndex((x) => isDish(x) && x.region === c.region && x.course === c.course) !== i);
   // Difficile : bluff, on garde une carte d'une autre région pour brouiller les pistes
   // (de préférence une qui bouche un trou du menu).
   if (hard && junk.length >= 2) {
@@ -174,7 +176,7 @@ export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice 
 export function aiAnnounce(state: GameState, player: number, rng: Rng): boolean {
   const me = state.players[player];
   if (vaisselleHolder(state) === player) return false;
-  const menu = evaluateMenu(me.hand, me.regions);
+  const menu = announceableMenu(state, player);
   if (!menu) return false;
   if (me.difficulty === 'facile' || menu.type !== 'maison') return true;
   // Moyen / Difficile : avec la Baguette, on tente d'attendre le Gastronomique

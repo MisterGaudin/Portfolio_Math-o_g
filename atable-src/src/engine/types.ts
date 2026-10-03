@@ -52,6 +52,8 @@ export interface Player extends PlayerSetup {
   hand: Card[];
   /** Les 2 cartes Région secrètes : les 2 menus à terminer. */
   regions: RegionId[];
+  /** Variante « un menu » : le plat déjà fourni par chaque carte Région (même ordre que `regions`). */
+  bonus: (Course | null)[];
   toques: number;
 }
 
@@ -146,6 +148,13 @@ export interface Rules {
   regionCount: number;
   /** Nombre de cartes données au voisin à chaque tour. */
   passCount: number;
+  /**
+   * Condition de victoire :
+   * - 'deuxMenus' : terminer les 2 régions secrètes (8 cartes) ;
+   * - 'unMenu' : terminer UNE des 2 régions ; chaque carte Région apporte déjà un plat
+   *   (il en reste 3 à trouver) et plusieurs joueurs peuvent avoir la même région.
+   */
+  mode: 'deuxMenus' | 'unMenu';
 }
 
 export interface GameState {
