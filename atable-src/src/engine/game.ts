@@ -15,7 +15,7 @@ export interface GameOptions {
   rules?: Partial<Rules>;
 }
 
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0 };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 1 };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
@@ -241,10 +241,15 @@ export function denounce(state: GameState, accuser: number, target: number, regi
 /** Vérifie qu'un choix est autorisé (renvoie un message d'erreur, ou null). */
 export function checkChoice(state: GameState, player: number, choice: Choice): string | null {
   if (state.phase !== 'choose') return 'Ce n’est pas le moment de choisir';
-  const card = state.players[player]?.hand.find((c) => c.id === choice.cardId);
-  if (!card) return 'Cette carte n’est pas dans ta main';
-  if (choice.mode === 'market' && card.kind === 'vaisselle') return 'La Vaisselle ne va jamais au Marché !';
-  if (choice.mode !== 'pass' && choice.mode !== 'market') return 'Action inconnue';
+  const all = [{ cardId: choice.cardId, mode: choice.mode }, ...(choice.extra ?? [])];
+  if (all.length !== state.rules.passCount) return `Il faut donner ${state.rules.passCount} carte(s)`;
+  if (new Set(all.map((x) => x.cardId)).size !== all.length) return 'Une même carte ne peut pas être donnée deux fois';
+  for (const x of all) {
+    const card = state.players[player]?.hand.find((c) => c.id === x.cardId);
+    if (!card) return 'Cette carte n’est pas dans ta main';
+    if (x.mode === 'market' && card.kind === 'vaisselle') return 'La Vaisselle ne va jamais au Marché !';
+    if (x.mode !== 'pass' && x.mode !== 'market') return 'Action inconnue';
+  }
   return null;
 }
 
@@ -252,7 +257,7 @@ export function checkChoice(state: GameState, player: number, choice: Choice): s
 export function submitChoice(state: GameState, player: number, choice: Choice): void {
   const err = checkChoice(state, player, choice);
   if (err) throw new Error(err);
-  state.choices[player] = { ...choice };
+  state.choices[player] = { ...choice, extra: choice.extra?.map((x) => ({ ...x })) };
 }
 
 export const allChosen = (state: GameState) => state.players.every((_, i) => state.choices[i]);
@@ -270,35 +275,41 @@ export function resolveExchange(state: GameState, rng: Rng): GameEvent[] {
   const n = state.players.length;
   const events: GameEvent[] = [];
 
-  // 1. Chacun retire sa carte (en mémorisant sa place dans la main).
+  // 1. Chacun retire sa ou ses cartes (en mémorisant leur place dans la main).
   const slots = state.players.map((p, i) => {
-    const index = p.hand.findIndex((c) => c.id === state.choices[i].cardId);
-    return { index, card: p.hand[index], mode: state.choices[i].mode };
+    const ch = state.choices[i];
+    return [{ cardId: ch.cardId, mode: ch.mode }, ...(ch.extra ?? [])].map((x) => {
+      const index = p.hand.findIndex((c) => c.id === x.cardId);
+      return { index, card: p.hand[index], mode: x.mode };
+    });
   });
   // 2. Les cartes du Marché arrivent d'abord, face visible, sur la défausse.
-  slots.forEach((s) => s.mode === 'market' && state.discard.push(s.card));
+  slots.flat().forEach((s) => s.mode === 'market' && state.discard.push(s.card));
 
-  // 3. Chaque voisin de gauche reçoit sa carte, au même emplacement que celle qu'il a donnée.
+  // 3. Chaque voisin de gauche reçoit ses cartes, aux emplacements de celles qu'il a données.
   let reshuffled = false;
-  const moves: Move[] = slots.map((s, i) => {
+  const moves: Move[] = [];
+  const incoming: Card[][] = state.players.map(() => []);
+  slots.forEach((list, i) => {
     const to = (i + 1) % n;
-    const move: Move = { player: i, mode: s.mode, card: s.card, to };
-    let incoming = s.card;
-    if (s.mode === 'market') {
-      const d = drawCard(state, rng);
-      reshuffled ||= d.reshuffled;
-      incoming = d.card;
-      move.drawn = d.card;
-      state.origins[incoming.id] = 'market';
-    } else {
-      state.origins[incoming.id] = 'pass';
-      if (incoming.kind === 'vaisselle') state.stats.vaisselleMoves += 1;
+    for (const s of list) {
+      const move: Move = { player: i, mode: s.mode, card: s.card, to };
+      let card = s.card;
+      if (s.mode === 'market') {
+        const d = drawCard(state, rng);
+        reshuffled ||= d.reshuffled;
+        card = d.card;
+        move.drawn = d.card;
+        state.origins[card.id] = 'market';
+      } else {
+        state.origins[card.id] = 'pass';
+        if (card.kind === 'vaisselle') state.stats.vaisselleMoves += 1;
+      }
+      incoming[to].push(card);
+      moves.push(move);
     }
-    return { move, incoming };
-  }).map(({ move, incoming }) => {
-    state.players[move.to].hand[slots[move.to].index] = incoming;
-    return move;
   });
+  state.players.forEach((p, i) => slots[i].forEach((s, k) => (p.hand[s.index] = incoming[i][k])));
 
   events.push({ type: 'exchange', moves });
   // 4. Pioche vide après l'échange : on remélange la défausse tout de suite.

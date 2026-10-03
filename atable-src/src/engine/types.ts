@@ -38,6 +38,8 @@ export type Mode = 'pass' | 'market';
 export interface Choice {
   cardId: string;
   mode: Mode;
+  /** Cartes supplémentaires données en même temps (règle « passCount » > 1). */
+  extra?: { cardId: string; mode: Mode }[];
 }
 
 export interface PlayerSetup {
@@ -142,6 +144,8 @@ export interface Rules {
   copies: number;
   /** Nombre de régions en jeu (0 = toutes). */
   regionCount: number;
+  /** Nombre de cartes données au voisin à chaque tour. */
+  passCount: number;
 }
 
 export interface GameState {

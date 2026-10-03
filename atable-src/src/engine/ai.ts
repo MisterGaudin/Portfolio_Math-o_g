@@ -158,6 +158,18 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
 
 const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => isDish(c) && c.region === region).length;
 
+/** Choix complet : autant de cartes que la règle « passCount » l'exige, choisies une à une. */
+export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice {
+  const picks: { cardId: string; mode: Choice['mode'] }[] = [];
+  const view = { ...state, players: state.players.map((p) => ({ ...p, hand: [...p.hand] })) };
+  for (let k = 0; k < state.rules.passCount; k++) {
+    const ch = aiChoose(view, player, rng);
+    picks.push({ cardId: ch.cardId, mode: ch.mode });
+    view.players[player].hand = view.players[player].hand.filter((c) => c.id !== ch.cardId);
+  }
+  return { ...picks[0], extra: picks.slice(1) };
+}
+
 /** ANNONCE : l'ordinateur crie-t-il « À TABLE ! » ? */
 export function aiAnnounce(state: GameState, player: number, rng: Rng): boolean {
   const me = state.players[player];

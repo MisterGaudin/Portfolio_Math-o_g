@@ -1,5 +1,5 @@
 // Un tour complet joué uniquement par des ordinateurs (simulation et tests).
-import { aiAnnounce, aiChoose, aiDenounce } from './ai';
+import { aiAnnounce, aiChooseAll, aiDenounce } from './ai';
 import { denounce, resolveAnnouncements, resolveExchange, submitChoice } from './game';
 import type { Rng } from './rng';
 import type { GameEvent, GameState } from './types';
@@ -15,7 +15,7 @@ export function playBotTurn(state: GameState, rng: Rng): GameEvent[] {
     }
   }
   // 2. Choix secrets, 3. révélation et échange simultané.
-  state.players.forEach((_, p) => submitChoice(state, p, aiChoose(state, p, rng)));
+  state.players.forEach((_, p) => submitChoice(state, p, aiChooseAll(state, p, rng)));
   events.push(...resolveExchange(state, rng));
   // 4. Annonces.
   const announcers = state.players.map((_, p) => p).filter((p) => aiAnnounce(state, p, rng));
