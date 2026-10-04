@@ -76,30 +76,33 @@ public/       manifest PWA (chemins en /atable/), service worker, icônes, cards
 scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG depuis icon.svg)
 ```
 
-## Règles (version 3)
+## Règles (version 4)
 
-- **Toutes les régions** (12) sont en jeu à chaque manche : 48 plats + Baguette + Vaisselle = 50 cartes.
-- **1 région secrète par joueur**, découverte au début de chaque manche. Il y a **12 cartes Région, une par
-  région** : deux joueurs n'ont jamais la même région. Chaque carte Région **compte comme un plat fixe de sa
-  région** (réglable : `regionCourse` dans `src/config/cards.ts`, ex. Savoie = Tartiflette). Ce plat est caché
-  aux autres, il reste donc **3 plats à trouver**. La vraie carte de ce plat ne sert à rien à son propriétaire :
-  la donner est un **bluff** (le voisin croira qu'il n'a pas cette région). Les cartes Région non distribuées
-  forment la réserve.
-- **8 cartes en main, 2 cartes données par tour** : chacune passée au voisin de gauche ou mise au Marché.
-- **Annonces** : **Gastronomique** (ta région, sans Baguette) › **Maison** (ta région, la Baguette remplace un plat).
-  **Pas de menu Volé** : seule sa propre région permet d'annoncer. Plus de régions mélangées.
-- **Dénonciation réservée au porteur de la Vaisselle** (avant de choisir ses cartes, une par tour) :
-  - juste : l'accusé prend la Vaisselle (et rend une carte au hasard), remplace sa carte Région par une carte de la
-    réserve (d'une autre région) et l'ancienne y retourne : ce qu'on savait sur lui ne sert plus, **pas d'anti-jeu** ;
-    il est ensuite **protégé 🛡️ jusqu'à la fin de la manche** ;
+- **Toutes les régions** (12) sont en jeu : 48 plats + Baguette + Vaisselle + 8 cartes à effet = 58 cartes.
+- **1 région secrète par joueur**, unique (12 cartes Région, une par région). La carte Région **compte comme un
+  plat fixe de sa région** (`regionCourse` dans `src/config/cards.ts`, ex. Savoie = Tartiflette) : il reste
+  **3 plats à trouver**. La vraie carte de ce plat ne sert à rien à son propriétaire : la donner est un **bluff**.
+- **8 cartes en main, 2 cartes données par tour** : chacune passée au voisin ou mise au Marché.
+- **Marché ouvert** : la dernière carte de la défausse est visible ; celui qui reçoit une carte du Marché choisit
+  entre la pioche et cette carte.
+- **Plat du jour** : une carte tirée en début de manche change une règle (fromages au Marché, sens inversé, pas de
+  Baguette, 3 cartes par tour, pas de dénonciation, double étoile, commande libre…).
+- **Passer la commande** : une fois par tour, on peut demander un plat précis (« Qui a le Reblochon ? ») ; chacun
+  répond oui ou non.
+- **Annonce face cachée** : on pose son menu face cachée, on peut **bluffer**. Dès la première annonce, c'est le
+  **Dernier service** : les autres jouent un dernier tour (sans dénonciation), puis tout le monde révèle. Un
+  bluffeur perd 1 étoile et prend la Vaisselle ; en cas d'égalité, les annonces tardives perdent, puis départage
+  par la Vaisselle. **Gastronomique** (sans Baguette) › **Maison** (la Baguette remplace un plat manquant).
+- **Vaisselle** : toujours dans une main, **face visible** de tous, jamais au Marché, jamais dans un menu. Seul son
+  porteur peut dénoncer, en **montrant une carte de sa main** comme indice :
+  - juste : l'accusé prend la Vaisselle (et donne une carte au hasard), change de région depuis la réserve et
+    devient protégé 🛡️ pour la manche ; le dénonciateur est **récompensé** (il prend une carte de l'accusé) ;
   - fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
-- **Cartes à effet** (2 🔄 Demi-tour + 2 🤝 Troc dans le paquet) : on les joue à la place d'une des 2 cartes données
-  (« ✨ Jouer »). Elles partent sur une **pile spéciale**, hors jeu pour la manche, et le voisin pioche une carte à la
-  place. **Demi-tour** inverse le sens de passage à partir du tour suivant. **Troc** échange toute ta main avec celle
-  du joueur choisi, juste après l'échange. On peut aussi simplement les passer ou les mettre au Marché.
-- **Pas de coup de pouce à la donne** (option `headStart`, désactivée) : la main de départ est entièrement au hasard.
-- Inchangé : échange simultané vers la gauche, Vaisselle jamais au Marché ni d'annonce avec, départage par la
-  Vaisselle, 3 Étoiles pour devenir Chef 3 étoiles.
+- **Cartes à effet** (2 de chaque), jouées à la place d'une des cartes données, puis pile spéciale :
+  🔄 **Demi-tour** (inverse le sens), 🤝 **Troc** (échange de main avec le joueur choisi), 🦊 **Chapardeur**
+  (prend une carte au hasard au joueur choisi et lui en donne une), 🚫 **Contrôle sanitaire** (le joueur choisi ne
+  peut pas annoncer jusqu'à la fin du tour suivant).
+- **Étoiles** : chaque manche gagnée rapporte ⭐ ; le premier à 3 étoiles devient **Chef 3 étoiles**.
 
 Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne version « 2 menus » reste disponible
 (`TWO_MENUS_RULES`) pour la simulation.
@@ -131,7 +134,9 @@ Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne 
 
 ## Équilibrage : ce que dit la simulation
 
-300 parties par configuration, règles par défaut (niveaux mélangés) :
+Simulation v3d, 300 parties par configuration (niveaux mélangés). En v4 (400 parties, niveaux mélangés) : 18,4 / 14,8 / 12,5 tours
+selon 2 / 3 / 4 joueurs, aucune manche sans fin, places équilibrées, et facile < moyen ≤ difficile.
+
 
 | | 2 joueurs | 3 joueurs | 4 joueurs |
 |---|---|---|---|
@@ -152,7 +157,8 @@ Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
 | v3a : 1 région avec un plat fourni (régions partagées), 2 cartes par tour | 11 / 9 / 6 (blocages possibles à 2 sur la même région) |
 | v3b : 1 région unique dont la carte compte comme un plat, 2 cartes par tour | 10 / 8 / 6 (le Volé gagnait 1/3 des manches) |
 | v3c : v3b sans menu Volé, coup de pouce | 12 / 9 / 6 |
-| **v3d : v3c sans coup de pouce, avec 2 Demi-tour + 2 Troc** | **20 / 15 / 12** |
+| v3d : v3c sans coup de pouce, avec 2 Demi-tour + 2 Troc | 20 / 15 / 12 |
+| **v4 : annonce face cachée, Dernier service, Marché ouvert, commande, Plat du jour, Chapardeur, Contrôle** | **18 / 15 / 12** |
 
 Le menu **Volé** (les 4 plats d'une autre région) a été supprimé : il gagnait environ un tiers des manches.
 Sans coup de pouce et avec les cartes à effet, les manches durent 12 à 20 tours et le niveau des IA compte

@@ -119,7 +119,7 @@ export function GameOver({ state, onReplay, onMenu }: { state: GameState; onRepl
         🧑‍🍳
       </motion.div>
       <h1>CHEF 3 ÉTOILES</h1>
-      <p className="big-line">{human ? 'Bravo, c’est toi ! Les cuisines de France te saluent.' : `${state.players[w].name} décroche les 3 Étoiles.`}</p>
+      <p className="big-line">{human ? 'Bravo, c’est toi ! Les cuisines de France te saluent.' : `${state.players[w].name} décroche ses 3 étoiles.`}</p>
       <div className="reveal-list">
         {[...state.players]
           .map((p, i) => ({ p, i }))
