@@ -96,7 +96,7 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
 - **Vaisselle** : toujours dans une main, **face visible** de tous, jamais au Marché, jamais dans un menu. Seul son
   porteur peut dénoncer, en **montrant une carte de sa main** comme indice :
   - juste : l'accusé prend la Vaisselle (et donne une carte au hasard), change de région depuis la réserve et
-    devient protégé 🛡️ pour la manche ; le dénonciateur est **récompensé** (il prend une carte de l'accusé) ;
+    devient protégé 🛡️ pour la manche ; le dénonciateur est **récompensé** (il échange la carte montrée contre une carte au hasard de l'accusé) ;
   - fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
 - **Cartes à effet** (2 de chaque), jouées à la place d'une des cartes données, puis pile spéciale :
   🔄 **Demi-tour** (inverse le sens), 🤝 **Troc** (échange de main avec le joueur choisi), 🦊 **Chapardeur**
