@@ -13,20 +13,22 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b>3 autres</b>. La vraie carte de ce plat ne te sert à rien : donne-la pour <b>bluffer</b> !
         </p>
         <p>
-          <b>Chaque tour</b>, tout le monde en même temps choisit <b>2 cartes</b> : chacune est <b>passée</b> au voisin de gauche, face cachée, ou va au{' '}
-          <b>Marché</b> (face visible, le voisin pioche à la place). Puis on valide, et les cartes glissent vers la gauche. Menu complet ? Crie{' '}
-          <b>« À TABLE ! »</b>
+          <b>Chaque tour</b>, tous ensemble, choisissez <b>2 cartes</b> : <b>Passer</b> au voisin ou <b>Marché</b> (défausse, le voisin pioche à la place).
+          Menu complet ? Crie <b>« À TABLE ! »</b>
         </p>
         <p>
-          🍽️ <b>Vaisselle</b> : impossible d’annoncer avec, jamais au Marché. Mais elle seule permet de <b>dénoncer</b> : « Je te démasque : Alsace ! ». Juste :
-          il prend ta Vaisselle, change de région, puis il est protégé jusqu’à la fin de la manche. Faux : tu la gardes et tu attends un tour.
+          🍽️ <b>Vaisselle</b> : pas d’annonce avec, jamais au Marché. Elle seule permet de <b>dénoncer</b> (« Je te démasque : Alsace ! »). Juste : il prend
+          ta Vaisselle et change de région, puis il est protégé. Faux : tu la gardes et tu attends un tour.
         </p>
         <p>
-          🥖 <b>Baguette</b> : remplace un plat manquant.
+          🥖 <b>Baguette</b> : remplace un plat manquant (menu <b>Maison</b>, battu par le <b>Gastronomique</b>).
         </p>
         <p>
-          <b>Annonces</b> : Gastronomique (ta région complète) › Maison (avec la Baguette à la place d’un plat). Égalité : le plus proche à gauche du
-          porteur de la Vaisselle gagne.
+          ✨ <b>Cartes à effet</b>, jouées puis retirées du jeu : 🔄 <b>Demi-tour</b> inverse le sens de passage, 🤝 <b>Troc</b> échange ta main avec celle
+          d’un joueur.
+        </p>
+        <p>
+          <b>Égalité</b> : le plus proche du porteur de la Vaisselle, dans le sens du jeu, gagne.
         </p>
       </div>
     </Modal>

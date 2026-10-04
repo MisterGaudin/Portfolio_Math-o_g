@@ -19,9 +19,9 @@ export interface GameOptions {
  * Règles du jeu par défaut : 1 région secrète par joueur (sa carte apporte déjà un plat,
  * il en reste 3 à trouver), 2 cartes données par tour, 8 cartes en main.
  */
-export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 1, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1, regionCards: 'uniques', baguettes: 1, effects: { demitour: 0, troc: 0 } };
+export const DEFAULT_RULES: Rules = { denounceLimit: 'protege', headStart: 0, copies: 1, regionCount: 0, passCount: 2, mode: 'unMenu', regionsPerPlayer: 1, regionCards: 'uniques', baguettes: 1, effects: { demitour: 2, troc: 2 } };
 /** Ancienne version « 2 menus » (2 régions, 8 cartes à réunir, 1 carte par tour). */
-export const TWO_MENUS_RULES: Partial<Rules> = { mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1 };
+export const TWO_MENUS_RULES: Partial<Rules> = { mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1, effects: { demitour: 0, troc: 0 } };
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
@@ -430,8 +430,8 @@ export function resolveAnnouncements(state: GameState, announcers: number[], rng
     const holder = vaisselleHolder(state);
     const n = state.players.length;
     if (holder !== null) {
-      // Distance vers la gauche depuis le porteur de la Vaisselle : la plus petite gagne.
-      const dist = (p: number) => (p - holder + n) % n;
+      // Distance depuis le porteur de la Vaisselle, dans le sens du jeu : la plus petite gagne.
+      const dist = (p: number) => (((p - holder) * state.direction) % n + n) % n;
       winner = tied.reduce((a, b) => (dist(b.p) < dist(a.p) ? b : a));
       tieBreak = 'vaisselle';
     } else {

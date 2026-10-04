@@ -40,7 +40,9 @@ const c = (id: string): Card => cardById(id);
 const R = (region: string) => regionCards(region);
 const ids = (cards: Card[]) => cards.map((x) => x.id);
 const TOTAL = REGIONS.length * 4 + 2;
-const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length;
+const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length + s.specialPile.length;
+/** Paquet par défaut : 50 cartes + 2 Demi-tour + 2 Troc. */
+const TOTAL_DEFAULT = TOTAL + 4;
 
 /**
  * Partie à 3 joueurs avec une mise en place connue :
@@ -300,7 +302,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
       });
       expect(new Set(s.players.map((p) => p.regions[0])).size).toBe(n);
       expect(s.regionReserve).toHaveLength(12 - n);
-      expect(totalCards(s)).toBe(TOTAL);
+      expect(totalCards(s)).toBe(TOTAL_DEFAULT);
       expect(vaisselleHolder(s)).not.toBeNull();
     }
   });
@@ -315,7 +317,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   it('coup de pouce : une carte utile de sa région, sans avantage pour les derniers joueurs', () => {
     const useful = [0, 0, 0, 0];
     for (let g = 0; g < 2000; g++) {
-      const s = createGame(setups(4), createRng(g + 1));
+      const s = createGame(setups(4), createRng(g + 1), { rules: { headStart: 1 } });
       s.players.forEach((p, i) => {
         const mine = p.hand.filter((x) => x.kind === 'dish' && x.region === p.regions[0] && x.course !== p.bonus[0]);
         expect(mine.length).toBeGreaterThanOrEqual(1);
@@ -380,7 +382,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
 
 describe('options : plusieurs Baguettes et cartes à effet', () => {
   const opts = { rules: { baguettes: 3, effects: { demitour: 2, troc: 2 } } };
-  const total = (s: GameState) => totalCards(s) + s.specialPile.length;
+  const total = totalCards;
 
   it('le paquet contient les Baguettes et cartes à effet demandées', () => {
     const s = createGame(setups(3), createRng(5), opts);
@@ -453,7 +455,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   it('distribution : 2 régions par joueur avec un plat fourni, régions partagées possibles', () => {
     let shared = false;
     for (let seed = 1; seed <= 60; seed++) {
-      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees' } });
+      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(2);
         expect(new Set(p.regions).size).toBe(2);
@@ -479,7 +481,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   });
 
   it('4 cartes données par tour : chacun garde 8 cartes et une partie se termine', () => {
-    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees' } });
+    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
     const rng = createRng(4);
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 5000) {

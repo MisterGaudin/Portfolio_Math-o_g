@@ -1125,3 +1125,56 @@ button.chip.active {
 .pick-modes button:disabled {
   opacity: 0.3;
 }
+
+/* ----------------------------- Cartes à effet ----------------------------- */
+.toast {
+  white-space: normal;
+  width: max-content;
+  max-width: min(92vw, 440px);
+  text-align: center;
+  border-radius: 16px;
+}
+.pick-modes button.play {
+  flex: 1.4;
+}
+.pick-modes button.play.active {
+  background: var(--gold);
+}
+.pick-targets {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 3px;
+}
+.pick-targets button {
+  border: 2px solid #fff4;
+  background: #ffffff18;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 6px;
+  height: 28px;
+  max-width: 33%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pick-targets button.active {
+  border-color: var(--gold);
+  background: var(--cream);
+}
+.pass-dir.reversed {
+  color: var(--gold);
+  opacity: 1;
+  font-weight: 800;
+}
+.card-effect {
+  --rc: #2a6f97;
+  --ri: #fff;
+  background: linear-gradient(#e8f4fb, #cfe6f4);
+}
+.card-effect .card-course {
+  font-size: 9px;
+  text-transform: none;
+  padding: 0 3px 4px;
+}

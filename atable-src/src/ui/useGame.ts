@@ -257,7 +257,19 @@ export function useGame() {
       commit(next);
       setFx(null);
       const had = (s: GameState | null) => !!s?.players[0].hand.some((c) => c.kind === 'vaisselle');
-      if (had(next) && !had(before)) {
+      // Cartes à effet jouées ce tour-ci : on prévient tout le monde.
+      const who = (p: number) => (p === 0 ? 'Tu' : next.players[p].name);
+      const effects = (fx?.moves ?? [])
+        .filter((m) => m.mode === 'effect' && m.card.kind === 'effect')
+        .map((m) =>
+          m.card.kind === 'effect' && m.card.effect === 'troc'
+            ? `🤝 ${who(m.player)} ${m.player === 0 ? 'fais' : 'fait'} un Troc avec ${m.target === 0 ? 'toi' : next.players[m.target!].name} : mains échangées !`
+            : `🔄 ${who(m.player)} ${m.player === 0 ? 'joues' : 'joue'} Demi-tour : le sens s’inverse !`,
+        );
+      if (effects.length) {
+        vibrate([80, 40, 80]);
+        setToast(effects.join(' · '));
+      } else if (had(next) && !had(before)) {
         vibrate([200, 80, 200]);
         setToast('Beurk ! On t’a refilé la Vaisselle 🍽️');
       }
@@ -269,7 +281,7 @@ export function useGame() {
   // Le petit message disparaît tout seul.
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2600);
+    const t = setTimeout(() => setToast(null), 3600);
     return () => clearTimeout(t);
   }, [toast]);
 

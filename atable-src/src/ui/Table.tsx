@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { COURSE_ICONS, COURSE_LABELS, COURSES, REGION_BY_ID } from '../config/cards';
-import { announceableMenu, checkDenounce, evaluateMenu, leftOf, menuProgress, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move } from '../engine';
+import { announceableMenu, checkDenounce, evaluateMenu, leftOf, menuProgress, rightOf, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick } from '../engine';
 import { CardBack, CardView, DirtyPlate, RegionCardView, RegionChip } from './CardView';
 import { Modal } from './Modal';
 import type { Focus, Guide } from './tutorial';
@@ -108,8 +108,10 @@ function ExchangeOverlay({ moves, fxKey }: { moves: Move[]; fxKey: number }) {
     document.querySelectorAll<HTMLElement>('[data-seat]').forEach((el) => (out[`seat${el.dataset.seat}`] = el.getBoundingClientRect()));
     const d = get('[data-pile="discard"]');
     const p = get('[data-pile="draw"]');
+    const sp = get('[data-pile="special"]');
     if (d) out.discard = d;
     if (p) out.draw = p;
+    if (sp) out.special = sp;
     setRects(out);
   }, [fxKey]);
   if (!rects) return null;
@@ -124,14 +126,14 @@ function ExchangeOverlay({ moves, fxKey }: { moves: Move[]; fxKey: number }) {
         const from = shift(center(rects[`seat${m.player}`]));
         const to = shift(center(rects[`seat${m.to}`]));
         // On voit sa propre carte et les cartes du Marché (publiques) ; le reste est face cachée.
-        const face = m.player === 0 || m.mode === 'market';
+        const face = m.player === 0 || m.mode !== 'pass';
         if (m.mode === 'pass')
           return (
             <motion.div key={`p${k}`} className="fx-card" initial={from} animate={to} transition={{ duration: dur * 0.6, ease: 'easeInOut' }}>
               {face ? <CardView card={m.card} size="small" /> : <CardBack size="small" />}
             </motion.div>
           );
-        const discard = shift(center(rects.discard));
+        const discard = shift(center(m.mode === 'effect' ? (rects.special ?? rects.discard) : rects.discard));
         const draw = shift(center(rects.draw));
         return [
           <motion.div key={`m${k}`} className="fx-card" initial={from} animate={discard} transition={{ duration: dur * 0.45, ease: 'easeOut' }}>
@@ -286,7 +288,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   const { stage } = game;
   const me = state.players[0];
   /** Cartes choisies (dans l'ordre), chacune avec son action : passer ou Marché. */
-  const [picks, setPicks] = useState<{ cardId: string; mode: Mode }[]>([]);
+  const [picks, setPicks] = useState<Pick[]>([]);
   const need = state.rules.passCount;
   const [showRegion, setShowRegion] = useState(false);
   const [denounceOpen, setDenounceOpen] = useState(false);
@@ -296,7 +298,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   const humanMenu = state.phase === 'announce' ? announceableMenu(state, 0) : null;
   const holder = vaisselleHolder(state);
   const left = leftOf(state, 0);
-  const right = (state.players.length - 1) % state.players.length;
+  const right = rightOf(state, 0);
   const top = state.discard[state.discard.length - 1];
   const f = (x: Focus) => (guide?.focus === x ? ' tuto-focus' : '');
 
@@ -325,10 +327,13 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   };
   const pickMode = (cardId: string, m: Mode) => {
     if (guide && !guide.allowMode(cardId, m)) return setNudge('Suis la bulle 😉');
-    setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, mode: m } : x)));
+    setPicks(picks.map((x) => (x.cardId === cardId ? { cardId, mode: m } : x)));
   };
+  const pickTarget = (cardId: string, target: number) => setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, target } : x)));
+  const needsTarget = (x: Pick) => x.mode === 'effect' && me.hand.find((c) => c.id === x.cardId)?.kind === 'effect' && (me.hand.find((c) => c.id === x.cardId) as { effect?: string }).effect === 'troc' && x.target === undefined;
   const validate = () => {
     if (picks.length !== need) return;
+    if (picks.some(needsTarget)) return setNudge('Choisis avec qui faire le Troc 🤝');
     const choice: Choice = { ...picks[0], extra: picks.slice(1) };
     if (guide && !guide.allowChoice(choice)) return setNudge('Suis la bulle 😉');
     const err = game.humanChoose(choice);
@@ -376,18 +381,34 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
               <div key={k} className="pick">
                 <span className="pick-name">{card.name}</span>
                 <span className="pick-modes">
-                  <button className={pk.mode === 'pass' ? 'active' : ''} onClick={() => pickMode(pk.cardId, 'pass')} aria-label="Passer à gauche">
-                    ⬅ Passer
+                  <button className={pk.mode === 'pass' ? 'active' : ''} onClick={() => pickMode(pk.cardId, 'pass')} aria-label="Passer au voisin">
+                    {card.kind === 'effect' ? '⬅' : '⬅ Passer'}
                   </button>
                   <button
                     className={pk.mode === 'market' ? 'active' : ''}
                     disabled={card.kind === 'vaisselle'}
                     onClick={() => pickMode(pk.cardId, 'market')}
-                    title={card.kind === 'vaisselle' ? 'La Vaisselle ne va jamais au Marché' : undefined}
+                    title={card.kind === 'vaisselle' ? 'La Vaisselle ne va jamais au Marché' : 'Marché'}
                   >
-                    🧺 Marché
+                    {card.kind === 'effect' ? '🧺' : '🧺 Marché'}
                   </button>
+                  {card.kind === 'effect' && (
+                    <button className={`play${pk.mode === 'effect' ? ' active' : ''}`} onClick={() => pickMode(pk.cardId, 'effect')}>
+                      ✨ Jouer
+                    </button>
+                  )}
                 </span>
+                {card.kind === 'effect' && card.effect === 'troc' && pk.mode === 'effect' && (
+                  <span className="pick-targets">
+                    {state.players.map((pl, i) =>
+                      i === 0 ? null : (
+                        <button key={i} className={pk.target === i ? 'active' : ''} onClick={() => pickTarget(pk.cardId, i)} title={`Troc avec ${pl.name}`}>
+                          {pl.name}
+                        </button>
+                      ),
+                    )}
+                  </span>
+                )}
               </div>
             );
           })}
@@ -435,6 +456,12 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
             {top ? <CardView card={top} size="small" /> : <div className="card card-small empty">Marché</div>}
             <small>Défausse · {state.discard.length}</small>
           </div>
+          {(state.rules.effects.demitour > 0 || state.rules.effects.troc > 0) && (
+            <div className="pile" data-pile="special" title="Pile spéciale : cartes à effet déjà jouées (hors jeu)">
+              {state.specialPile.length ? <CardView card={state.specialPile[state.specialPile.length - 1]} size="small" /> : <div className="card card-small empty">Effets</div>}
+              <small>Spéciale · {state.specialPile.length}</small>
+            </div>
+          )}
         </div>
         <AnimatePresence>
           {game.lastDenunciation && (stage === 'choosing' || stage === 'thinking') && (
@@ -462,7 +489,9 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
               <DirtyPlate size={34} />
             </span>
           )}
-          <span className="pass-dir">⬅ vers {state.players[left].name}</span>
+          <span className={`pass-dir${state.direction === -1 ? ' reversed' : ''}`} title={state.direction === -1 ? 'Sens inversé par un Demi-tour' : 'Sens normal'}>
+            {state.direction === -1 ? '🔄 ' : '⬅ '}vers {state.players[left].name}
+          </span>
         </div>
         <MenuGauge state={state} revealed={showRegion} focus={guide?.focus === 'gauge'} />
         <div className={`hand${f('hand')}`} data-seat={0}>

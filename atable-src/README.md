@@ -93,7 +93,11 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
     réserve (d'une autre région) et l'ancienne y retourne : ce qu'on savait sur lui ne sert plus, **pas d'anti-jeu** ;
     il est ensuite **protégé 🛡️ jusqu'à la fin de la manche** ;
   - fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
-- **Coup de pouce à la donne** : chacun reçoit au moins 1 carte de sa région.
+- **Cartes à effet** (2 🔄 Demi-tour + 2 🤝 Troc dans le paquet) : on les joue à la place d'une des 2 cartes données
+  (« ✨ Jouer »). Elles partent sur une **pile spéciale**, hors jeu pour la manche, et le voisin pioche une carte à la
+  place. **Demi-tour** inverse le sens de passage à partir du tour suivant. **Troc** échange toute ta main avec celle
+  du joueur choisi, juste après l'échange. On peut aussi simplement les passer ou les mettre au Marché.
+- **Pas de coup de pouce à la donne** (option `headStart`, désactivée) : la main de départ est entièrement au hasard.
 - Inchangé : échange simultané vers la gauche, Vaisselle jamais au Marché ni d'annonce avec, départage par la
   Vaisselle, 3 Toques pour devenir Grand Chef.
 
@@ -131,10 +135,10 @@ Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne 
 
 | | 2 joueurs | 3 joueurs | 4 joueurs |
 |---|---|---|---|
-| Tours moyens par manche | 12 | 9 | 6 |
+| Tours moyens par manche | 20 | 15 | 12 |
 | Manches sans fin | 0 % | 0 % | 0 % |
-| Gagnées en Gastronomique / Maison | 57 / 43 % | 67 / 33 % | 69 / 31 % |
-| Victoires par niveau (facile / moyen / difficile) | 42 / 48 / 61 % | 29 / 35 / 37 % | 24 / 26 / 25 % |
+| Gagnées en Gastronomique / Maison | 42 / 58 % | 51 / 49 % | 58 / 42 % |
+| Victoires par niveau (facile / moyen / difficile) | 21 / 60 / 70 % | 23 / 40 / 37 % | 18 / 28 / 29 % |
 | Avantage selon la place | aucun | aucun | faible |
 
 Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
@@ -147,9 +151,10 @@ Historique des essais (tours moyens par manche, 2 / 3 / 4 joueurs) :
 | v2 avec 2 cartes données par tour | 172 / 155 / 120 (pire) |
 | v3a : 1 région avec un plat fourni (régions partagées), 2 cartes par tour | 11 / 9 / 6 (blocages possibles à 2 sur la même région) |
 | v3b : 1 région unique dont la carte compte comme un plat, 2 cartes par tour | 10 / 8 / 6 (le Volé gagnait 1/3 des manches) |
-| **v3c : v3b sans menu Volé** | **12 / 9 / 6** |
+| v3c : v3b sans menu Volé, coup de pouce | 12 / 9 / 6 |
+| **v3d : v3c sans coup de pouce, avec 2 Demi-tour + 2 Troc** | **20 / 15 / 12** |
 
 Le menu **Volé** (les 4 plats d'une autre région) a été supprimé : il gagnait environ un tiers des manches.
-À 4 joueurs, les manches sont courtes (6 tours) et les 3 niveaux d'IA gagnent à peu près autant : la chance
-de la donne pèse beaucoup. Le coup de pouce de départ créait un avantage pour les derniers joueurs (34 % contre
+Sans coup de pouce et avec les cartes à effet, les manches durent 12 à 20 tours et le niveau des IA compte
+nettement plus (l'IA facile ne gagne plus que 18 à 23 % des parties). Le coup de pouce de départ créait un avantage pour les derniers joueurs (34 % contre
 19 %) : corrigé, les places sont maintenant équilibrées.
