@@ -71,6 +71,20 @@ export const SPECIALS = {
   vaisselle: { id: 'vaisselle', name: 'Vaisselle', icon: '🍽️', hint: 'Pas d’annonce avec elle !' },
   demitour: { id: 'demitour', name: 'Demi-tour', icon: '🔄', hint: 'Le sens de passage s’inverse' },
   troc: { id: 'troc', name: 'Troc', icon: '🤝', hint: 'Échange ta main avec un joueur' },
+  chapardeur: { id: 'chapardeur', name: 'Chapardeur', icon: '🦊', hint: 'Vole une carte au hasard, rends-en une' },
+  controle: { id: 'controle', name: 'Contrôle sanitaire', icon: '🚫', hint: 'Un joueur ne peut pas annoncer' },
+} as const;
+
+/** Les cartes « Plat du jour » : un événement par manche. */
+export const DAY_EVENTS = {
+  service: { name: 'Service classique', icon: '🍽️', text: 'Rien ne change : bon appétit !' },
+  fromagesBloques: { name: 'Plateau de fromages', icon: '🧀', text: 'Les fromages ne se passent pas : ils vont au Marché.' },
+  sensInverse: { name: 'Service à l’anglaise', icon: '🔄', text: 'On passe les cartes dans l’autre sens.' },
+  sansBaguette: { name: 'Grève des boulangers', icon: '🥖', text: 'La Baguette ne remplace aucun plat.' },
+  troisCartes: { name: 'Coup de feu', icon: '🔥', text: 'On donne 3 cartes par tour.' },
+  sansDenonciation: { name: 'Repas de famille', icon: '🤫', text: 'Pas de dénonciation cette manche.' },
+  doubleEtoile: { name: 'Guide Michelin', icon: '⭐', text: 'Le gagnant remporte 2 étoiles.' },
+  commandeLibre: { name: 'Carte blanche', icon: '📝', text: 'Chacun peut passer 2 commandes.' },
 } as const;
 
 /** Format des illustrations déposées dans public/cards/. */

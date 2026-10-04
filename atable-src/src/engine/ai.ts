@@ -1,7 +1,8 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { announceableMenu, checkDenounce, leftOf, vaisselleHolder } from './game';
+import { announceableMenu, checkAnnounce, checkDenounce, leftOf, ordersAllowed, passCountOf, visibleDiscard } from './game';
+import { COURSES } from '../config/cards';
 import { menuProgress } from './deck';
 import { pick, type Rng } from './rng';
 import type { Card, Choice, DishCard, GameState, Pick, RegionId } from './types';
@@ -100,25 +101,62 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   // Facile : une carte au hasard qui n'est pas de ses régions, passée à gauche
   // (et de temps en temps au Marché, sinon la pioche ne tournerait jamais).
   const others = state.players.map((_, i) => i).filter((i) => i !== player);
+  const reachable = others.filter((i) => !state.frozen.includes(i));
+  // Carte rendue par le Chapardeur : la plus inutile (jamais la Vaisselle ni une carte utile).
+  const giveFor = (except: string) => {
+    const cands = hand.filter((c) => c.id !== except && c.kind !== 'vaisselle' && !(isDish(c) && own.includes(c.region) && !isBonus(c)));
+    return (cands.length ? pick(rng, cands) : hand.find((c) => c.id !== except && c.kind !== 'vaisselle'))?.id;
+  };
+  const isBonus = (c: DishCard) => me.bonus[own.indexOf(c.region)] === c.course;
+  /** Joue une carte à effet avec une cible raisonnable. */
+  const playEffect = (card: Card & { kind: 'effect' }): Choice | null => {
+    if (card.effect === 'demitour') return { cardId: card.id, mode: 'effect' };
+    if (card.effect === 'controle') {
+      // Contrôle sanitaire : sur le joueur le plus étoilé (ou un joueur au hasard).
+      const top = Math.max(...others.map((i) => state.players[i].etoiles));
+      return { cardId: card.id, mode: 'effect', target: pick(rng, others.filter((i) => state.players[i].etoiles === top)) };
+    }
+    if (!reachable.length) return null;
+    if (card.effect === 'chapardeur') {
+      // Chapardeur : de préférence chez quelqu'un qui a répondu « oui » à notre commande.
+      const lead = state.orders.filter((o) => o.player === player).flatMap((o) => o.yes).filter((i) => reachable.includes(i));
+      const give = giveFor(card.id);
+      if (!give) return null;
+      return { cardId: card.id, mode: 'effect', target: pick(rng, lead.length ? lead : reachable), give };
+    }
+    return { cardId: card.id, mode: 'effect', target: pick(rng, reachable) };
+  };
+  const finish = (ch: Choice): Choice => {
+    // « Plateau de fromages » : les fromages ne se passent pas, ils vont au Marché.
+    const card = hand.find((c) => c.id === ch.cardId);
+    if (ch.mode === 'pass' && state.event === 'fromagesBloques' && card?.kind === 'dish' && card.course === 'fromage') return { ...ch, mode: 'market' };
+    return ch;
+  };
   if (me.difficulty === 'facile') {
     const notMine = hand.filter((c) => !mine(c));
     const card = pick(rng, notMine.length ? notMine : hand);
     // Carte à effet : une fois sur deux, on la joue (au hasard).
-    if (card.kind === 'effect' && rng() < 0.5) return { cardId: card.id, mode: 'effect', target: pick(rng, others) };
-    return { cardId: card.id, mode: card.kind !== 'vaisselle' && rng() < 0.3 ? 'market' : 'pass' };
+    if (card.kind === 'effect' && rng() < 0.5) {
+      const ch = playEffect(card);
+      if (ch) return ch;
+    }
+    return finish({ cardId: card.id, mode: card.kind !== 'vaisselle' && rng() < 0.3 ? 'market' : 'pass' });
   }
 
   // Moyen et Difficile : on refile toujours la Vaisselle.
   const vaisselle = hand.find((c) => c.kind === 'vaisselle');
   if (vaisselle) return { cardId: vaisselle.id, mode: 'pass' };
 
-  // Cartes à effet : le Demi-tour se joue tout de suite ; le Troc seulement si notre main
-  // est mauvaise (sinon on le jette au Marché, pour ne pas le donner au voisin).
+  // Cartes à effet : Demi-tour, Contrôle sanitaire et Chapardeur se jouent tout de suite ;
+  // le Troc seulement si notre main est mauvaise (sinon au Marché, pour ne pas le donner).
   const progress = Math.max(0, ...menuProgress(hand, own, me.bonus).map((p) => p.have.size));
-  const demitour = hand.find((c) => c.kind === 'effect' && c.effect === 'demitour');
-  if (demitour) return { cardId: demitour.id, mode: 'effect' };
-  const troc = hand.find((c) => c.kind === 'effect' && c.effect === 'troc');
-  if (troc) return progress <= 2 ? { cardId: troc.id, mode: 'effect', target: pick(rng, others) } : { cardId: troc.id, mode: 'market' };
+  for (const card of hand) {
+    if (card.kind !== 'effect') continue;
+    if (card.effect === 'troc' && progress > 2) return { cardId: card.id, mode: 'market' };
+    const ch = playEffect(card);
+    if (ch) return ch;
+    return { cardId: card.id, mode: 'market' };
+  }
   // Baguettes en trop : une seule peut servir.
   const breads = hand.filter((c) => c.kind === 'baguette');
   if (breads.length > 1) return { cardId: breads[1].id, mode: 'market' };
@@ -176,7 +214,7 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
     const card = hand.find((c) => c.id === choice.cardId)!;
     if (risky(card)) choice = { ...choice, mode: 'market' };
   }
-  return choice;
+  return finish(choice);
 }
 
 const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => isDish(c) && c.region === region).length;
@@ -185,18 +223,50 @@ const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => 
 export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice {
   const picks: Pick[] = [];
   const view = { ...state, players: state.players.map((p) => ({ ...p, hand: [...p.hand] })) };
-  for (let k = 0; k < state.rules.passCount; k++) {
+  for (let k = 0; k < passCountOf(state); k++) {
     const ch = aiChoose(view, player, rng);
-    picks.push({ cardId: ch.cardId, mode: ch.mode, target: ch.target });
-    view.players[player].hand = view.players[player].hand.filter((c) => c.id !== ch.cardId);
+    picks.push({ cardId: ch.cardId, mode: ch.mode, target: ch.target, give: ch.give });
+    // La carte rendue par le Chapardeur doit rester en main : on ne la donne pas.
+    view.players[player].hand = view.players[player].hand.filter((c) => c.id !== ch.cardId && c.id !== ch.give);
   }
   return { ...picks[0], extra: picks.slice(1) };
 }
 
-/** ANNONCE : l'ordinateur crie-t-il « À TABLE ! » ? */
+/** Plats qui manquent à l'ordinateur pour terminer sa région la plus avancée. */
+export function missingDishes(state: GameState, player: number): string[] {
+  const me = state.players[player];
+  const best = menuProgress(me.hand, me.regions, me.bonus).sort((a, b) => b.have.size - a.have.size)[0];
+  if (!best) return [];
+  return COURSES.filter((c) => !best.have.has(c)).map((c) => `${best.region}-${c}`);
+}
+
+/** Marché ouvert : prendre la carte visible de la défausse si elle nous manque. */
+export function aiTake(state: GameState, player: number): 'pioche' | 'defausse' {
+  const top = visibleDiscard(state);
+  if (!top || top.kind !== 'dish' || state.players[player].difficulty === 'facile') return 'pioche';
+  return missingDishes(state, player).includes(top.id.replace(/-\d+$/, '')) ? 'defausse' : 'pioche';
+}
+
+/** Carte montrée pour dénoncer : la plus inutile. */
+export function aiReveal(state: GameState, player: number): string | undefined {
+  const me = state.players[player];
+  const junk = me.hand.filter((c) => c.kind !== 'vaisselle' && !(isDish(c) && me.regions.includes(c.region) && me.bonus[me.regions.indexOf(c.region)] !== c.course));
+  return (junk[0] ?? me.hand.find((c) => c.kind !== 'vaisselle'))?.id;
+}
+
+/** COMMANDE : l'IA difficile commande un plat qui lui manque quand elle a un Chapardeur pour aller le chercher. */
+export function aiOrder(state: GameState, player: number): string | null {
+  const me = state.players[player];
+  if (me.difficulty !== 'difficile' || state.rules.commande !== 'plat') return null;
+  if (state.orders.filter((o) => o.player === player).length >= ordersAllowed(state)) return null;
+  if (!me.hand.some((c) => c.kind === 'effect' && c.effect === 'chapardeur')) return null;
+  return missingDishes(state, player)[0] ?? null;
+}
+
+/** ANNONCE : l'ordinateur crie-t-il « À TABLE ! » ? (Il ne bluffe jamais.) */
 export function aiAnnounce(state: GameState, player: number, rng: Rng): boolean {
   const me = state.players[player];
-  if (vaisselleHolder(state) === player) return false;
+  if (checkAnnounce(state, player)) return false;
   const menu = announceableMenu(state, player);
   if (!menu) return false;
   if (me.difficulty === 'facile' || menu.type !== 'maison') return true;

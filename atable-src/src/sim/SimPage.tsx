@@ -55,7 +55,7 @@ export function SimPage() {
   return (
     <div className="screen sim">
       <h1>Simulation</h1>
-      <p className="muted">Des ordinateurs jouent des parties complètes (jusqu’à 3 Toques) entre eux, à 2, 3 et 4 joueurs.</p>
+      <p className="muted">Des ordinateurs jouent des parties complètes (jusqu’à 3 Étoiles) entre eux, à 2, 3 et 4 joueurs.</p>
       <label className="field">
         <span>Nombre de parties</span>
         <input type="number" min={10} max={20000} step={100} value={games} onChange={(e) => setGames(Math.max(10, +e.target.value || 0))} />

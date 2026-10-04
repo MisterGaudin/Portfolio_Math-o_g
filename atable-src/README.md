@@ -1,7 +1,7 @@
 # À TABLE !
 
 Jeu de cartes familial sur les spécialités des régions de France, jouable au doigt sur téléphone.
-Tu affrontes 1 à 3 ordinateurs. Le but : terminer le menu de ta région secrète (Entrée, Plat, Fromage, Dessert) et décrocher 3 Toques pour devenir **Grand Chef**.
+Tu affrontes 1 à 3 ordinateurs. Le but : terminer le menu de ta région secrète (Entrée, Plat, Fromage, Dessert) et décrocher 3 Étoiles pour devenir **Chef 3 étoiles**.
 
 - **Vite + React + TypeScript**, sans backend : tout tourne dans le navigateur.
 - **Moteur de règles pur** dans `src/engine/` (aucune dépendance à l'UI), testé avec **Vitest**.
@@ -99,7 +99,7 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
   du joueur choisi, juste après l'échange. On peut aussi simplement les passer ou les mettre au Marché.
 - **Pas de coup de pouce à la donne** (option `headStart`, désactivée) : la main de départ est entièrement au hasard.
 - Inchangé : échange simultané vers la gauche, Vaisselle jamais au Marché ni d'annonce avec, départage par la
-  Vaisselle, 3 Toques pour devenir Grand Chef.
+  Vaisselle, 3 Étoiles pour devenir Chef 3 étoiles.
 
 Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne version « 2 menus » reste disponible
 (`TWO_MENUS_RULES`) pour la simulation.

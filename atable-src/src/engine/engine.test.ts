@@ -13,6 +13,8 @@ import {
   denounce,
   evaluateMenu,
   evaluateOneMenu,
+  placeOrder,
+  checkAnnounce,
   effectCard,
   cloneState,
   nextRound,
@@ -41,8 +43,8 @@ const R = (region: string) => regionCards(region);
 const ids = (cards: Card[]) => cards.map((x) => x.id);
 const TOTAL = REGIONS.length * 4 + 2;
 const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length + s.specialPile.length;
-/** Paquet par défaut : 50 cartes + 2 Demi-tour + 2 Troc. */
-const TOTAL_DEFAULT = TOTAL + 4;
+/** Paquet par défaut : 50 cartes + 2 Demi-tour, 2 Troc, 2 Chapardeur, 2 Contrôle sanitaire. */
+const TOTAL_DEFAULT = TOTAL + 8;
 
 /**
  * Partie à 3 joueurs avec une mise en place connue :
@@ -142,13 +144,14 @@ describe('échange', () => {
     submitChoice(s, 1, { cardId: 'lyonnais-entree', mode: 'market' });
     submitChoice(s, 2, { cardId: 'baguette', mode: 'market' });
     const [ev] = resolveExchange(s, createRng(1));
-    expect(ids(s.discard)).toEqual(['lyonnais-entree', 'baguette']);
-    // J1 (premier dans l'ordre) fait piocher J2 en premier : nord-fromage, puis J0 reçoit nord-dessert.
-    expect(s.players[2].hand[6].id).toBe('nord-fromage');
-    expect(s.players[0].hand[7].id).toBe('nord-dessert');
+    // Les deux cartes du Marché sont sur la défausse (dans un ordre tiré au hasard).
+    expect(ids(s.discard).sort()).toEqual(['baguette', 'lyonnais-entree']);
+    // J2 et J0 ont chacun reçu une des 2 cartes du dessus de la pioche, à la place de la carte donnée.
+    expect([s.players[2].hand[6].id, s.players[0].hand[7].id].sort()).toEqual(['nord-dessert', 'nord-fromage']);
     expect(s.drawPile).toHaveLength(2);
     expect(s.origins['nord-fromage']).toBe('market');
-    expect(ev.type === 'exchange' && ev.moves[1].drawn?.id).toBe('nord-fromage');
+    const drawn = ev.type === 'exchange' ? ev.moves.filter((m) => m.mode === 'market').map((m) => m.drawn?.id).sort() : [];
+    expect(drawn).toEqual(['nord-dessert', 'nord-fromage']);
   });
 });
 
@@ -169,7 +172,7 @@ describe('remélange de la pioche', () => {
   });
 
   it('les cartes ne disparaissent jamais sur une longue partie', () => {
-    const s = createGame(setups(4, 'difficile'), createRng(11), { toquesToWin: 50, maxTurns: 400, rules: TWO_MENUS_RULES });
+    const s = createGame(setups(4, 'difficile'), createRng(11), { etoilesToWin: 50, maxTurns: 400, rules: TWO_MENUS_RULES });
     const rng = createRng(12);
     for (let t = 0; t < 300 && (s.phase as string) !== 'gameOver'; t++) {
       if ((s.phase as string) === 'roundOver') nextRound(s, rng);
@@ -336,7 +339,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   });
 
   it('il faut donner exactement 2 cartes, chacune à gauche ou au Marché', () => {
-    const s = createGame(setups(2), createRng(3));
+    const s = createGame(setups(2), createRng(3), { rules: { dishOfDay: false, openMarket: false } });
     const [a, b] = s.players[0].hand.filter((x) => x.kind !== 'vaisselle');
     expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass' })).toThrow(/2 carte/);
     expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: a.id, mode: 'market' }] })).toThrow(/deux fois/);
@@ -352,7 +355,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   });
 
   it('dénonciation juste : la carte Région est remplacée par une autre de la réserve', () => {
-    const s = createGame(setups(3), createRng(8));
+    const s = createGame(setups(3), createRng(8), { rules: { dishOfDay: false } });
     const h = vaisselleHolder(s)!;
     const t = (h + 1) % 3;
     const region = s.players[t].regions[0];
@@ -381,7 +384,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
 });
 
 describe('options : plusieurs Baguettes et cartes à effet', () => {
-  const opts = { rules: { baguettes: 3, effects: { demitour: 2, troc: 2 } } };
+  const opts = { rules: { baguettes: 3, effects: { demitour: 2, troc: 2 }, dishOfDay: false } };
   const total = totalCards;
 
   it('le paquet contient les Baguettes et cartes à effet demandées', () => {
@@ -448,6 +451,167 @@ describe('options : plusieurs Baguettes et cartes à effet', () => {
       }
       expect(s.phase).toBe('gameOver');
     }
+  });
+});
+
+describe('version 4 : annonces face cachée, Dernier service, dénonciation, Marché ouvert, commande, Plat du jour', () => {
+  const quiet = { dishOfDay: false, effects: {} };
+  const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert', 'auvergne-plat', 'lorraine-plat', 'normandie-entree', 'provence-plat', 'bourgogne-fromage', 'sud-ouest-plat'].map(c);
+  /** 3 joueurs : J0 Savoie (carte = Tartiflette), J1 Bretagne (= Crêpes), J2 Alsace (= Choucroute). */
+  function table(rules: Partial<Rules> = {}) {
+    const s = createGame(setups(3), createRng(3), { rules: { ...quiet, ...rules } });
+    s.players[0].regions = ['savoie']; s.players[0].bonus = ['plat'];
+    s.players[1].regions = ['bretagne']; s.players[1].bonus = ['dessert'];
+    s.players[2].regions = ['alsace']; s.players[2].bonus = ['plat'];
+    s.players[0].hand = [c('savoie-entree'), c('savoie-fromage'), c('savoie-dessert'), ...junk.slice(0, 5)];
+    s.players[1].hand = [c('bretagne-entree'), c('bretagne-plat'), BAGUETTE, ...junk.slice(5, 10)];
+    s.players[2].hand = [VAISSELLE, c('alsace-entree'), c('alsace-fromage'), c('lyonnais-plat'), c('lyonnais-entree'), c('lyonnais-dessert'), c('corse-entree'), c('corse-dessert')];
+    s.drawPile = ['nord-plat', 'nord-fromage', 'nord-dessert', 'corse-fromage'].map(c);
+    s.discard = [c('alsace-dessert')];
+    s.phase = 'announce';
+    return s;
+  }
+  const passTwo = (s: GameState, p: number) => {
+    const [a, b] = s.players[p].hand.filter((x) => x.kind !== 'vaisselle' && !(x.kind === 'dish' && s.players[p].regions.includes(x.region)) && x.kind !== 'baguette');
+    submitChoice(s, p, { cardId: a.id, mode: 'pass', extra: [{ cardId: b.id, mode: 'pass' }] });
+  };
+
+  it('Dernier service : la main de l’annonceur est figée, les autres échangent encore une fois', () => {
+    const s = table();
+    const frozenHand = ids(s.players[0].hand);
+    const ev = resolveAnnouncements(s, [0], createRng(1));
+    expect(ev.some((e) => e.type === 'lastService')).toBe(true);
+    expect(s.frozen).toEqual([0]);
+    expect(s.phase).toBe('choose');
+    expect(() => submitChoice(s, 0, { cardId: 'savoie-entree', mode: 'pass', extra: [{ cardId: 'nord-entree', mode: 'pass' }] })).toThrow(/face cachée/);
+    // J1 et J2 s'échangent leurs cartes en sautant J0.
+    passTwo(s, 1);
+    passTwo(s, 2);
+    resolveExchange(s, createRng(1));
+    expect(ids(s.players[0].hand)).toEqual(frozenHand);
+    resolveAnnouncements(s, [], createRng(1));
+    expect(s.lastRound?.winner).toBe(0);
+    expect(s.lastRound?.menu?.type).toBe('gastronomique');
+    expect(s.players[0].etoiles).toBe(1);
+  });
+
+  it('un meilleur menu au Dernier service l’emporte ; à égalité, le premier annonceur gagne', () => {
+    // J1 a un Maison (Baguette) dès la première annonce ; J0 annonce un Gastronomique au Dernier service.
+    const s = table();
+    s.players[0].hand = [c('savoie-entree'), c('savoie-fromage'), ...junk.slice(0, 6)];
+    s.players[1].hand = [c('bretagne-entree'), c('bretagne-plat'), c('bretagne-fromage'), ...junk.slice(5, 10)];
+    resolveAnnouncements(s, [1], createRng(1));
+    s.players[0].hand[2] = c('savoie-dessert'); // reçu pendant le Dernier service
+    s.phase = 'announce';
+    resolveAnnouncements(s, [0], createRng(1));
+    expect(s.lastRound?.winner).toBe(1); // égalité Gastronomique : le premier annonceur passe devant
+    expect(s.lastRound?.lateAnnouncers).toEqual([0]);
+  });
+
+  it('bluff raté : −1 étoile, la Vaisselle, et la manche continue si personne n’avait de menu', () => {
+    const s = table();
+    s.players[0].hand = [c('savoie-entree'), ...junk.slice(0, 7)];
+    s.players[0].etoiles = 2;
+    resolveAnnouncements(s, [0], createRng(1));
+    passTwo(s, 1);
+    passTwo(s, 2);
+    resolveExchange(s, createRng(1));
+    const ev = resolveAnnouncements(s, [], createRng(1));
+    expect(ev.some((e) => e.type === 'bluff')).toBe(true);
+    expect(s.players[0].etoiles).toBe(1);
+    expect(vaisselleHolder(s)).toBe(0);
+    expect(s.phase).toBe('choose');
+    expect(s.frozen).toEqual([]);
+  });
+
+  it('sans annonce face cachée, on ne peut pas bluffer', () => {
+    const s = table({ blindAnnounce: false });
+    s.players[0].hand = [c('savoie-entree'), ...junk.slice(0, 7)];
+    expect(() => resolveAnnouncements(s, [0], createRng(1))).toThrow(/complet/);
+  });
+
+  it('dénoncer : on montre une carte ; si c’est juste, elle part chez l’accusé contre une carte au hasard', () => {
+    const s = table();
+    s.phase = 'choose';
+    expect(() => denounce(s, 2, 1, 'bretagne', createRng(1), undefined, { reveal: 'vaisselle' })).toThrow(/Montre/);
+    denounce(s, 2, 1, 'bretagne', createRng(1), 'nord-plat', { reveal: 'corse-entree', rewardCardId: 'bretagne-plat' });
+    expect(s.denunciation?.revealed?.id).toBe('corse-entree');
+    expect(ids(s.players[1].hand)).toContain('corse-entree');
+    expect(ids(s.players[2].hand)).toContain('bretagne-plat');
+    expect(s.denunciation?.rewardTaken?.id).toBe('bretagne-plat');
+    expect(vaisselleHolder(s)).toBe(1);
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+  });
+
+  it('Marché ouvert : le receveur peut prendre la carte visible de la défausse', () => {
+    const s = table();
+    s.phase = 'choose';
+    // J0 envoie une carte au Marché : J1 reçoit à la place la Kougelhopf visible.
+    submitChoice(s, 0, { cardId: 'nord-entree', mode: 'market', extra: [{ cardId: 'corse-plat', mode: 'pass' }] });
+    passTwo(s, 1);
+    submitChoice(s, 2, { cardId: 'vaisselle', mode: 'pass', extra: [{ cardId: 'corse-entree', mode: 'pass' }] });
+    const [ev] = resolveExchange(s, createRng(1), { 1: 'defausse' });
+    expect(ids(s.players[1].hand)).toContain('alsace-dessert');
+    expect(ev.type === 'exchange' && ev.moves.find((m) => m.mode === 'market')?.fromDiscard).toBe(true);
+    expect(ids(s.discard)).toEqual(['nord-entree']);
+  });
+
+  it('commande : chacun répond honnêtement s’il a le plat demandé', () => {
+    const s = table();
+    s.phase = 'choose';
+    const [ev] = placeOrder(s, 0, { cardId: 'bretagne-plat' });
+    expect(ev.type === 'order' && ev.order.yes).toEqual([1]);
+    expect(() => placeOrder(s, 0, { cardId: 'alsace-entree' })).toThrow(/déjà/);
+  });
+
+  it('Plat du jour : fromages au Marché, 3 cartes par tour, pas de dénonciation, 2 étoiles', () => {
+    const s = table();
+    s.phase = 'choose';
+    s.event = 'fromagesBloques';
+    expect(() => submitChoice(s, 0, { cardId: 'lyonnais-fromage', mode: 'pass', extra: [{ cardId: 'nord-entree', mode: 'pass' }] })).toThrow(/fromages/);
+    expect(() => submitChoice(s, 0, { cardId: 'lyonnais-fromage', mode: 'market', extra: [{ cardId: 'nord-entree', mode: 'pass' }] })).not.toThrow();
+    s.event = 'troisCartes';
+    expect(() => submitChoice(s, 0, { cardId: 'lyonnais-fromage', mode: 'pass', extra: [{ cardId: 'nord-entree', mode: 'pass' }] })).toThrow(/3 cartes/);
+    s.event = 'sansDenonciation';
+    expect(checkDenounce(s, 2)).toMatch(/Repas de famille/);
+    const t = table({ lastService: false });
+    t.event = 'doubleEtoile';
+    resolveAnnouncements(t, [0], createRng(1));
+    expect(t.players[0].etoiles).toBe(2);
+  });
+
+  it('Chapardeur et Contrôle sanitaire', () => {
+    const s = table({ effects: {} });
+    s.phase = 'choose';
+    s.players[0].hand[7] = effectCard('chapardeur', 1);
+    s.players[1].hand[7] = effectCard('controle', 1);
+    submitChoice(s, 0, { cardId: 'chapardeur-1', mode: 'effect', target: 1, give: 'corse-plat', extra: [{ cardId: 'nord-entree', mode: 'pass' }] });
+    submitChoice(s, 1, { cardId: 'controle-1', mode: 'effect', target: 0, extra: [{ cardId: 'lorraine-plat', mode: 'pass' }] });
+    submitChoice(s, 2, { cardId: 'corse-dessert', mode: 'pass', extra: [{ cardId: 'corse-entree', mode: 'pass' }] });
+    const [ev] = resolveExchange(s, createRng(2));
+    const steal = ev.type === 'exchange' ? ev.moves.find((m) => m.card.id === 'chapardeur-1') : undefined;
+    expect(steal?.stolen).toBeTruthy();
+    expect(ids(s.players[0].hand)).toContain(steal!.stolen!.id);
+    expect(ids(s.players[1].hand)).toContain('corse-plat');
+    expect(checkAnnounce(s, 0)).toMatch(/Contrôle sanitaire/);
+    expect(s.specialPile.map((x) => x.id).sort()).toEqual(['chapardeur-1', 'controle-1']);
+    s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+  });
+
+  it('les parties entre IA se terminent avec toutes les règles de la version 4', () => {
+    for (const d of ['facile', 'moyen', 'difficile'] as const)
+      for (const n of [2, 3, 4]) {
+        const s = createGame(setups(n, d), createRng(n * 13));
+        const rng = createRng(n + 7);
+        let guard = 0;
+        while (s.phase !== 'gameOver' && guard++ < 5000) {
+          if (s.phase === 'roundOver') nextRound(s, rng);
+          else playBotTurn(s, rng);
+          expect(totalCards(s)).toBe(TOTAL_DEFAULT);
+          s.players.forEach((p) => expect(p.hand).toHaveLength(8));
+        }
+        expect(s.phase).toBe('gameOver');
+      }
   });
 });
 
@@ -520,7 +684,7 @@ describe('annonces et départage', () => {
     expect(s.turn).toBe(2);
   });
 
-  it('la meilleure annonce gagne la Toque', () => {
+  it('la meilleure annonce gagne l’Étoile', () => {
     const s = announceState(
       [junkV(), [...R('alsace'), ...R('savoie')], [...R('nord'), ...R('corse').slice(1), BAGUETTE]],
       [['provence', 'bourgogne'], ['alsace', 'savoie'], ['nord', 'corse']],
@@ -528,7 +692,7 @@ describe('annonces et départage', () => {
     resolveAnnouncements(s, [1, 2], createRng(1));
     expect(s.lastRound?.winner).toBe(1);
     expect(s.lastRound?.menu?.type).toBe('gastronomique');
-    expect(s.players[1].toques).toBe(1);
+    expect(s.players[1].etoiles).toBe(1);
     expect(s.phase).toBe('roundOver');
     expect(s.lastRound?.regions[1]).toEqual(['alsace', 'savoie']);
   });
@@ -553,9 +717,9 @@ describe('annonces et départage', () => {
 });
 
 describe('victoire', () => {
-  it('le premier à 3 Toques est Grand Chef', () => {
+  it('le premier à 3 Étoiles est Chef 3 étoiles', () => {
     const s = createGame(setups(2), createRng(9), V2);
-    s.players[0].toques = 2;
+    s.players[0].etoiles = 2;
     s.players[0].hand = [...R(s.players[0].regions[0]), ...R(s.players[0].regions[1])];
     s.players[1].hand = [VAISSELLE, ...R('lyonnais'), ...R('lorraine').slice(0, 3)];
     s.phase = 'announce';
@@ -575,7 +739,7 @@ describe('victoire', () => {
         else playBotTurn(s, rng);
       }
       expect(s.phase).toBe('gameOver');
-      expect(s.players[s.winner!].toques).toBe(3);
+      expect(s.players[s.winner!].etoiles).toBe(3);
     }
   });
 });

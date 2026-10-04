@@ -43,7 +43,7 @@ export interface SimStats {
 
 const LEVELS: Difficulty[] = ['facile', 'moyen', 'difficile'];
 
-/** Simule `games` parties complètes (jusqu'au Grand Chef). */
+/** Simule `games` parties complètes (jusqu'au Chef 3 étoiles). */
 export function simulate(opts: SimOptions): SimStats {
   const { games, players: n, difficulty } = opts;
   const rng = createRng(opts.seed ?? 2026);

@@ -11,13 +11,13 @@ import { REVEAL_MS, type GameController } from './useGame';
 const AVATARS = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧔'];
 const avatarOf = (s: GameState, p: number) => (s.players[p].name === 'Mamie' ? '👵' : AVATARS[p % AVATARS.length]);
 
-/** Petites toques gagnées. */
-export function Toques({ n, max = 3 }: { n: number; max?: number }) {
+/** Étoiles gagnées (comme les étoiles Michelin). */
+export function Stars({ n, max = 3 }: { n: number; max?: number }) {
   return (
-    <span className="toques" aria-label={`${n} toque${n > 1 ? 's' : ''}`}>
+    <span className="etoiles" aria-label={`${n} étoile${n > 1 ? 's' : ''}`}>
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={i < n ? 'toque on' : 'toque'}>
-          🧑‍🍳
+        <span key={i} className={i < n ? 'etoile on' : 'etoile'}>
+          ⭐
         </span>
       ))}
     </span>
@@ -84,7 +84,7 @@ function Seat({ state, p, ready, thinking, isLeft, isRight }: { state: GameState
         )}
       </div>
       <div className="seat-name">{pl.name}</div>
-      <Toques n={pl.toques} max={state.toquesToWin} />
+      <Stars n={pl.etoiles} max={state.etoilesToWin} />
       <div className="seat-cards overlap">
         {pl.hand.map((c) => (
           <CardBack key={c.id} size="mini" />
@@ -261,7 +261,7 @@ function Showdown({ state, onNext }: { state: GameState; onNext: () => void }) {
       ))}
       {w !== null && r.menu && (
         <p className="show-result">
-          <b>{state.players[w].name}</b> {w === 0 ? 'gagnes' : 'gagne'} une Toque avec un menu <b>{MENU_LABELS[r.menu.type]}</b>
+          <b>{state.players[w].name}</b> {w === 0 ? 'gagnes' : 'gagne'} une Étoile avec un menu <b>{MENU_LABELS[r.menu.type]}</b>
           {` (${r.menu.regions.map((x) => REGION_BY_ID[x].name).join(' + ')})`} !
           {r.tieBreak === 'vaisselle' && <><br /><small>Égalité : le plus proche à gauche du porteur de la Vaisselle l’emporte.</small></>}
           {r.tieBreak === 'hasard' && <><br /><small>Égalité départagée au hasard.</small></>}
@@ -456,7 +456,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
             {top ? <CardView card={top} size="small" /> : <div className="card card-small empty">Marché</div>}
             <small>Défausse · {state.discard.length}</small>
           </div>
-          {(state.rules.effects.demitour > 0 || state.rules.effects.troc > 0) && (
+          {Object.values(state.rules.effects).some((n) => (n ?? 0) > 0) && (
             <div className="pile" data-pile="special" title="Pile spéciale : cartes à effet déjà jouées (hors jeu)">
               {state.specialPile.length ? <CardView card={state.specialPile[state.specialPile.length - 1]} size="small" /> : <div className="card card-small empty">Effets</div>}
               <small>Spéciale · {state.specialPile.length}</small>
@@ -482,7 +482,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
             )}
           </button>
           <div className="me-name">
-            <b>Toi</b> <Toques n={me.toques} max={state.toquesToWin} />
+            <b>Toi</b> <Stars n={me.etoiles} max={state.etoilesToWin} />
           </div>
           {holder === 0 && (
             <span className={`me-plate${f('vaisselle')}`} title="Tu as la Vaisselle">

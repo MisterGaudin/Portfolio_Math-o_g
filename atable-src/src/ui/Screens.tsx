@@ -1,10 +1,10 @@
-// Écrans hors table : accueil, révélation de fin de manche, Grand Chef.
+// Écrans hors table : accueil, révélation de fin de manche, Chef 3 étoiles.
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { REGION_BY_ID } from '../config/cards';
 import { MENU_LABELS, type Difficulty, type GameState } from '../engine';
 import { RegionCardView } from './CardView';
-import { Toques } from './Table';
+import { Stars } from './Table';
 import type { Setup } from './useGame';
 
 const LEVELS: { id: Difficulty; label: string; hint: string }[] = [
@@ -81,7 +81,7 @@ export function RoundEnd({ state, onNext, tutorial }: { state: GameState; onNext
       <h2>Fin de la manche {state.roundNumber}</h2>
       {r.winner !== null && r.menu ? (
         <p className="big-line">
-          🏆 <b>{state.players[r.winner].name}</b> {r.winner === 0 ? 'remportes' : 'remporte'} la Toque ({MENU_LABELS[r.menu.type]})
+          🏆 <b>{state.players[r.winner].name}</b> {r.winner === 0 ? 'remportes' : 'remporte'} l’Étoile ({MENU_LABELS[r.menu.type]})
         </p>
       ) : (
         <p className="big-line">Le service est fermé : personne ne gagne cette manche.</p>
@@ -97,14 +97,14 @@ export function RoundEnd({ state, onNext, tutorial }: { state: GameState; onNext
             </motion.div>
             <div>
               <div>{reveal(p.name, r.regions[i], i === 0)}</div>
-              <Toques n={p.toques} max={state.toquesToWin} />
+              <Stars n={p.etoiles} max={state.etoilesToWin} />
             </div>
           </motion.div>
         ))}
       </div>
       {tutorial && <p className="big-line">Mamie a changé de région après ta dénonciation ! Tutoriel terminé : à toi de jouer pour de vrai.</p>}
       <button className="btn btn-gold big block" onClick={onNext}>
-        {tutorial ? 'Terminer le tutoriel ✓' : over ? 'Qui est le Grand Chef ? 👑' : 'Manche suivante ▸'}
+        {tutorial ? 'Terminer le tutoriel ✓' : over ? 'Qui est le Chef 3 étoiles ? 👑' : 'Manche suivante ▸'}
       </button>
     </div>
   );
@@ -118,16 +118,16 @@ export function GameOver({ state, onReplay, onMenu }: { state: GameState; onRepl
       <motion.div className="crown" initial={{ y: -80, rotate: -20 }} animate={{ y: 0, rotate: 0 }} transition={{ type: 'spring', stiffness: 120 }}>
         🧑‍🍳
       </motion.div>
-      <h1>GRAND CHEF</h1>
-      <p className="big-line">{human ? 'Bravo, c’est toi ! Les cuisines de France te saluent.' : `${state.players[w].name} décroche les 3 Toques.`}</p>
+      <h1>CHEF 3 ÉTOILES</h1>
+      <p className="big-line">{human ? 'Bravo, c’est toi ! Les cuisines de France te saluent.' : `${state.players[w].name} décroche les 3 Étoiles.`}</p>
       <div className="reveal-list">
         {[...state.players]
           .map((p, i) => ({ p, i }))
-          .sort((a, b) => b.p.toques - a.p.toques)
+          .sort((a, b) => b.p.etoiles - a.p.etoiles)
           .map(({ p, i }) => (
             <div key={i} className={`reveal-row${i === w ? ' winner' : ''}`}>
               <b>{p.name}</b>
-              <Toques n={p.toques} max={state.toquesToWin} />
+              <Stars n={p.etoiles} max={state.etoilesToWin} />
             </div>
           ))}
       </div>

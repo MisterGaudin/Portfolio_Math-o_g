@@ -25,9 +25,13 @@ export interface BaguetteCard {
 }
 
 /** Les effets des cartes spéciales (posées sur la pile spéciale, hors jeu, une fois jouées). */
-export type Effect = 'demitour' | 'troc';
+export type Effect = 'demitour' | 'troc' | 'chapardeur' | 'controle';
 
-/** Carte à effet : « Demi-tour » (le sens de passage s'inverse) ou « Troc » (échange de main). */
+/**
+ * Carte à effet : « Demi-tour » (le sens s'inverse), « Troc » (échange de main),
+ * « Chapardeur » (voler une carte au hasard chez un joueur, lui en rendre une) ou
+ * « Contrôle sanitaire » (un joueur ne peut pas annoncer jusqu'à la fin du tour suivant).
+ */
 export interface EffectCard {
   kind: 'effect';
   id: string;
@@ -53,8 +57,10 @@ export type Mode = 'pass' | 'market' | 'effect';
 export interface Pick {
   cardId: string;
   mode: Mode;
-  /** Cible d'une carte Troc. */
+  /** Cible d'une carte à effet (Troc, Chapardeur, Contrôle sanitaire). */
   target?: number;
+  /** Chapardeur : la carte rendue au joueur volé (choisie à l'avance). */
+  give?: string;
 }
 
 export interface Choice extends Pick {
@@ -74,7 +80,7 @@ export interface Player extends PlayerSetup {
   regions: RegionId[];
   /** Variante « un menu » : le plat déjà fourni par chaque carte Région (même ordre que `regions`). */
   bonus: (Course | null)[];
-  toques: number;
+  etoiles: number;
 }
 
 /**
@@ -109,7 +115,26 @@ export interface Denunciation {
   /** Qui a reçu la Vaisselle (null si elle était déjà chez lui). */
   vaisselleTo: number | null;
   vaisselleFrom: number | null;
+  /** Carte montrée à tous par l'accusateur pour pouvoir dénoncer. */
+  revealed?: Card;
+  /** Récompense d'une dénonciation juste : carte prise au hasard chez l'accusé (connue de l'accusateur). */
+  rewardTaken?: Card;
 }
+
+/** Commande : « Qui a le Reblochon ? » — chacun répond oui ou non. */
+export interface Order {
+  player: number;
+  turn: number;
+  /** Plat demandé (règle « plat »). */
+  cardId?: string;
+  /** Type de plat demandé (règle « type »). */
+  course?: Course;
+  /** Joueurs qui ont répondu « oui ». */
+  yes: number[];
+}
+
+/** Carte « Plat du jour » : un événement qui change une règle pour toute la manche. */
+export type DayEvent = 'service' | 'fromagesBloques' | 'sensInverse' | 'sansBaguette' | 'troisCartes' | 'sansDenonciation' | 'doubleEtoile' | 'commandeLibre';
 
 /** Un mouvement de carte pendant l'échange simultané. */
 export interface Move {
@@ -121,8 +146,13 @@ export interface Move {
   to: number;
   /** Carte de la pioche reçue par le voisin en cas de Marché (connue du seul receveur). */
   drawn?: Card;
-  /** Cible d'une carte Troc jouée. */
+  /** Cible d'une carte à effet jouée. */
   target?: number;
+  /** Marché ouvert : le receveur a pris la carte visible de la défausse (public). */
+  fromDiscard?: boolean;
+  /** Chapardeur : carte rendue (`give`) et carte volée (`stolen`, connue du voleur). */
+  give?: string;
+  stolen?: Card;
 }
 
 /** Mémoire d'un tour, utilisée par l'IA et les statistiques. */
@@ -153,6 +183,10 @@ export interface RoundResult {
   tieBreak: 'none' | 'vaisselle' | 'hasard';
   /** Vrai si le menu gagnant contient une carte arrivée par le Marché. */
   thanksToMarket: boolean;
+  /** Annonceurs démasqués : main non valide (bluff raté), punis. */
+  bluffers: number[];
+  /** Annonceurs du « Dernier service » (après la première annonce). */
+  lateAnnouncers: number[];
 }
 
 /** Réglages de règles, ajustables pour l'équilibrage (page /sim). */
@@ -191,7 +225,19 @@ export interface Rules {
   /** Nombre de Baguettes dans le paquet (une seule peut servir par menu). */
   baguettes: number;
   /** Cartes à effet dans le paquet. */
-  effects: Record<Effect, number>;
+  effects: Partial<Record<Effect, number>>;
+  /** Annonce face cachée : on peut annoncer sans menu valide (bluff, puni si raté). */
+  blindAnnounce: boolean;
+  /** Dernier service : après une annonce, les autres jouent un dernier tour d'échange. */
+  lastService: boolean;
+  /** Pour dénoncer, on montre une carte ; si c'est juste, on l'échange contre une carte au hasard de l'accusé. */
+  revealToDenounce: boolean;
+  /** Marché ouvert : celui qui reçoit choisit entre la pioche et la carte visible de la défausse. */
+  openMarket: boolean;
+  /** Commande, une fois par manche : 'plat' (« Qui a le Reblochon ? »), 'type' (« Qui a un Fromage ? ») ou 'aucune'. */
+  commande: 'aucune' | 'plat' | 'type';
+  /** Une carte « Plat du jour » est retournée à chaque manche. */
+  dishOfDay: boolean;
 }
 
 export interface GameState {
@@ -218,8 +264,8 @@ export interface GameState {
   stats: { vaisselleMoves: number; denunciations: number; correctDenunciations: number; reshuffles: number };
   lastRound: RoundResult | null;
   winner: number | null;
-  /** Nombre de Toques pour devenir Grand Chef. */
-  toquesToWin: number;
+  /** Nombre d'étoiles pour devenir Chef 3 étoiles. */
+  etoilesToWin: number;
   /** Sécurité : au-delà, la manche s'arrête sans gagnant. */
   maxTurns: number;
   /** Un joueur qui a fait une fausse dénonciation ne peut pas dénoncer avant ce tour. */
@@ -232,6 +278,16 @@ export interface GameState {
   direction: 1 | -1;
   /** Pile spéciale : cartes à effet déjà jouées, sorties du jeu pour la manche. */
   specialPile: Card[];
+  /** Annonceurs dont la main est posée face cachée (figée), dans l'ordre des annonces. */
+  frozen: number[];
+  /** Vrai pendant le « Dernier service » (après la première annonce). */
+  lastService: boolean;
+  /** Contrôle sanitaire : le joueur ne peut pas annoncer tant que le tour est ≤ cette valeur. */
+  blockedUntil: Record<number, number>;
+  /** Carte « Plat du jour » de la manche. */
+  event: DayEvent;
+  /** Commandes passées cette manche (publiques). */
+  orders: Order[];
 }
 
 /** Événements renvoyés par le moteur pour l'UI (animations, journal). */
@@ -241,6 +297,9 @@ export type GameEvent =
   | { type: 'exchange'; moves: Move[] }
   | { type: 'reshuffle' }
   | { type: 'announce'; announcers: number[] }
+  | { type: 'lastService'; announcers: number[] }
+  | { type: 'bluff'; players: number[] }
+  | { type: 'order'; order: Order }
   | { type: 'noAnnounce' }
   | { type: 'roundWon'; result: RoundResult }
   | { type: 'gameWon'; player: number };

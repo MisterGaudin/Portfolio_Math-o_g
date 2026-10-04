@@ -38,7 +38,7 @@ export function cardById(id: string): Card {
   if (id === 'baguette') return BAGUETTE;
   if (id === 'vaisselle') return VAISSELLE;
   if (/^baguette-\d+$/.test(id)) return { ...BAGUETTE, id };
-  const fx = /^(demitour|troc)-(\d+)$/.exec(id);
+  const fx = /^(demitour|troc|chapardeur|controle)-(\d+)$/.exec(id);
   if (fx) return effectCard(fx[1] as Effect, +fx[2]);
   const copy = /-(\d+)$/.exec(id);
   const base = copy ? id.slice(0, -copy[0].length) : id;
@@ -82,9 +82,9 @@ export function evaluateMenu(hand: readonly Card[], own: readonly RegionId[]): M
  * (ou 2 + la Baguette). Les autres cartes de la main n'ont pas d'importance.
  * Pas de menu Volé : seule sa propre région permet d'annoncer.
  */
-export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[], bonus: readonly (Course | null)[]): Menu | null {
+export function evaluateOneMenu(hand: readonly Card[], own: readonly RegionId[], bonus: readonly (Course | null)[], allowJoker = true): Menu | null {
   if (hand.some((c) => c.kind === 'vaisselle')) return null;
-  const joker = hand.some((c) => c.kind === 'baguette');
+  const joker = allowJoker && hand.some((c) => c.kind === 'baguette');
   const have = (region: RegionId) => new Set(hand.filter((c): c is DishCard => isDish(c) && c.region === region).map((c) => c.course));
   let best: Menu | null = null;
   own.forEach((region, i) => {

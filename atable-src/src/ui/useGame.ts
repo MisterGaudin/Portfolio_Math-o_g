@@ -38,7 +38,7 @@ export interface Setup {
  * announcing — qui crie « À TABLE ! » ?
  * showdown   — on révèle les mains des annonceurs ;
  * roundEnd   — tout le monde révèle sa région ;
- * gameOver   — le Grand Chef est couronné.
+ * gameOver   — le Chef 3 étoiles est couronné.
  */
 export type Stage = 'intro' | 'thinking' | 'choosing' | 'revealing' | 'announcing' | 'showdown' | 'roundEnd' | 'gameOver';
 

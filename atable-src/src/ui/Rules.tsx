@@ -6,7 +6,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
     <Modal open={open} title="Règles d’À TABLE !" onClose={onClose}>
       <div className="rules">
         <p>
-          <b>But :</b> gagner 3 Toques et devenir <b>Grand Chef</b>.
+          <b>But :</b> gagner 3 Étoiles et devenir <b>Chef 3 étoiles</b>.
         </p>
         <p>
           Chaque manche, tu reçois <b>une région secrète</b> (chacun la sienne) et 8 cartes. Ta carte Région compte comme un de ses plats (★) : trouve les{' '}

@@ -74,7 +74,7 @@ const STEPS: Step[] = [
   { text: 'Échange…', expect: { kind: 'wait', until: (st) => st === 'announcing' } },
   { text: 'Mamie t’a passé le Gâteau de Savoie : ton menu est complet, sans Baguette. C’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! »', focus: 'announce', expect: { kind: 'announce' } },
   { text: 'On révèle les mains…', expect: { kind: 'wait', until: (st) => st === 'showdown' } },
-  { text: 'Gagné ! Tu remportes une Toque 🧑‍🍳. Le premier à 3 Toques devient Grand Chef. En cas d’égalité, le plus proche à gauche du porteur de la Vaisselle gagne.', expect: { kind: 'next' } },
+  { text: 'Gagné ! Tu remportes une Étoile 🧑‍🍳. Le premier à 3 Étoiles devient Chef 3 étoiles. En cas d’égalité, le plus proche à gauche du porteur de la Vaisselle gagne.', expect: { kind: 'next' } },
   { text: 'Fin de manche : tout le monde révèle sa région. À toi de jouer pour de vrai !', expect: { kind: 'wait', until: (st) => st === 'roundEnd' } },
 ];
 
