@@ -65,6 +65,9 @@ en `/` et `dist`).
   niveau des IA (dont « mixte », niveaux répartis au hasard autour de la table), protection après dénonciation et coup de pouce à la donne.
 - En ligne de commande : `npm run sim -- 1000 moyen` (parties, niveau, puis éventuellement les nombres de joueurs).
 
+Mesures de « fun » (durée, tension, retournements, interaction, part du talent) : `npm run fun -- 300`.
+Un débutant qui garde sa région et passe le reste, contre les IA : `npm run naive`.
+
 ## Arborescence
 
 ```
