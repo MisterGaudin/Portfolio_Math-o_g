@@ -232,13 +232,13 @@
       <span class="eyebrow">Études de cas</span>
       <h2 class="display">Des projets, <em>et leurs résultats.</em></h2>
     </div>
-    <div class="carousel-nav">
-      <button class="carousel-btn" type="button" data-dir="-1" aria-label="Étude précédente">←</button>
-      <button class="carousel-btn" type="button" data-dir="1" aria-label="Étude suivante">→</button>
-    </div>
+    <p class="lede">Chaque projet part d'un besoin concret. Ouvrez une étude pour découvrir la démarche, étape par étape.</p>
   </div>
 
-  <ul class="case-track reveal" id="caseTrack" aria-label="Études de cas">
+  <div class="carousel reveal">
+    <button class="carousel-btn prev" type="button" data-dir="-1" aria-label="Étude précédente"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="carousel-btn next" type="button" data-dir="1" aria-label="Étude suivante"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <ul class="case-track" id="caseTrack" aria-label="Études de cas">
     <li class="case-card">
       <div class="case-media"><img loading="lazy" decoding="async" width="1400" height="875" src="assets/etudes-de-cas/patrimoine/accueil-700w.webp" alt="Page d'accueil du site des Amis du Patrimoine de Freigné"></div>
       <div class="case-body">
@@ -294,6 +294,8 @@
       </div>
     </li>
   </ul>
+  </div>
+  <div class="carousel-dots" id="caseDots" aria-hidden="true"></div>
 
   <!-- Detailed contents, shown in the modal -->
   <div hidden>

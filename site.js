@@ -61,9 +61,21 @@
     const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
     return card ? card.getBoundingClientRect().width + gap : track.clientWidth;
   };
+  const cards = [...track.querySelectorAll('.case-card')];
+  const dotsBox = document.getElementById('caseDots');
+  const dots = cards.map(() => dotsBox.appendChild(document.createElement('span')));
+  const carousel = track.parentElement;
+
   const sync = () => {
     const max = track.scrollWidth - track.clientWidth - 2;
     btns.forEach(b => { b.disabled = +b.dataset.dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
+    // Chevrons sit at the vertical middle of the card images
+    const media = cards[0] && cards[0].querySelector('.case-media');
+    if (media) carousel.style.setProperty('--media-mid', (media.offsetTop + media.offsetHeight / 2 + track.offsetTop) + 'px');
+    // Active dot = first card fully in view
+    const first = Math.round(track.scrollLeft / step());
+    const visible = Math.max(1, Math.round(track.clientWidth / step()));
+    dots.forEach((d, i) => d.classList.toggle('on', i >= first && i < first + visible));
   };
   btns.forEach(b => b.addEventListener('click', () => track.scrollBy({ left: +b.dataset.dir * step(), behavior: 'smooth' })));
   track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
