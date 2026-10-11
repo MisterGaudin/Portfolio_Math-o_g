@@ -368,6 +368,7 @@ const BLOBS = {
   const lbTitle     = document.getElementById('lbTitle');
   const lbKind      = document.getElementById('lbKind');
   const closeBtn    = document.getElementById('lbClose');
+  if (!lb) return; // pages without a gallery (home, legal) have no lightbox
   let lastFocus = null;
 
   const TOOL_LABEL = {
@@ -648,6 +649,7 @@ const BLOBS = {
 (() => {
   const intro = document.getElementById('intro');
   const body  = document.body;
+  if (!intro) { body.classList.add('ready'); return; } // only the projects page has the intro curtain
   // If user comes back via in-page anchor reload, keep it fast
   const skip = sessionStorage.getItem('mg-intro-seen') === '1';
   if (skip) {
@@ -692,6 +694,7 @@ const BLOBS = {
     root.style.setProperty('--sky',   P.s);
     root.style.setProperty('--peach', P.p);
     root.style.setProperty('--mint',  P.m);
+    if (!panel) return; // pages without the tweaks panel only need the palette above
     document.getElementById('twkAura').value   = tweaks.auraIntensity;
     document.getElementById('twkGrain').value  = tweaks.grain;
     document.getElementById('twkCursor').value = tweaks.cursorOrb;
@@ -706,6 +709,7 @@ const BLOBS = {
     try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*'); } catch(e){}
   }
 
+  if (!panel) { apply(); return; }
   // Controls
   document.getElementById('twkAura').addEventListener('input', e => update({ auraIntensity: +e.target.value }));
   document.getElementById('twkGrain').addEventListener('input', e => update({ grain: +e.target.value }));
