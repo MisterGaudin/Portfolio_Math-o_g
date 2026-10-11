@@ -132,6 +132,12 @@ export interface Order {
   course?: Course;
   /** Joueurs qui ont répondu « oui ». */
   yes: number[];
+  /** Règle « service » : le joueur à qui l'on demande le plat. */
+  target?: number;
+  /** Règle « service » : le plat a été servi (le joueur visé l'avait et l'a donné). */
+  served?: boolean;
+  /** Carte rendue en échange (connue des deux seuls joueurs) ; absente tant qu'elle n'est pas choisie. */
+  given?: string;
 }
 
 /** Carte « Plat du jour » : un événement qui change une règle pour toute la manche. */
@@ -192,6 +198,8 @@ export interface RoundResult {
   bluffers: number[];
   /** Annonceurs du « Dernier service » (après la première annonce). */
   lateAnnouncers: number[];
+  /** Règle « shareTies » : tous les chefs qui gagnent une étoile (égalité). */
+  coWinners?: number[];
 }
 
 /** Réglages de règles, ajustables pour l'équilibrage (page /sim). */
@@ -200,9 +208,10 @@ export interface Rules {
    * Limite des dénonciations :
    * - 'aucune' : pas de limite ;
    * - 'protege' : un joueur démasqué est protégé jusqu'à la fin de la manche ;
-   * - 'unique' : chaque joueur ne peut dénoncer qu'une fois par manche.
+   * - 'unique' : chaque joueur ne peut dénoncer qu'une fois par manche ;
+   * - 'tour' : un joueur démasqué est protégé jusqu'à la fin du tour suivant.
    */
-  denounceLimit: 'aucune' | 'protege' | 'unique';
+  denounceLimit: 'aucune' | 'protege' | 'unique' | 'tour';
   /** Cartes de chacune de ses régions garanties dans la main de départ (0 = donne au hasard). */
   headStart: number;
   /** Exemplaires de chaque plat (1 = un seul Camembert ; 2 = deux Camembert…). */
@@ -239,8 +248,28 @@ export interface Rules {
   revealToDenounce: boolean;
   /** Marché ouvert : celui qui reçoit choisit entre la pioche et la carte visible de la défausse. */
   openMarket: boolean;
-  /** Commande, une fois par manche : 'plat' (« Qui a le Reblochon ? »), 'type' (« Qui a un Fromage ? ») ou 'aucune'. */
-  commande: 'aucune' | 'plat' | 'type';
+  /**
+   * Commande : 'plat' (« Qui a le Reblochon ? », une fois par manche), 'type' (« Qui a un Fromage ? »),
+   * 'service' (« Bob, as-tu le Reblochon ? » une fois par tour : s'il l'a, il te le donne et tu lui
+   * rends une carte de ton choix) ou 'aucune'.
+   */
+  commande: 'aucune' | 'plat' | 'type' | 'service';
+  /** Cartes en main. */
+  handSize: number;
+  /** À chaque nouvelle manche, la Vaisselle est donnée au chef qui a le plus d'étoiles. */
+  vaisselleToLeader: boolean;
+  /** À chaque nouvelle manche, la Baguette est donnée au chef qui a le moins d'étoiles. */
+  baguetteToLast: boolean;
+  /** Égalité de menus : tous les chefs à égalité gagnent une étoile. */
+  shareTies: boolean;
+  /** Après une dénonciation, la Vaisselle reste où elle est jusqu'au tour suivant. */
+  vaisselleStays: boolean;
+  /** Des 2 cartes données, une va au voisin et l'autre au Marché (ou est jouée si c'est une carte à effet). */
+  split: boolean;
+  /** Fin de manche : chaque chef qui révèle un menu complet gagne une étoile (le meilleur menu reste le gagnant). */
+  allServedStar: boolean;
+  /** Duel : chacun peut passer 2 commandes par tour. */
+  duelOrders: boolean;
   /** Une carte « Plat du jour » est retournée à chaque manche. */
   dishOfDay: boolean;
   /**

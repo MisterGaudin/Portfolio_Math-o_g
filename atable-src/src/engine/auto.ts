@@ -1,8 +1,24 @@
 // Un tour complet joué uniquement par des ordinateurs (simulation et tests).
-import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiReveal, aiShow, aiTake } from './ai';
-import { activePlayers, denounce, marketReceivers, placeOrder, resolveAnnouncements, resolveExchange, showCard, submitChoice } from './game';
+import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiOrderGive, aiOrderService, aiReveal, aiShow, aiTake } from './ai';
+import { activePlayers, denounce, marketReceivers, pendingOrder, placeOrder, resolveAnnouncements, settleOrder, resolveExchange, showCard, submitChoice } from './game';
 import type { Rng } from './rng';
 import type { GameEvent, GameState } from './types';
+
+/** Commande éventuelle d'un ordinateur (avant ses choix), carte rendue comprise. */
+export function botOrder(state: GameState, p: number, rng: Rng): GameEvent[] {
+  if (state.rules.commande === 'service') {
+    const events: GameEvent[] = [];
+    for (let k = 0; k < 3; k++) {
+      const o = aiOrderService(state, p, rng);
+      if (!o) break;
+      events.push(...placeOrder(state, p, o));
+      if (pendingOrder(state)) settleOrder(state, p, aiOrderGive(state, p, rng));
+    }
+    return events;
+  }
+  const want = aiOrder(state, p);
+  return want ? placeOrder(state, p, { cardId: want }) : [];
+}
 
 export function playBotTurn(state: GameState, rng: Rng): GameEvent[] {
   const events: GameEvent[] = [];
@@ -20,10 +36,10 @@ export function playBotTurn(state: GameState, rng: Rng): GameEvent[] {
     }
   }
   // 2. Commandes, choix secrets, 3. révélation et échange simultané.
-  for (const p of activePlayers(state)) {
-    const want = aiOrder(state, p);
-    if (want) events.push(...placeOrder(state, p, { cardId: want }));
-  }
+  // Commandes à tour de rôle : le premier à commander change à chaque tour.
+  const act = activePlayers(state);
+  const first = (state.turn + state.roundNumber) % act.length;
+  for (const p of [...act.slice(first), ...act.slice(0, first)]) events.push(...botOrder(state, p, rng));
   for (const p of activePlayers(state)) submitChoice(state, p, aiChooseAll(state, p, rng));
   const takes = Object.fromEntries(marketReceivers(state).map((p) => [p, aiTake(state, p)]));
   events.push(...resolveExchange(state, rng, takes));

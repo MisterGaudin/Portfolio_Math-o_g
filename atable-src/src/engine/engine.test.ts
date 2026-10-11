@@ -15,6 +15,8 @@ import {
   evaluateMenu,
   evaluateOneMenu,
   placeOrder,
+  pendingOrder,
+  settleOrder,
   isProtected,
   showCard,
   checkAnnounce,
@@ -34,9 +36,11 @@ import {
   type RoundPreset,
   type Rules,
   TWO_MENUS_RULES,
+  V4_RULES,
 } from './index';
 
 const V2 = { rules: TWO_MENUS_RULES };
+const V4 = { rules: V4_RULES };
 
 const setups = (n: number, difficulty: Difficulty = 'moyen') =>
   Array.from({ length: n }, (_, i) => ({ name: `J${i}`, isHuman: false, difficulty }));
@@ -299,7 +303,7 @@ describe('menus (8 cartes, 2 régions)', () => {
 describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 cartes par tour', () => {
   it.each([2, 3, 4])('à %i joueurs : 1 région secrète différente pour chacun, 8 cartes, réserve des cartes Région', (n) => {
     for (let seed = 1; seed <= 40; seed++) {
-      const s = createGame(setups(n), createRng(seed));
+      const s = createGame(setups(n), createRng(seed), V4);
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(1);
         // La carte Région compte toujours comme le même plat de sa région (config).
@@ -315,7 +319,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
 
   it('chaque région n’existe qu’une fois : jamais deux joueurs sur la même région', () => {
     for (let i = 0; i < 200; i++) {
-      const s = createGame(setups(4), createRng(i));
+      const s = createGame(setups(4), createRng(i), V4);
       expect(new Set(s.players.map((p) => p.regions[0])).size).toBe(4);
     }
   });
@@ -323,7 +327,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   it('coup de pouce : une carte utile de sa région, sans avantage pour les derniers joueurs', () => {
     const useful = [0, 0, 0, 0];
     for (let g = 0; g < 2000; g++) {
-      const s = createGame(setups(4), createRng(g + 1), { rules: { headStart: 1 } });
+      const s = createGame(setups(4), createRng(g + 1), { rules: { ...V4_RULES, headStart: 1 } });
       s.players.forEach((p, i) => {
         const mine = p.hand.filter((x) => x.kind === 'dish' && x.region === p.regions[0] && x.course !== p.bonus[0]);
         expect(mine.length).toBeGreaterThanOrEqual(1);
@@ -342,7 +346,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   });
 
   it('il faut donner exactement 2 cartes, chacune à gauche ou au Marché', () => {
-    const s = createGame(setups(2), createRng(3), { rules: { dishOfDay: false, openMarket: false } });
+    const s = createGame(setups(2), createRng(3), { rules: { ...V4_RULES, dishOfDay: false, openMarket: false } });
     const [a, b] = s.players[0].hand.filter((x) => x.kind !== 'vaisselle');
     expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass' })).toThrow(/2 carte/);
     expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: a.id, mode: 'market' }] })).toThrow(/deux fois/);
@@ -358,7 +362,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
   });
 
   it('dénonciation juste : la carte Région est remplacée par une autre de la réserve', () => {
-    const s = createGame(setups(3), createRng(8), { rules: { dishOfDay: false } });
+    const s = createGame(setups(3), createRng(8), { rules: { ...V4_RULES, dishOfDay: false } });
     const h = vaisselleHolder(s)!;
     const t = (h + 1) % 3;
     const region = s.players[t].regions[0];
@@ -373,7 +377,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
 
   it.each(['facile', 'moyen', 'difficile'] as const)('une partie complète entre IA (%s) se termine', (d) => {
     for (const n of [2, 3, 4]) {
-      const s = createGame(setups(n, d), createRng(n * 7));
+      const s = createGame(setups(n, d), createRng(n * 7), V4);
       const rng = createRng(n);
       let guard = 0;
       while (s.phase !== 'gameOver' && guard++ < 5000) {
@@ -387,7 +391,7 @@ describe('règles par défaut : 1 région (sa carte compte comme un plat), 2 car
 });
 
 describe('options : plusieurs Baguettes et cartes à effet', () => {
-  const opts = { rules: { baguettes: 3, effects: { demitour: 2, troc: 2 }, dishOfDay: false } };
+  const opts = { rules: { ...V4_RULES, baguettes: 3, effects: { demitour: 2, troc: 2 }, dishOfDay: false } };
   const total = totalCards;
 
   it('le paquet contient les Baguettes et cartes à effet demandées', () => {
@@ -462,7 +466,7 @@ describe('version 4 : annonces face cachée, Dernier service, dénonciation, Mar
   const junk = ['nord-entree', 'corse-plat', 'lyonnais-fromage', 'bretagne-dessert', 'auvergne-plat', 'lorraine-plat', 'normandie-entree', 'provence-plat', 'bourgogne-fromage', 'sud-ouest-plat'].map(c);
   /** 3 joueurs : J0 Savoie (carte = Tartiflette), J1 Bretagne (= Crêpes), J2 Alsace (= Choucroute). */
   function table(rules: Partial<Rules> = {}) {
-    const s = createGame(setups(3), createRng(3), { rules: { ...quiet, ...rules } });
+    const s = createGame(setups(3), createRng(3), { rules: { ...V4_RULES, ...quiet, ...rules } });
     s.players[0].regions = ['savoie']; s.players[0].bonus = ['plat'];
     s.players[1].regions = ['bretagne']; s.players[1].bonus = ['dessert'];
     s.players[2].regions = ['alsace']; s.players[2].bonus = ['plat'];
@@ -604,7 +608,7 @@ describe('version 4 : annonces face cachée, Dernier service, dénonciation, Mar
   it('les parties entre IA se terminent avec toutes les règles de la version 4', () => {
     for (const d of ['facile', 'moyen', 'difficile'] as const)
       for (const n of [2, 3, 4]) {
-        const s = createGame(setups(n, d), createRng(n * 13));
+        const s = createGame(setups(n, d), createRng(n * 13), V4);
         const rng = createRng(n + 7);
         let guard = 0;
         while (s.phase !== 'gameOver' && guard++ < 5000) {
@@ -622,7 +626,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   it('distribution : 2 régions par joueur avec un plat fourni, régions partagées possibles', () => {
     let shared = false;
     for (let seed = 1; seed <= 60; seed++) {
-      const s = createGame(setups(4), createRng(seed), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
+      const s = createGame(setups(4), createRng(seed), { rules: { ...V4_RULES, mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
       s.players.forEach((p) => {
         expect(p.regions).toHaveLength(2);
         expect(new Set(p.regions).size).toBe(2);
@@ -648,7 +652,7 @@ describe('variante « un menu » (une région à terminer, carte Région avec un
   });
 
   it('4 cartes données par tour : chacun garde 8 cartes et une partie se termine', () => {
-    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
+    const s = createGame(setups(3, 'difficile'), createRng(3), { rules: { ...V4_RULES, mode: 'unMenu', regionsPerPlayer: 2, passCount: 4, regionCards: 'partagees', effects: { demitour: 0, troc: 0 } } });
     const rng = createRng(4);
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 5000) {
@@ -751,24 +755,24 @@ describe('mode Duel (2 joueurs)', () => {
   const kinds = (s: GameState) => [...s.drawPile, ...s.players.flatMap((p) => p.hand)].filter((c) => c.kind === 'effect').map((c) => (c.kind === 'effect' ? c.effect : ''));
 
   it('les Demi-tour deviennent des Dégustation, seulement à 2', () => {
-    const duo = kinds(createGame(setups(2), createRng(1)));
+    const duo = kinds(createGame(setups(2), createRng(1), V4));
     expect(duo).not.toContain('demitour');
     expect(duo.filter((e) => e === 'degustation')).toHaveLength(2);
-    const trio = kinds(createGame(setups(3), createRng(1)));
+    const trio = kinds(createGame(setups(3), createRng(1), V4));
     expect(trio).toContain('demitour');
     expect(trio).not.toContain('degustation');
-    expect(kinds(createGame(setups(2), createRng(1), { rules: { duel: false } }))).toContain('demitour');
+    expect(kinds(createGame(setups(2), createRng(1), { rules: { ...V4_RULES, duel: false } }))).toContain('demitour');
   });
 
   it('Plat du jour : jamais « Service à l’anglaise » en Duel, jamais « Inspection » à plusieurs', () => {
     for (let k = 0; k < 200; k++) {
-      expect(createGame(setups(2), createRng(k)).event).not.toBe('sensInverse');
-      expect(createGame(setups(3), createRng(k)).event).not.toBe('inspection');
+      expect(createGame(setups(2), createRng(k), V4).event).not.toBe('sensInverse');
+      expect(createGame(setups(3), createRng(k), V4).event).not.toBe('inspection');
     }
   });
 
   it('Dégustation : on voit 3 cartes de la main adverse', () => {
-    const s = createGame(setups(2), createRng(5), { rules: { dishOfDay: false, effects: {} } });
+    const s = createGame(setups(2), createRng(5), { rules: { ...V4_RULES, dishOfDay: false, effects: {} } });
     const card = effectCard('degustation', 1);
     s.players[0].hand[s.players[0].hand.findIndex((c) => c.kind !== 'vaisselle')] = card;
     const other = s.players[0].hand.find((c) => c !== card && c.kind !== 'vaisselle')!;
@@ -781,7 +785,7 @@ describe('mode Duel (2 joueurs)', () => {
   });
 
   it('Inspection : il faut montrer une carte avant de choisir', () => {
-    const s = createGame(setups(2), createRng(6), { rules: { dishOfDay: false } });
+    const s = createGame(setups(2), createRng(6), { rules: { ...V4_RULES, dishOfDay: false } });
     s.event = 'inspection';
     const ch = aiChooseAll(s, 0, createRng(1));
     expect(() => submitChoice(s, 0, ch)).toThrow(/montre/);
@@ -799,7 +803,7 @@ describe('mode Duel (2 joueurs)', () => {
   });
 
   it('protection d’un tour seulement après une dénonciation juste', () => {
-    const s = createGame(setups(2), createRng(7), { rules: { dishOfDay: false, effects: {} } });
+    const s = createGame(setups(2), createRng(7), { rules: { ...V4_RULES, dishOfDay: false, effects: {} } });
     const holder = vaisselleHolder(s)!;
     const target = 1 - holder;
     denounce(s, holder, target, s.players[target].regions[0], createRng(1));
@@ -816,7 +820,7 @@ describe('mode Duel (2 joueurs)', () => {
   });
 
   it.each(['facile', 'moyen', 'difficile'] as const)('une partie complète en Duel (%s) se termine', (d) => {
-    const s = createGame(setups(2, d), createRng(77));
+    const s = createGame(setups(2, d), createRng(77), V4);
     const rng = createRng(78);
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 20000) {
@@ -825,5 +829,144 @@ describe('mode Duel (2 joueurs)', () => {
       expect(totalCards(s)).toBe(TOTAL_DEFAULT);
     }
     expect(s.phase).toBe('gameOver');
+  });
+});
+
+describe('version 5 : commande servie, une carte au voisin et une au Marché, étoiles du Dernier service', () => {
+  const TOTAL_V5 = TOTAL + 2;
+  const v5 = (n: number, seed = 1, rules: Partial<Rules> = {}) => createGame(setups(n), createRng(seed), { rules: { dishOfDay: false, ...rules } });
+  const dishNotIn = (s: GameState, p: number) => s.players.flatMap((q, i) => (i === p ? [] : q.hand)).find((c) => c.kind === 'dish')!;
+
+  it('commande servie : le plat change de main, on rend une carte de son choix', () => {
+    const s = v5(3, 2);
+    const wanted = s.players[1].hand.find((c) => c.kind === 'dish')!;
+    placeOrder(s, 0, { cardId: wanted.id, target: 1 });
+    expect(s.players[0].hand).toContain(wanted);
+    expect(s.players[0].hand).toHaveLength(9);
+    expect(pendingOrder(s)?.player).toBe(0);
+    expect(() => submitChoice(s, 0, aiChooseAll(s, 0, createRng(1)))).toThrow(/rendue/);
+    expect(() => settleOrder(s, 0, wanted.id)).toThrow();
+    const give = s.players[0].hand.find((c) => c !== wanted && c.kind !== 'vaisselle')!;
+    settleOrder(s, 0, give.id);
+    expect(s.players[0].hand).toHaveLength(8);
+    expect(s.players[1].hand).toHaveLength(8);
+    expect(s.players[1].hand).toContain(give);
+    expect(s.orders[0]).toMatchObject({ player: 0, target: 1, served: true, given: give.id });
+    expect(() => placeOrder(s, 0, { cardId: wanted.id, target: 2 })).toThrow(/Une commande par tour/);
+  });
+
+  it('commande ratée : rien ne bouge, la réponse est publique', () => {
+    const s = v5(3, 3);
+    const absent = dishNotIn(s, 1);
+    placeOrder(s, 0, { cardId: absent.id, target: 1 });
+    expect(s.orders[0]).toMatchObject({ served: false, yes: [] });
+    expect(s.players.map((p) => p.hand.length)).toEqual([8, 8, 8]);
+  });
+
+  it('servir une commande annule les choix déjà faits du joueur servi', () => {
+    const s = v5(3, 4);
+    submitChoice(s, 1, aiChooseAll(s, 1, createRng(1)));
+    const wanted = s.players[1].hand.find((c) => c.kind === 'dish')!;
+    placeOrder(s, 0, { cardId: wanted.id, target: 1, give: s.players[0].hand.find((c) => c.kind !== 'vaisselle')!.id });
+    expect(s.choices[1]).toBeUndefined();
+  });
+
+  it('en Duel, 2 commandes par tour', () => {
+    const s = v5(2, 5);
+    const a = dishNotIn(s, 1);
+    placeOrder(s, 0, { cardId: a.id, target: 1 });
+    placeOrder(s, 0, { cardId: a.id, target: 1 });
+    expect(() => placeOrder(s, 0, { cardId: a.id, target: 1 })).toThrow();
+  });
+
+  it('une carte au voisin, l’autre au Marché', () => {
+    const s = v5(3, 6);
+    const [a, b] = s.players[0].hand.filter((c) => c.kind === 'dish');
+    expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: b.id, mode: 'pass' }] })).toThrow(/Marché/);
+    expect(() => submitChoice(s, 0, { cardId: a.id, mode: 'market', extra: [{ cardId: b.id, mode: 'market' }] })).toThrow(/Marché/);
+    submitChoice(s, 0, { cardId: a.id, mode: 'pass', extra: [{ cardId: b.id, mode: 'market' }] });
+  });
+
+  it('après une dénonciation, la Vaisselle ne bouge plus jusqu’au tour suivant ; une seule dénonciation par manche', () => {
+    const s = v5(3, 7);
+    const h = vaisselleHolder(s)!;
+    const t = (h + 1) % 3;
+    denounce(s, h, t, s.players[t].regions[0], createRng(1));
+    expect(vaisselleHolder(s)).toBe(t);
+    const v = s.players[t].hand.find((c) => c.kind === 'vaisselle')!;
+    const other = s.players[t].hand.find((c) => c.kind === 'dish')!;
+    expect(() => submitChoice(s, t, { cardId: v.id, mode: 'pass', extra: [{ cardId: other.id, mode: 'market' }] })).toThrow(/Vaisselle/);
+    expect(checkDenounce(s, h)).toBeTruthy();
+    for (const p of [0, 1, 2]) submitChoice(s, p, aiChooseAll(s, p, createRng(p)));
+    resolveExchange(s, createRng(2));
+    expect(vaisselleHolder(s)).toBe(t);
+    resolveAnnouncements(s, [], createRng(3));
+    // La Vaisselle revient chez l'accusateur : il a déjà dénoncé cette manche.
+    const tv = s.players[t].hand.findIndex((c) => c.kind === 'vaisselle');
+    [s.players[t].hand[tv], s.players[h].hand[0]] = [s.players[h].hand[0], s.players[t].hand[tv]];
+    expect(checkDenounce(s, h)).toMatch(/déjà/);
+  });
+
+  it('Dernier service à 2 : celui qui reste envoie ses 2 cartes au Marché et pioche', () => {
+    const s = v5(2, 8);
+    const p0 = s.players[0];
+    const menu: Card[] = regionCards(p0.regions[0]).filter((c) => c.course !== p0.bonus[0]);
+    const rest = [...p0.hand, ...s.players[1].hand].filter((c) => c.kind !== 'vaisselle' && !menu.includes(c));
+    const pool = [...p0.hand, ...s.players[1].hand, ...s.drawPile];
+    s.players[1].hand = pool.filter((c) => !menu.includes(c) && !rest.slice(0, 5).includes(c)).slice(0, 8);
+    p0.hand = [...menu, ...rest.slice(0, 5)];
+    s.drawPile = pool.filter((c) => !p0.hand.includes(c) && !s.players[1].hand.includes(c));
+    s.phase = 'announce';
+    resolveAnnouncements(s, [0], createRng(1));
+    expect(s.lastService).toBe(true);
+    const [a, b] = s.players[1].hand.filter((c) => c.kind !== 'vaisselle');
+    submitChoice(s, 1, { cardId: a.id, mode: 'pass', extra: [{ cardId: b.id, mode: 'market' }] });
+    resolveExchange(s, createRng(2));
+    expect(s.discard).toEqual(expect.arrayContaining([a, b]));
+    expect(s.players[1].hand).toHaveLength(8);
+  });
+
+  it('fin de manche : tout menu complet révélé rapporte une étoile', () => {
+    const s = v5(3, 9);
+    for (const p of [0, 1]) {
+      const me = s.players[p];
+      me.hand = [...regionCards(me.regions[0]).filter((c) => c.course !== me.bonus[0]), ...me.hand.filter((c) => c.kind === 'dish' && !me.regions.includes(c.region)).slice(0, 5)];
+    }
+    s.players[2].hand = [VAISSELLE, ...s.players[2].hand.filter((c) => c.kind !== 'vaisselle').slice(0, 7)];
+    s.phase = 'announce';
+    resolveAnnouncements(s, [0, 1], createRng(1));
+    // Dernier service pour le 3e chef, puis on révèle.
+    const [x, y] = s.players[2].hand.filter((c) => c.kind !== 'vaisselle');
+    expect(() => submitChoice(s, 2, { cardId: s.players[2].hand.find((c) => c.kind === 'vaisselle')!.id, mode: 'pass', extra: [{ cardId: x.id, mode: 'market' }] })).toThrow(/reste/);
+    submitChoice(s, 2, { cardId: x.id, mode: 'pass', extra: [{ cardId: y.id, mode: 'market' }] });
+    resolveExchange(s, createRng(2));
+    resolveAnnouncements(s, [], createRng(3));
+    expect(s.players[0].etoiles + s.players[1].etoiles).toBe(2);
+    expect(s.lastRound?.coWinners).toEqual([0, 1]);
+  });
+
+  it('la Baguette va au chef qui a le moins d’étoiles', () => {
+    for (let k = 0; k < 20; k++) {
+      const s = v5(3, 10 + k);
+      s.players[0].etoiles = 2;
+      s.players[1].etoiles = 1;
+      s.phase = 'roundOver';
+      nextRound(s, createRng(k));
+      expect(s.players[2].hand.some((c) => c.kind === 'baguette')).toBe(true);
+    }
+  });
+
+  it.each(['facile', 'moyen', 'difficile'] as const)('parties complètes v5 entre IA (%s), cartes conservées', (d) => {
+    for (const n of [2, 3, 4]) {
+      const s = createGame(setups(n, d), createRng(n * 17));
+      const rng = createRng(n);
+      let guard = 0;
+      while (s.phase !== 'gameOver' && guard++ < 5000) {
+        if (s.phase === 'roundOver') nextRound(s, rng);
+        else playBotTurn(s, rng);
+        expect(totalCards(s)).toBe(TOTAL_V5);
+      }
+      expect(s.phase).toBe('gameOver');
+    }
   });
 });

@@ -16,10 +16,9 @@ export interface GameOptions {
 }
 
 /**
- * Règles du jeu par défaut : 1 région secrète par joueur (sa carte apporte déjà un plat,
- * il en reste 3 à trouver), 2 cartes données par tour, 8 cartes en main.
+ * Règles de la version 4 (avant la refonte « service ») : gardées pour comparer en simulation.
  */
-export const DEFAULT_RULES: Rules = {
+export const V4_RULES: Rules = {
   denounceLimit: 'protege',
   headStart: 0,
   copies: 1,
@@ -37,9 +36,37 @@ export const DEFAULT_RULES: Rules = {
   commande: 'plat',
   dishOfDay: true,
   duel: true,
+  handSize: HAND_SIZE,
+  vaisselleToLeader: false,
+  baguetteToLast: false,
+  shareTies: false,
+  vaisselleStays: false,
+  split: false,
+  allServedStar: false,
+  duelOrders: false,
+};
+
+/**
+ * Règles du jeu par défaut (v5) : 1 région secrète (sa carte apporte déjà un plat), 8 cartes,
+ * chaque tour une carte au voisin et une au Marché, une commande servie par tour façon
+ * 7 familles, Dernier service où tout menu complet rapporte une étoile, Baguette au chef en retard.
+ */
+export const DEFAULT_RULES: Rules = {
+  ...V4_RULES,
+  denounceLimit: 'unique',
+  effects: { chapardeur: 2 },
+  blindAnnounce: false,
+  revealToDenounce: false,
+  commande: 'service',
+  baguetteToLast: true,
+  vaisselleStays: true,
+  split: true,
+  allServedStar: true,
+  duelOrders: true,
 };
 /** Règles « de base » (v3), sans les ajouts de la version 4 : utile pour comparer en simulation. */
 export const BASIC_RULES: Partial<Rules> = {
+  ...V4_RULES,
   effects: { demitour: 2, troc: 2 },
   blindAnnounce: false,
   lastService: false,
@@ -59,6 +86,8 @@ export const isDuel = (state: Pick<GameState, 'players' | 'rules'>) => state.rul
 
 /** Cartes « Plat du jour » possibles : en Duel, « Inspection » remplace « Service à l'anglaise » (inutile à 2). */
 export function dayEventsFor(state: Pick<GameState, 'players' | 'rules'>): DayEvent[] {
+  // Règle « service » (v5) : plus d'Inspection, le Duel tire simplement parmi les autres cartes.
+  if (state.rules.commande === 'service') return DAY_EVENT_IDS.filter((e) => e !== 'inspection' && !(isDuel(state) && e === 'sensInverse'));
   return DAY_EVENT_IDS.filter((e) => (isDuel(state) ? e !== 'sensInverse' : e !== 'inspection'));
 }
 
@@ -77,6 +106,7 @@ export function effectsFor(state: Pick<GameState, 'players' | 'rules'>): Partial
  * jusqu'à la fin du tour suivant seulement (sinon la Vaisselle ne servirait plus à rien).
  */
 export function isProtected(state: GameState, p: number): boolean {
+  if (state.rules.denounceLimit === 'tour') return (state.shieldUntil[p] ?? 0) >= state.turn;
   if (state.rules.denounceLimit !== 'protege') return false;
   return state.unmasked.includes(p) || (state.shieldUntil[p] ?? 0) >= state.turn;
 }
@@ -230,7 +260,11 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     }
 
     const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, effectsFor(state)).filter((c) => c.kind !== 'vaisselle'));
-    const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
+    // Celui qui reçoit la Vaisselle : au hasard, ou (règle « vaisselleToLeader ») le chef en tête.
+    const top = Math.max(...state.players.map((p) => p.etoiles));
+    const leaders = state.players.map((p, i) => (p.etoiles === top ? i : -1)).filter((i) => i >= 0);
+    const unlucky = state.rules.vaisselleToLeader && top > 0 ? pick(rng, leaders) : randInt(rng, n);
+    const H = state.rules.handSize;
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).
     // Tirées au hasard (et jamais le plat que représente déjà la carte Région) : prendre
@@ -239,11 +273,16 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       p.regions.flatMap((r, k) => shuffle(rng, deck.filter((c) => c.kind === 'dish' && c.region === r && c.course !== p.bonus[k])).slice(0, state.rules.headStart)),
     );
     for (const c of boosts.flat()) deck.splice(deck.indexOf(c), 1);
+    // Coup de main au chef en retard : il commence la manche avec la Baguette.
+    const low = Math.min(...state.players.map((p) => p.etoiles));
+    const lasts = state.players.map((p, i) => (p.etoiles === low ? i : -1)).filter((i) => i >= 0);
+    const bi = deck.findIndex((c) => c.kind === 'baguette');
+    if (state.rules.baguetteToLast && lasts.length < n && bi >= 0) boosts[pick(rng, lasts)].push(...deck.splice(bi, 1));
     state.players.forEach((p, i) => {
       const boost = boosts[i];
-      p.hand = [...boost, ...deck.splice(0, (i === unlucky ? HAND_SIZE - 1 : HAND_SIZE) - boost.length)];
+      p.hand = [...boost, ...deck.splice(0, (i === unlucky ? H - 1 : H) - boost.length)];
       shuffle(rng, p.hand);
-      if (i === unlucky) p.hand.splice(randInt(rng, HAND_SIZE), 0, VAISSELLE);
+      if (i === unlucky) p.hand.splice(randInt(rng, H), 0, VAISSELLE);
     });
     state.drawPile = deck;
   }
@@ -298,6 +337,34 @@ export const passCountOf = (state: GameState) => (state.event === 'troisCartes' 
 /** Nombre de commandes permises par manche (« Carte blanche » : 2). */
 export const ordersAllowed = (state: GameState) => (state.rules.commande === 'aucune' ? 0 : state.event === 'commandeLibre' ? 2 : 1);
 
+/** Règle « service » : commandes permises par tour (2 avec « Carte blanche », et 2 en Duel si `duelOrders`). */
+export const ordersPerTurn = (state: GameState) => 1 + (state.event === 'commandeLibre' ? 1 : 0) + (isDuel(state) && state.rules.duelOrders ? 1 : 0);
+
+/** Commande servie dont la carte rendue n'a pas encore été choisie (une à la fois). */
+export const pendingOrder = (state: GameState) => state.orders.find((o) => o.served && o.given === undefined) ?? null;
+
+/**
+ * Après une dénonciation (juste ou fausse), la Vaisselle ne bouge plus jusqu'au tour suivant :
+ * l'accusé démasqué la garde, l'accusateur qui s'est trompé aussi (règle « vaisselleStays »).
+ */
+export const vaisselleLocked = (state: GameState, player: number) =>
+  !!state.denunciation && vaisselleHolder(state) === player && (state.rules.vaisselleStays || (!state.denunciation.correct && state.denunciation.accuser === player));
+
+/** Peut-on passer commande maintenant ? (renvoie un message d'erreur, ou null) */
+export function checkOrder(state: GameState, player: number): string | null {
+  if (state.rules.commande === 'aucune') return 'Pas de commande dans cette version';
+  if (state.phase !== 'choose' || state.frozen.includes(player)) return 'Ce n’est pas le moment de commander';
+  if (state.choices[player]) return 'Commande avant de choisir tes cartes';
+  if (pendingOrder(state)) return 'Une commande est en cours';
+  if (state.rules.commande === 'service') {
+    const per = ordersPerTurn(state);
+    if (state.orders.filter((o) => o.player === player && o.turn === state.turn).length >= per) return per > 1 ? 'Deux commandes par tour, pas plus' : 'Une commande par tour';
+    return null;
+  }
+  if (state.orders.filter((o) => o.player === player).length >= ordersAllowed(state)) return 'Tu as déjà passé ta commande cette manche';
+  return null;
+}
+
 /** Indice du joueur qui a la Vaisselle en main (toujours quelqu'un). */
 export function vaisselleHolder(state: GameState): number | null {
   const i = state.players.findIndex((p) => p.hand.some((c) => c.kind === 'vaisselle'));
@@ -335,6 +402,7 @@ export function checkDenounce(state: GameState, accuser: number): string | null 
   if (state.denunciation) return 'Il y a déjà eu une dénonciation ce tour-ci';
   if (vaisselleHolder(state) !== accuser) return 'Il faut avoir la Vaisselle pour dénoncer';
   if ((state.denounceBanUntil[accuser] ?? 0) > state.turn) return 'Après une fausse accusation, il faut attendre un tour';
+  if (pendingOrder(state)) return 'Termine d’abord la commande en cours';
   if (state.rules.denounceLimit === 'unique' && state.history.some((h) => h.denunciation?.accuser === accuser))
     return 'Tu as déjà dénoncé quelqu’un cette manche';
   return null;
@@ -423,7 +491,7 @@ export function denounce(
       p.regions = p.regions.map((r) => (r === region ? fresh : r));
     }
     // Protégé jusqu'à la fin de la manche (en Duel : jusqu'à la fin du tour suivant).
-    if (isDuel(state)) state.shieldUntil[target] = state.turn + 1;
+    if (isDuel(state) || state.rules.denounceLimit === 'tour') state.shieldUntil[target] = state.turn + 1;
     else state.unmasked.push(target);
     state.stats.correctDenunciations += 1;
   } else {
@@ -440,11 +508,10 @@ export function denounce(
  * COMMANDE : « Qui a le Reblochon ? » (ou « Qui a un Fromage ? »), à voix haute, avant de
  * choisir ses cartes. Chaque autre joueur répond honnêtement oui ou non. Une fois par manche.
  */
-export function placeOrder(state: GameState, player: number, query: { cardId?: string; course?: Course }): GameEvent[] {
-  if (state.phase !== 'choose' || state.frozen.includes(player)) throw new Error('Ce n’est pas le moment de commander');
-  if (state.choices[player]) throw new Error('Commande avant de choisir tes cartes');
-  const used = state.orders.filter((o) => o.player === player).length;
-  if (used >= ordersAllowed(state)) throw new Error('Tu as déjà passé ta commande cette manche');
+export function placeOrder(state: GameState, player: number, query: { cardId?: string; course?: Course; target?: number; give?: string }): GameEvent[] {
+  const err = checkOrder(state, player);
+  if (err) throw new Error(err);
+  if (state.rules.commande === 'service') return serveOrder(state, player, query);
   if (state.rules.commande === 'plat' && !query.cardId) throw new Error('Choisis un plat');
   if (state.rules.commande === 'type' && !query.course) throw new Error('Choisis un type de plat');
   const has = (q: number) =>
@@ -455,6 +522,47 @@ export function placeOrder(state: GameState, player: number, query: { cardId?: s
   return [{ type: 'order', order }];
 }
 const imageIdOf = (id: string) => id.replace(/-\d+$/, '');
+
+/**
+ * COMMANDE « service » (façon 7 familles) : « Bob, as-tu le Reblochon ? ». Si Bob l'a, il te le
+ * donne et tu lui rends une carte de ton choix (`give`, éventuellement choisie plus tard avec
+ * settleOrder) — même la Vaisselle ! La demande et la réponse sont publiques, la carte rendue non.
+ */
+function serveOrder(state: GameState, player: number, query: { cardId?: string; target?: number; give?: string }): GameEvent[] {
+  const t = query.target;
+  if (!query.cardId || cardById(query.cardId).kind !== 'dish') throw new Error('Choisis un plat');
+  if (t === undefined || t === player || !state.players[t]) throw new Error('Choisis à qui tu demandes');
+  if (state.frozen.includes(t)) throw new Error('Ce joueur a posé sa main face cachée');
+  const other = state.players[t].hand;
+  const k = other.findIndex((c) => c.kind === 'dish' && imageIdOf(c.id) === imageIdOf(query.cardId!));
+  const order: Order = { player, turn: state.turn, cardId: query.cardId, target: t, yes: k >= 0 ? [t] : [], served: k >= 0 };
+  state.orders.push(order);
+  if (k >= 0) {
+    const card = other.splice(k, 1)[0];
+    // Sa main a changé : s'il avait déjà choisi ses cartes, il choisit à nouveau.
+    delete state.choices[t];
+    state.players[player].hand.push(card);
+    state.origins[card.id] = 'order';
+    if (query.give) settleOrder(state, player, query.give);
+  }
+  return [{ type: 'order', order }];
+}
+
+/** Commande servie : la carte rendue au joueur qui a servi (pas celle qu'on vient de recevoir). */
+export function settleOrder(state: GameState, player: number, give: string): void {
+  const order = pendingOrder(state);
+  if (!order || order.player !== player) throw new Error('Aucune commande à régler');
+  const me = state.players[player].hand;
+  const i = me.findIndex((c) => c.id === give);
+  if (i < 0) throw new Error('Cette carte n’est pas dans ta main');
+  if (give === order.cardId || (me[i].kind === 'dish' && imageIdOf(me[i].id) === imageIdOf(order.cardId!))) throw new Error('Rends une autre carte que le plat servi');
+  if (me[i].kind === 'vaisselle' && vaisselleLocked(state, player)) throw new Error('Après une dénonciation, la Vaisselle reste chez toi jusqu’au prochain tour');
+  const [card] = me.splice(i, 1);
+  state.players[order.target!].hand.push(card);
+  state.origins[card.id] = 'swap';
+  if (card.kind === 'vaisselle') state.stats.vaisselleMoves += 1;
+  order.given = give;
+}
 
 /** Inspection : ce joueur doit-il encore montrer une carte avant de choisir ? */
 export const mustShow = (state: GameState, player: number) =>
@@ -478,15 +586,20 @@ export function checkChoice(state: GameState, player: number, choice: Choice): s
   if (state.phase !== 'choose') return 'Ce n’est pas le moment de choisir';
   if (state.frozen.includes(player)) return 'Ta main est posée face cachée';
   if (mustShow(state, player)) return 'Inspection : montre d’abord une carte';
+  if (pendingOrder(state)?.player === player) return 'Choisis d’abord la carte rendue pour ta commande';
   const need = passCountOf(state);
   const all = [{ cardId: choice.cardId, mode: choice.mode, target: choice.target, give: choice.give }, ...(choice.extra ?? [])];
   if (all.length !== need) return `Il faut donner ${need} carte${need > 1 ? 's' : ''}`;
   if (new Set(all.map((x) => x.cardId)).size !== all.length) return 'Une même carte ne peut pas être donnée deux fois';
+  if (state.rules.split && need === 2 && leftOf(state, player) !== player && all.filter((x) => x.mode === 'pass').length !== 1 && !(state.event === 'fromagesBloques'))
+    return 'Une carte va à ton voisin, l’autre au Marché';
   const hand = state.players[player]?.hand ?? [];
   for (const x of all) {
     const card = hand.find((c) => c.id === x.cardId);
     if (!card) return 'Cette carte n’est pas dans ta main';
     if (x.mode === 'market' && card.kind === 'vaisselle') return 'La Vaisselle ne va jamais au Marché !';
+    if (card.kind === 'vaisselle' && vaisselleLocked(state, player)) return 'Après une dénonciation, la Vaisselle reste chez toi jusqu’au prochain tour';
+    if (card.kind === 'vaisselle' && leftOf(state, player) === player) return 'Personne à qui passer la Vaisselle : elle reste dans ta main';
     if (x.mode === 'pass' && state.event === 'fromagesBloques' && card.kind === 'dish' && card.course === 'fromage') return 'Plateau de fromages : les fromages ne se passent pas, ils vont au Marché';
     if (x.mode === 'effect') {
       if (card.kind !== 'effect') return 'Seule une carte à effet peut être jouée';
@@ -552,7 +665,9 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
     const p = state.players[i];
     slots[i] = [{ cardId: ch.cardId, mode: ch.mode, target: ch.target, give: ch.give }, ...(ch.extra ?? [])].map((x) => {
       const index = p.hand.findIndex((c) => c.id === x.cardId);
-      return { index, card: p.hand[index], mode: x.mode, target: x.target, give: x.give };
+      // Seul au Dernier service (Duel) : personne à qui passer, la carte va au Marché.
+      const mode = x.mode === 'pass' && leftOf(state, i) === i ? 'market' : x.mode;
+      return { index, card: p.hand[index], mode, target: x.target, give: x.give };
     });
   }
   // 2. Les cartes du Marché arrivent face visible sur la défausse ;
@@ -642,6 +757,7 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
 export function announceableMenu(state: GameState, player: number): Menu | null {
   const p = state.players[player];
   return state.rules.mode === 'unMenu' ? evaluateOneMenu(p.hand, p.regions, p.bonus, state.event !== 'sansBaguette') : evaluateMenu(p.hand, p.regions);
+
 }
 
 /** Peut-on crier « À TABLE ! » ? (pas avec la Vaisselle, ni sous Contrôle sanitaire, ni deux fois). */
@@ -680,7 +796,7 @@ export function resolveAnnouncements(state: GameState, announcers: number[], rng
       return [{ type: 'noAnnounce' }];
     }
     state.frozen = unique;
-    if (state.rules.lastService && activePlayers(state).length >= 2) {
+    if (state.rules.lastService && activePlayers(state).length >= (state.rules.split ? 1 : 2)) {
       // Dernier service pour les autres.
       state.lastService = true;
       state.turn += 1;
@@ -701,6 +817,8 @@ function reveal(state: GameState, first: number[], late: number[], rng: Rng): Ga
   const bluffers = menus.filter((m) => !m.menu).map((m) => m.p);
 
   // Bluff raté : une étoile de moins et la Vaisselle (pour le premier dans l'ordre).
+  // Sans annonce bluffée (v5), un menu cassé pendant le Dernier service ne rapporte rien, sans pénalité.
+  if (!state.rules.blindAnnounce) bluffers.length = 0;
   for (const b of bluffers) state.players[b].etoiles = Math.max(0, state.players[b].etoiles - 1);
   if (bluffers.length) {
     const holder = vaisselleHolder(state);
@@ -726,6 +844,7 @@ function reveal(state: GameState, first: number[], late: number[], rng: Rng): Ga
   }
   const best = Math.max(...valid.map((m) => m.menu.rank));
   let tied = valid.filter((m) => m.menu.rank === best);
+  const coWinners = state.rules.allServedStar && valid.length > 1 ? valid.map((m) => m.p) : state.rules.shareTies && tied.length > 1 ? tied.map((m) => m.p) : undefined;
   if (tied.some((m) => !m.late)) tied = tied.filter((m) => !m.late);
   let winner = tied[0];
   let tieBreak: RoundResult['tieBreak'] = 'none';
@@ -742,7 +861,7 @@ function reveal(state: GameState, first: number[], late: number[], rng: Rng): Ga
       tieBreak = 'hasard';
     }
   }
-  return [...events, ...finishRound(state, all, winner.p, winner.menu, tieBreak, bluffers, late)];
+  return [...events, ...finishRound(state, all, winner.p, winner.menu, tieBreak, bluffers, late, coWinners)];
 }
 
 function finishRound(
@@ -753,6 +872,7 @@ function finishRound(
   tieBreak: RoundResult['tieBreak'],
   bluffers: number[],
   late: number[],
+  coWinners?: number[],
 ): GameEvent[] {
   const result: RoundResult = {
     winner,
@@ -766,19 +886,25 @@ function finishRound(
     thanksToMarket: winner !== null && state.players[winner].hand.some((c) => state.origins[c.id] === 'market' || state.origins[c.id] === 'choice'),
     bluffers,
     lateAnnouncers: late,
+    coWinners,
   };
   state.lastRound = result;
   state.frozen = [];
   state.lastService = false;
   const events: GameEvent[] = [{ type: 'roundWon', result }];
   if (winner !== null) {
-    const w = state.players[winner];
-    // « Guide Michelin » : 2 étoiles pour le gagnant.
-    w.etoiles += state.event === 'doubleEtoile' ? 2 : 1;
-    if (w.etoiles >= state.etoilesToWin) {
+    // « Guide Michelin » : 2 étoiles pour le gagnant. Égalité partagée : une étoile pour chacun.
+    const gain = state.event === 'doubleEtoile' ? 2 : 1;
+    const stars = coWinners ?? [winner];
+    for (const p of stars) state.players[p].etoiles += gain;
+    const done = stars.filter((p) => state.players[p].etoiles >= state.etoilesToWin);
+    if (done.length) {
+      // Plusieurs chefs atteignent le but en même temps : le plus étoilé, sinon le gagnant de la manche.
+      const top = Math.max(...done.map((p) => state.players[p].etoiles));
+      const champ = done.includes(winner) && state.players[winner].etoiles === top ? winner : done.find((p) => state.players[p].etoiles === top)!;
       state.phase = 'gameOver';
-      state.winner = winner;
-      events.push({ type: 'gameWon', player: winner });
+      state.winner = champ;
+      events.push({ type: 'gameWon', player: champ });
       return events;
     }
   }

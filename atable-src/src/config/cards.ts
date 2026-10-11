@@ -86,7 +86,7 @@ export const DAY_EVENTS = {
   troisCartes: { name: 'Coup de feu', icon: '🔥', text: 'On donne 3 cartes par tour.' },
   sansDenonciation: { name: 'Repas de famille', icon: '🤫', text: 'Pas de dénonciation cette manche.' },
   doubleEtoile: { name: 'Guide Michelin', icon: '⭐', text: 'Le gagnant remporte 2 étoiles.' },
-  commandeLibre: { name: 'Carte blanche', icon: '📝', text: 'Chacun peut passer 2 commandes.' },
+  commandeLibre: { name: 'Carte blanche', icon: '📝', text: 'Chacun peut passer 2 commandes au lieu d’une.' },
 } as const;
 
 /** Format des illustrations déposées dans public/cards/. */

@@ -1,16 +1,20 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { announceableMenu, checkAnnounce, checkDenounce, isProtected, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
+import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, isProtected, vaisselleLocked, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
 import { COURSES } from '../config/cards';
-import { menuProgress } from './deck';
+import { cardById, menuProgress } from './deck';
 import { pick, type Rng } from './rng';
-import type { Card, Choice, DishCard, GameState, Pick, RegionId } from './types';
+import type { Card, Choice, DishCard, GameState, Move, Pick, RegionId } from './types';
 
 /** Multiplicateur appliqué à une région quand un joueur s'en débarrasse. */
 const DUMP_FACTOR = 0.3;
 /** Multiplicateur appliqué à une région quand on voit un de ses plats dans la main d'un joueur (Dégustation). */
 const PEEK_FACTOR = 2;
+/** Multiplicateur appliqué à une région quand un joueur commande un de ses plats (public). */
+const ORDER_FACTOR = 4;
+/** Confiance nécessaire pour dénoncer, selon le niveau. */
+const DENOUNCE_AT: Record<string, number> = { difficile: 0.55, moyen: 0.75 };
 /** Seuil de confiance au-delà duquel l'IA difficile dénonce. */
 export const DENOUNCE_CONFIDENCE = 0.7;
 /** Probabilité, à chaque tour, de continuer à attendre le Gastronomique. */
@@ -40,8 +44,8 @@ export function beliefs(state: GameState, observer: number): Beliefs {
     if (q === observer) continue;
     const weights: Record<RegionId, number> = Object.fromEntries(state.regionsInPlay.map((r) => [r, 1]));
     let excluded = new Set<RegionId>(own);
-    const steps = [...state.history.map((h) => ({ d: h.denunciation, moves: h.moves })), { d: state.denunciation ?? undefined, moves: [] }];
-    for (const { d, moves } of steps) {
+    const steps = [...state.history.map((h) => ({ d: h.denunciation, moves: h.moves, turnOf: h.turn })), { d: state.denunciation ?? undefined, moves: [] as Move[], turnOf: state.turn }];
+    for (const { d, moves, turnOf } of steps) {
       if (d && d.target === q) {
         if (d.correct) {
           // Nouvelle région inconnue : les indices d'avant ne valent plus qu'à moitié.
@@ -53,6 +57,7 @@ export function beliefs(state: GameState, observer: number): Beliefs {
         if (m.player !== q || m.card.kind !== 'dish') continue;
         if (m.mode === 'market' || m.to === observer) weights[m.card.region] *= DUMP_FACTOR;
       }
+      for (const o of state.orders) if (o.player === q && o.cardId && o.turn === turnOf) { const c = cardById(o.cardId); if (c.kind === 'dish' && weights[c.region] !== undefined) weights[c.region] *= ORDER_FACTOR; }
       for (const m of moves) if (m.player === observer && m.target === q && m.peek) for (const c of m.peek) if (isDish(c)) weights[c.region] *= PEEK_FACTOR;
     }
     // Cartes Région partagées : la région des autres peut être la mienne.
@@ -84,13 +89,15 @@ const isDish = (c: Card): c is DishCard => c.kind === 'dish';
 /** DÉNONCIATION : seule l'IA difficile dénonce, avec la Vaisselle, quand sa confiance dépasse 70 %. */
 export function aiDenounce(state: GameState, player: number): { target: number; region: RegionId } | null {
   const me = state.players[player];
-  if (me.difficulty !== 'difficile' || checkDenounce(state, player)) return null;
+  const threshold = DENOUNCE_AT[me.difficulty] ?? (state.rules.commande === 'service' ? 2 : DENOUNCE_CONFIDENCE);
+  if (me.difficulty === 'facile' || (state.rules.commande !== 'service' && me.difficulty !== 'difficile') || checkDenounce(state, player)) return null;
   const b = beliefs(state, player);
   let best: { target: number; region: RegionId; p: number } | null = null;
   for (const [q, dist] of Object.entries(b)) {
     if (isProtected(state, +q)) continue;
     const { region, p } = mostLikely(dist);
-    if (region && p > DENOUNCE_CONFIDENCE && (!best || p > best.p)) best = { target: +q, region, p };
+    const need = state.rules.commande === 'service' ? threshold : DENOUNCE_CONFIDENCE;
+    if (region && p > need && (!best || p > best.p)) best = { target: +q, region, p };
   }
   return best && { target: best.target, region: best.region };
 }
@@ -241,8 +248,11 @@ const countOf = (hand: readonly Card[], region: RegionId) => hand.filter((c) => 
 
 /** Choix complet : autant de cartes que la règle « passCount » l'exige, choisies une à une. */
 export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice {
+  if (state.rules.split && passCountOf(state) === 2) return aiChooseSplit(state, player, rng);
   const picks: Pick[] = [];
   const view = { ...state, players: state.players.map((p) => ({ ...p, hand: [...p.hand] })) };
+  // Après une fausse accusation, la Vaisselle reste en main ce tour-ci : on ne l'envisage pas.
+  if (vaisselleLocked(state, player) || leftOf(state, player) === player) view.players[player].hand = view.players[player].hand.filter((c) => c.kind !== 'vaisselle');
   for (let k = 0; k < passCountOf(state); k++) {
     const ch = aiChoose(view, player, rng);
     picks.push({ cardId: ch.cardId, mode: ch.mode, target: ch.target, give: ch.give });
@@ -250,6 +260,51 @@ export function aiChooseAll(state: GameState, player: number, rng: Rng): Choice 
     view.players[player].hand = view.players[player].hand.filter((c) => c.id !== ch.cardId && c.id !== ch.give);
   }
   return { ...picks[0], extra: picks.slice(1) };
+}
+
+/**
+ * Règle « une au voisin, une au Marché » : la Vaisselle (ou une carte sans intérêt pour le voisin)
+ * part à gauche ; une carte à effet se joue, sinon une autre carte inutile part au Marché
+ * (l'IA difficile y envoie de préférence ce qui pourrait servir à son voisin).
+ */
+export function aiChooseSplit(state: GameState, player: number, rng: Rng): Choice {
+  const me = state.players[player];
+  const own = me.regions;
+  const isBonus = (c: DishCard) => me.bonus[own.indexOf(c.region)] === c.course;
+  const hand = me.hand;
+  const locked = vaisselleLocked(state, player) || leftOf(state, player) === player;
+  const junk = hand.filter((c): c is DishCard => isDish(c) && (!own.includes(c.region) || isBonus(c)));
+  const owned = hand.filter((c): c is DishCard => isDish(c) && own.includes(c.region) && !isBonus(c));
+  const dup = owned.filter((c, i) => owned.findIndex((x) => x.course === c.course) !== i);
+  const spare: Card[] = [...junk, ...dup, ...hand.filter((c) => c.kind === 'baguette').slice(1)];
+  const lastResort = () => pick(rng, hand.filter((c) => c.kind !== 'vaisselle'));
+  const b = me.difficulty === 'difficile' ? beliefs(state, player)[leftOf(state, player)] ?? {} : {};
+  const uniform = 1 / (Object.keys(b).length || 1);
+  const risky = (c: Card) => isDish(c) && (b[c.region] ?? 0) > 2 * uniform;
+  // 1. Carte passée au voisin.
+  const v = hand.find((c) => c.kind === 'vaisselle');
+  let pass: Card;
+  if (v && !locked) pass = v;
+  else {
+    const safe = spare.filter((c) => !risky(c));
+    pass = safe.length ? pick(rng, safe) : spare.length ? pick(rng, spare) : lastResort();
+  }
+  // 2. Carte jouée ou mise au Marché.
+  const rest = hand.filter((c) => c !== pass && c.kind !== 'vaisselle');
+  const fx = rest.find((c) => c.kind === 'effect' && c.effect !== 'troc' && me.difficulty !== 'facile');
+  if (fx && fx.kind === 'effect') {
+    const others = activePlayers(state).filter((i) => i !== player);
+    const top = Math.max(...others.map((i) => state.players[i].etoiles));
+    const target = fx.effect === 'controle' ? pick(rng, others.filter((i) => state.players[i].etoiles === top)) : fx.effect === 'demitour' ? undefined : pick(rng, others);
+    const give = fx.effect === 'chapardeur' ? (rest.find((c) => c !== fx && spare.includes(c)) ?? rest.find((c) => c !== fx))?.id : undefined;
+    if (others.length && (fx.effect !== 'chapardeur' || give)) return { cardId: pass.id, mode: isDish(pass) && pass.course === 'fromage' && state.event === 'fromagesBloques' ? 'market' : 'pass', extra: [{ cardId: fx.id, mode: 'effect', target, give }] };
+  }
+  const restSpare = rest.filter((c) => spare.includes(c) || c.kind === 'effect');
+  const riskyOnes = restSpare.filter(risky);
+  const market = riskyOnes.length ? pick(rng, riskyOnes) : restSpare.length ? pick(rng, restSpare) : pick(rng, rest);
+  const fromage = (c: Card) => state.event === 'fromagesBloques' && isDish(c) && c.course === 'fromage';
+  if (fromage(pass)) return { cardId: pass.id, mode: 'market', extra: [{ cardId: market.id, mode: fromage(market) ? 'market' : 'pass' }] };
+  return { cardId: pass.id, mode: 'pass', extra: [{ cardId: market.id, mode: 'market' }] };
 }
 
 /** Plats qui manquent à l'ordinateur pour terminer sa région la plus avancée. */
@@ -274,7 +329,46 @@ export function aiReveal(state: GameState, player: number): string | undefined {
   return (junk[0] ?? me.hand.find((c) => c.kind !== 'vaisselle'))?.id;
 }
 
-/** COMMANDE : l'IA difficile commande un plat qui lui manque quand elle a un Chapardeur pour aller le chercher. */
+/**
+ * COMMANDE « service » : « Bob, as-tu le Munster ? ». Chacun demande un plat qui lui manque,
+ * au joueur le plus susceptible de l'avoir (l'IA difficile écarte ceux qui ont déjà répondu non,
+ * et bluffe parfois en demandant le plat d'une autre région pour brouiller les pistes).
+ */
+export function aiOrderService(state: GameState, player: number, rng: Rng): { cardId: string; target: number } | null {
+  const me = state.players[player];
+  if (checkOrder(state, player)) return null;
+  const missing = missingDishes(state, player);
+  const others = activePlayers(state).filter((i) => i !== player);
+  if (!missing.length || !others.length) return null;
+  if (me.difficulty === 'facile' && rng() < 0.4) return null;
+  let cardId = pick(rng, missing);
+  if (me.difficulty === 'difficile') {
+    // Bluff : une fois sur six, demander le plat d'une autre région (que personne n'a demandé).
+    if (rng() < 1 / 6) {
+      const decoys = state.regionsInPlay.filter((r) => !me.regions.includes(r)).flatMap((r) => COURSES.map((c) => `${r}-${c}`));
+      cardId = pick(rng, decoys);
+    }
+    // Qui a déjà répondu « non » pour ce plat depuis notre dernier échange avec lui ? On l'évite.
+    const said = (q: number) => state.orders.some((o) => o.player === player && o.target === q && o.cardId === cardId && !o.served && o.turn >= state.turn - 2);
+    const fresh = others.filter((q) => !said(q));
+    return { cardId, target: pick(rng, fresh.length ? fresh : others) };
+  }
+  return { cardId, target: pick(rng, others) };
+}
+
+/** Carte rendue après une commande servie : la Vaisselle si possible (bon débarras !), sinon la plus inutile. */
+export function aiOrderGive(state: GameState, player: number, rng: Rng): string {
+  const me = state.players[player];
+  const order = state.orders[state.orders.length - 1];
+  const ok = me.hand.filter((c) => c.id !== order?.cardId);
+  const v = ok.find((c) => c.kind === 'vaisselle');
+  const locked = vaisselleLocked(state, player);
+  if (v && !locked && (me.difficulty !== 'facile' || rng() < 0.5)) return v.id;
+  const junk = ok.filter((c) => c.kind !== 'vaisselle' && c.kind !== 'baguette' && !(isDish(c) && me.regions.includes(c.region) && me.bonus[me.regions.indexOf(c.region)] !== c.course));
+  return (junk.length ? pick(rng, junk) : ok.find((c) => c.kind !== 'vaisselle')!).id;
+}
+
+/** COMMANDE (v4) : l'IA difficile commande un plat qui lui manque quand elle a un Chapardeur pour aller le chercher. */
 export function aiOrder(state: GameState, player: number): string | null {
   const me = state.players[player];
   if (me.difficulty !== 'difficile' || state.rules.commande !== 'plat') return null;

@@ -1,10 +1,12 @@
 // Note /100 du jeu par configuration (barème figé de src/sim/fun.ts) : npm run score -- [parties]
 import { measure, naiveWinRate, ruleModules, rulesOf, score } from '../src/sim/fun';
+import type { Rules } from '../src/engine';
 const games = +(process.argv[2] ?? 300);
-const rules = rulesOf({});
+/** Variante à tester (JSON en 2e argument), sinon les règles par défaut. */
+const rules = rulesOf(JSON.parse(process.argv[3] ?? '{}') as Partial<Rules>);
 const res: Record<string, number> = {};
-for (const n of [2, 3, 4]) {
-  const st = measure(n, rules, games);
+for (const n of (process.argv[4] ?? '2,3,4').split(',').map(Number)) {
+  const st = measure(n, rules, games, process.env.SEED ? +process.env.SEED : undefined);
   const naive = naiveWinRate(n, rules, games);
   const sc = score(st, naive, rules, n);
   res[n] = sc.total;
