@@ -1,7 +1,7 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { announceableMenu, checkAnnounce, checkDenounce, leftOf, ordersAllowed, passCountOf, visibleDiscard } from './game';
+import { announceableMenu, checkAnnounce, checkDenounce, isProtected, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
 import { COURSES } from '../config/cards';
 import { menuProgress } from './deck';
 import { pick, type Rng } from './rng';
@@ -9,6 +9,8 @@ import type { Card, Choice, DishCard, GameState, Pick, RegionId } from './types'
 
 /** Multiplicateur appliqué à une région quand un joueur s'en débarrasse. */
 const DUMP_FACTOR = 0.3;
+/** Multiplicateur appliqué à une région quand on voit un de ses plats dans la main d'un joueur (Dégustation). */
+const PEEK_FACTOR = 2;
 /** Seuil de confiance au-delà duquel l'IA difficile dénonce. */
 export const DENOUNCE_CONFIDENCE = 0.7;
 /** Probabilité, à chaque tour, de continuer à attendre le Gastronomique. */
@@ -23,6 +25,7 @@ export type Beliefs = Record<number, Record<RegionId, number>>;
  * Ce que `observer` peut déduire des régions secrètes des autres joueurs.
  * - un joueur qui envoie une carte au Marché (public) n'a sans doute pas cette région ;
  * - pareil pour une carte qu'il NOUS passe ;
+ * - une carte vue dans sa main (Dégustation) rend sa région plus probable ;
  * - une fausse accusation écarte la région accusée ;
  * - une accusation juste écarte la région démasquée et brouille les indices
  *   (le joueur a pioché une nouvelle région à la place).
@@ -50,6 +53,7 @@ export function beliefs(state: GameState, observer: number): Beliefs {
         if (m.player !== q || m.card.kind !== 'dish') continue;
         if (m.mode === 'market' || m.to === observer) weights[m.card.region] *= DUMP_FACTOR;
       }
+      for (const m of moves) if (m.player === observer && m.target === q && m.peek) for (const c of m.peek) if (isDish(c)) weights[c.region] *= PEEK_FACTOR;
     }
     // Cartes Région partagées : la région des autres peut être la mienne.
     if (state.rules.mode === 'unMenu' && state.rules.regionCards === 'partagees') for (const r of own) if (!steps.some((x) => x.d?.target === q && x.d.region === r)) excluded.delete(r);
@@ -84,11 +88,27 @@ export function aiDenounce(state: GameState, player: number): { target: number; 
   const b = beliefs(state, player);
   let best: { target: number; region: RegionId; p: number } | null = null;
   for (const [q, dist] of Object.entries(b)) {
-    if (state.rules.denounceLimit === 'protege' && state.unmasked.includes(+q)) continue;
+    if (isProtected(state, +q)) continue;
     const { region, p } = mostLikely(dist);
     if (region && p > DENOUNCE_CONFIDENCE && (!best || p > best.p)) best = { target: +q, region, p };
   }
   return best && { target: best.target, region: best.region };
+}
+
+/**
+ * INSPECTION : la carte que l'ordinateur montre en début de tour. Les IA moyenne et difficile
+ * montrent de préférence le vrai plat de leur carte Région (inutile pour elles : c'est un bluff),
+ * sinon une carte d'une autre région ; l'IA facile montre une carte au hasard.
+ */
+export function aiShow(state: GameState, player: number, rng: Rng): string | null {
+  if (!mustShow(state, player)) return null;
+  const me = state.players[player];
+  const cands = me.hand.filter((c) => c.kind !== 'vaisselle');
+  if (me.difficulty === 'facile') return pick(rng, cands).id;
+  const bluff = cands.find((c) => isDish(c) && me.regions.includes(c.region) && me.bonus[me.regions.indexOf(c.region)] === c.course);
+  if (bluff) return bluff.id;
+  const junk = cands.filter((c) => isDish(c) && !me.regions.includes(c.region));
+  return pick(rng, junk.length ? junk : cands).id;
 }
 
 /** CHOIX SECRET de l'ordinateur : quelle carte, et passer ou Marché. */

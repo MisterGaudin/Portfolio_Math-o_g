@@ -2,9 +2,9 @@
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
 import { COURSES, DAY_EVENTS, HAND_SIZE, REGION_BY_ID, type Course } from '../config/cards';
-import { ALL_REGION_IDS, buildDeck, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
+import { ALL_REGION_IDS, buildDeck, cardById, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
-import type { Card, Choice, DayEvent, Denunciation, GameEvent, GameState, Menu, Move, Order, PlayerSetup, RegionId, RoundResult, Rules } from './types';
+import type { Card, Choice, DayEvent, Effect, Denunciation, GameEvent, GameState, Menu, Move, Order, PlayerSetup, RegionId, RoundResult, Rules } from './types';
 
 export interface GameOptions {
   /** Étoiles nécessaires pour devenir Chef 3 étoiles (3 par défaut). */
@@ -36,6 +36,7 @@ export const DEFAULT_RULES: Rules = {
   openMarket: true,
   commande: 'plat',
   dishOfDay: true,
+  duel: true,
 };
 /** Règles « de base » (v3), sans les ajouts de la version 4 : utile pour comparer en simulation. */
 export const BASIC_RULES: Partial<Rules> = {
@@ -46,11 +47,39 @@ export const BASIC_RULES: Partial<Rules> = {
   openMarket: false,
   commande: 'aucune',
   dishOfDay: false,
+  duel: false,
 };
 /** Ancienne version « 2 menus » (2 régions, 8 cartes à réunir, 1 carte par tour). */
 export const TWO_MENUS_RULES: Partial<Rules> = { ...BASIC_RULES, mode: 'deuxMenus', regionsPerPlayer: 2, passCount: 1, effects: {} };
 
 export const DAY_EVENT_IDS = Object.keys(DAY_EVENTS) as DayEvent[];
+
+/** Mode Duel : partie à 2 joueurs avec les règles spéciales activées. */
+export const isDuel = (state: Pick<GameState, 'players' | 'rules'>) => state.rules.duel && state.players.length === 2;
+
+/** Cartes « Plat du jour » possibles : en Duel, « Inspection » remplace « Service à l'anglaise » (inutile à 2). */
+export function dayEventsFor(state: Pick<GameState, 'players' | 'rules'>): DayEvent[] {
+  return DAY_EVENT_IDS.filter((e) => (isDuel(state) ? e !== 'sensInverse' : e !== 'inspection'));
+}
+
+/** Cartes à effet du paquet : en Duel, les Demi-tour (inutiles à 2) deviennent des Dégustation. */
+export function effectsFor(state: Pick<GameState, 'players' | 'rules'>): Partial<Record<Effect, number>> {
+  const fx = { ...state.rules.effects };
+  if (isDuel(state) && fx.demitour) {
+    fx.degustation = (fx.degustation ?? 0) + fx.demitour;
+    delete fx.demitour;
+  }
+  return fx;
+}
+
+/**
+ * Un joueur démasqué est-il protégé ? Jusqu'à la fin de la manche, sauf en Duel :
+ * jusqu'à la fin du tour suivant seulement (sinon la Vaisselle ne servirait plus à rien).
+ */
+export function isProtected(state: GameState, p: number): boolean {
+  if (state.rules.denounceLimit !== 'protege') return false;
+  return state.unmasked.includes(p) || (state.shieldUntil[p] ?? 0) >= state.turn;
+}
 
 /** Mise en place imposée d'une manche (tutoriel et tests). */
 export interface RoundPreset {
@@ -89,6 +118,8 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
     maxTurns: opts.maxTurns ?? DEFAULT_MAX_TURNS,
     denounceBanUntil: {},
     unmasked: [],
+    shieldUntil: {},
+    shown: {},
     rules: { ...DEFAULT_RULES, ...opts.rules },
     direction: 1,
     specialPile: [],
@@ -117,6 +148,8 @@ export function cloneState(s: GameState): GameState {
     stats: { ...s.stats },
     denounceBanUntil: { ...s.denounceBanUntil },
     unmasked: [...s.unmasked],
+    shieldUntil: { ...s.shieldUntil },
+    shown: { ...s.shown },
     specialPile: [...s.specialPile],
     frozen: [...s.frozen],
     blockedUntil: { ...s.blockedUntil },
@@ -138,6 +171,8 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
   state.denunciation = null;
   state.denounceBanUntil = {};
   state.unmasked = [];
+  state.shieldUntil = {};
+  state.shown = {};
   state.direction = 1;
   state.specialPile = [];
   state.frozen = [];
@@ -145,7 +180,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
   state.blockedUntil = {};
   state.orders = [];
   // Carte « Plat du jour » : un événement pour toute la manche.
-  state.event = state.rules.dishOfDay && !preset ? pick(rng, DAY_EVENT_IDS) : 'service';
+  state.event = state.rules.dishOfDay && !preset ? pick(rng, dayEventsFor(state)) : 'service';
   if (state.event === 'sensInverse') state.direction = -1;
   state.history = [];
   state.origins = {};
@@ -194,7 +229,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       state.regionReserve = cards;
     }
 
-    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, state.rules.effects).filter((c) => c.kind !== 'vaisselle'));
+    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, effectsFor(state)).filter((c) => c.kind !== 'vaisselle'));
     const unlucky = randInt(rng, n); // celui qui reçoit la Vaisselle
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).
@@ -314,7 +349,8 @@ function swapCards(a: Card[], i: number, b: Card[], j: number): void {
  * DÉNONCIATION : « Je te démasque : Alsace ! » — réservée au porteur de la Vaisselle.
  * Il faut d'abord montrer une carte de sa main à tous (`reveal`).
  * - Juste : l'accusé reçoit la Vaisselle (et rend une carte au hasard), remplace sa carte
- *   Région par une carte de la réserve, puis il est protégé jusqu'à la fin de la manche.
+ *   Région par une carte de la réserve, puis il est protégé jusqu'à la fin de la manche
+ *   (en Duel : jusqu'à la fin du tour suivant).
  *   Récompense : la carte montrée part chez l'accusé, contre une carte prise au hasard chez lui.
  * - Fausse : l'accusateur garde la Vaisselle et ne peut pas dénoncer au tour suivant.
  * Les choix déjà faits ce tour-ci sont annulés (les mains ont pu changer).
@@ -332,7 +368,8 @@ export function denounce(
   const err = checkDenounce(state, accuser);
   if (err) throw new Error(err);
   if (accuser === target || !state.players[target]) throw new Error('Accusation impossible');
-  if (state.rules.denounceLimit === 'protege' && state.unmasked.includes(target)) throw new Error(`${state.players[target].name} a déjà été démasqué : il est protégé jusqu’à la fin de la manche`);
+  if (isProtected(state, target))
+    throw new Error(`${state.players[target].name} a déjà été démasqué : il est protégé jusqu’à la fin ${isDuel(state) ? 'du tour suivant' : 'de la manche'}`);
   if (!state.regionsInPlay.includes(region)) throw new Error('Cette région n’est pas en jeu');
 
   const me = state.players[accuser];
@@ -385,7 +422,9 @@ export function denounce(
       state.regionReserve = [...state.regionReserve.filter((r) => r !== fresh), region];
       p.regions = p.regions.map((r) => (r === region ? fresh : r));
     }
-    state.unmasked.push(target);
+    // Protégé jusqu'à la fin de la manche (en Duel : jusqu'à la fin du tour suivant).
+    if (isDuel(state)) state.shieldUntil[target] = state.turn + 1;
+    else state.unmasked.push(target);
     state.stats.correctDenunciations += 1;
   } else {
     state.denounceBanUntil[accuser] = state.turn + 2;
@@ -417,10 +456,28 @@ export function placeOrder(state: GameState, player: number, query: { cardId?: s
 }
 const imageIdOf = (id: string) => id.replace(/-\d+$/, '');
 
+/** Inspection : ce joueur doit-il encore montrer une carte avant de choisir ? */
+export const mustShow = (state: GameState, player: number) =>
+  state.event === 'inspection' && state.phase === 'choose' && !state.frozen.includes(player) && state.shown[player] === undefined;
+
+/**
+ * INSPECTION (Plat du jour du Duel) : au début du tour, chacun montre une carte de sa main
+ * (pas la Vaisselle, déjà visible). La carte reste dans sa main.
+ */
+export function showCard(state: GameState, player: number, cardId: string): GameEvent[] {
+  if (!mustShow(state, player)) throw new Error('Pas de carte à montrer maintenant');
+  const card = state.players[player].hand.find((c) => c.id === cardId);
+  if (!card) throw new Error('Cette carte n’est pas dans ta main');
+  if (card.kind === 'vaisselle') throw new Error('La Vaisselle est déjà visible : montre une autre carte');
+  state.shown[player] = cardId;
+  return [{ type: 'show', player, card }];
+}
+
 /** Vérifie qu'un choix est autorisé (renvoie un message d'erreur, ou null). */
 export function checkChoice(state: GameState, player: number, choice: Choice): string | null {
   if (state.phase !== 'choose') return 'Ce n’est pas le moment de choisir';
   if (state.frozen.includes(player)) return 'Ta main est posée face cachée';
+  if (mustShow(state, player)) return 'Inspection : montre d’abord une carte';
   const need = passCountOf(state);
   const all = [{ cardId: choice.cardId, mode: choice.mode, target: choice.target, give: choice.give }, ...(choice.extra ?? [])];
   if (all.length !== need) return `Il faut donner ${need} carte${need > 1 ? 's' : ''}`;
@@ -552,6 +609,7 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
     const other = state.players[m.target];
     if (m.card.effect === 'troc') [me.hand, other.hand] = [other.hand, me.hand];
     if (m.card.effect === 'controle') state.blockedUntil[m.target] = state.turn + 1;
+    if (m.card.effect === 'degustation') m.peek = shuffle(rng, [...other.hand]).slice(0, 3);
     if (m.card.effect === 'chapardeur') {
       // On vole une carte au hasard et on rend la carte choisie à l'avance (ou une au hasard si elle a disparu).
       let gi = me.hand.findIndex((c) => c.id === m.give);
@@ -570,8 +628,10 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
   }
   if (reshuffled) events.push({ type: 'reshuffle' });
 
-  state.history.push({ turn: state.turn, denunciation: state.denunciation ?? undefined, moves, reshuffled });
+  const shown = Object.keys(state.shown).length ? Object.fromEntries(Object.entries(state.shown).map(([p, id]) => [p, cardById(id)])) : undefined;
+  state.history.push({ turn: state.turn, denunciation: state.denunciation ?? undefined, moves, reshuffled, shown });
   state.choices = {};
+  state.shown = {};
   state.denunciation = null;
   state.phase = 'announce';
   return events;

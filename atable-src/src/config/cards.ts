@@ -73,6 +73,7 @@ export const SPECIALS = {
   troc: { id: 'troc', name: 'Troc', icon: '🤝', hint: 'Échange ta main avec un joueur' },
   chapardeur: { id: 'chapardeur', name: 'Chapardeur', icon: '🦊', hint: 'Vole une carte au hasard, rends-en une' },
   controle: { id: 'controle', name: 'Contrôle sanitaire', icon: '🚫', hint: 'Un joueur ne peut pas annoncer' },
+  degustation: { id: 'degustation', name: 'Dégustation', icon: '👅', hint: 'Regarde 3 cartes de l’adversaire' },
 } as const;
 
 /** Les cartes « Plat du jour » : un événement par manche. */
@@ -80,6 +81,7 @@ export const DAY_EVENTS = {
   service: { name: 'Service classique', icon: '🍽️', text: 'Rien ne change : bon appétit !' },
   fromagesBloques: { name: 'Plateau de fromages', icon: '🧀', text: 'Les fromages ne se passent pas : ils vont au Marché.' },
   sensInverse: { name: 'Service à l’anglaise', icon: '🔄', text: 'On passe les cartes dans l’autre sens.' },
+  inspection: { name: 'Inspection', icon: '🔍', text: 'Au début de chaque tour, chacun montre une carte de sa main.' },
   sansBaguette: { name: 'Grève des boulangers', icon: '🥖', text: 'La Baguette ne remplace aucun plat.' },
   troisCartes: { name: 'Coup de feu', icon: '🔥', text: 'On donne 3 cartes par tour.' },
   sansDenonciation: { name: 'Repas de famille', icon: '🤫', text: 'Pas de dénonciation cette manche.' },

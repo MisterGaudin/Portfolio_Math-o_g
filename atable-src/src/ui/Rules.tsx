@@ -30,6 +30,9 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
         <p>
           ✨ <b>Effets</b> : 🔄 Demi-tour, 🤝 Troc, 🦊 Chapardeur, 🚫 Contrôle sanitaire. Chaque manche, un <b>Plat du jour</b> change une règle.
         </p>
+        <p>
+          ⚔️ <b>Duel</b> (à 2) : 👅 Dégustation (voir 3 cartes adverses) remplace Demi-tour, protection d’un seul tour.
+        </p>
       </div>
     </Modal>
   );

@@ -8,6 +8,7 @@ import {
   aiDenounce,
   aiOrder,
   aiReveal,
+  aiShow,
   aiTake,
   allChosen,
   announceableMenu,
@@ -18,12 +19,15 @@ import {
   createRng,
   denounce,
   marketReceivers,
+  mustShow,
   nextRound,
   placeOrder,
   resolveAnnouncements,
   resolveExchange,
+  showCard,
   submitChoice,
   visibleDiscard,
+  type Card,
   type Choice,
   type Denunciation,
   type Difficulty,
@@ -41,7 +45,7 @@ export interface Setup {
 /**
  * Étapes vues par l'interface :
  * intro      — début de manche : on découvre ses 2 régions secrètes ;
- * thinking   — début de tour, les ordinateurs envisagent une dénonciation ;
+ * thinking   — début de tour : Inspection éventuelle, les ordinateurs envisagent une dénonciation ;
  * choosing   — chacun choisit ses cartes en secret ;
  * marketPick — Marché ouvert : le joueur choisit la pioche ou la carte visible ;
  * revealing  — animation de l'échange simultané ;
@@ -90,6 +94,8 @@ export function useGame() {
   const [fx, setFx] = useState<ExchangeFx | null>(null);
   const [lastDenunciation, setLastDenunciation] = useState<Denunciation | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  /** Dégustation : les 3 cartes vues chez l'adversaire (affichées au joueur). */
+  const [peek, setPeek] = useState<{ from: number; cards: Card[] } | null>(null);
   const [script, setScript] = useState<BotScript | null>(null);
   /** Vrai pendant qu'une fenêtre (règles, dénonciation…) est ouverte : l'IA attend. */
   const [paused, setPaused] = useState(false);
@@ -195,6 +201,20 @@ export function useGame() {
     [mutate],
   );
 
+  // ─── Inspection ──────────────────────────────────────────────────────────
+  const humanShow = useCallback(
+    (cardId: string): string | null => {
+      try {
+        mutate((s) => showCard(s, 0, cardId));
+        return null;
+      } catch (e) {
+        return (e as Error).message;
+      }
+    },
+    [mutate],
+  );
+  const clearPeek = useCallback(() => setPeek(null), []);
+
   // ─── Choix ───────────────────────────────────────────────────────────────
   const humanChoose = useCallback(
     (choice: Choice): string | null => {
@@ -270,7 +290,12 @@ export function useGame() {
     if (!state || paused) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
 
-    if (stage === 'thinking' && state.phase === 'choose') {
+    if (stage === 'thinking' && state.phase === 'choose' && !script && activePlayers(state).some((p) => p !== 0 && mustShow(state, p))) {
+      // 0. Inspection : les ordinateurs choisissent la carte qu'ils montrent (dévoilée quand tu as montré la tienne).
+      mutate((s) => {
+        for (const p of activePlayers(s)) if (p !== 0 && mustShow(s, p)) showCard(s, p, aiShow(s, p, rng.current)!);
+      });
+    } else if (stage === 'thinking' && state.phase === 'choose') {
       // 1. Dénonciation : le premier ordinateur (dans l'ordre) qui le souhaite.
       const bot = script ? null : state.players.map((_, p) => p).filter((p) => p !== 0).map((p) => ({ p, d: aiDenounce(state, p) })).find((x) => x.d);
       if (bot?.d) {
@@ -288,6 +313,7 @@ export function useGame() {
             // Commande éventuelle de l'ordinateur (avant ses choix).
             const want = script ? null : aiOrder(s, waiting);
             const ev = want ? placeOrder(s, waiting, { cardId: want }) : [];
+            if (mustShow(s, waiting)) showCard(s, waiting, aiShow(s, waiting, rng.current)!);
             submitChoice(s, waiting, script ? script.botChoice(s, waiting) : aiChooseAll(s, waiting, rng.current));
             return ev.length ? want : null;
           });
@@ -330,9 +356,12 @@ export function useGame() {
         if (e === 'troc') out.push(`🤝 ${who(m.player)} ${verb(m.player, 'fais', 'fait')} un Troc avec ${target(m)} : mains échangées !`);
         if (e === 'demitour') out.push(`🔄 ${who(m.player)} ${verb(m.player, 'joues', 'joue')} Demi-tour : le sens s’inverse !`);
         if (e === 'chapardeur') out.push(`🦊 ${who(m.player)} ${verb(m.player, 'chapardes', 'chaparde')} une carte chez ${target(m)}${m.player === 0 && m.stolen ? ` : ${m.stolen.name}` : ''} !`);
+        if (e === 'degustation') out.push(`👅 ${who(m.player)} ${verb(m.player, 'goûtes', 'goûte')} 3 cartes de ${m.target === 0 ? 'ta main' : `la main de ${target(m)}`} !`);
         if (e === 'controle') out.push(`🚫 Contrôle sanitaire : ${target(m)} ne ${m.target === 0 ? 'peux' : 'peut'} pas annoncer jusqu’au prochain tour.`);
         return out;
       });
+      const tasted = (fx?.moves ?? []).find((m) => m.player === 0 && m.peek);
+      if (tasted) setPeek({ from: tasted.target!, cards: tasted.peek! });
       if (effects.length) {
         vibrate([80, 40, 80]);
         setToast(effects.join(' · '));
@@ -376,6 +405,9 @@ export function useGame() {
     beginRound,
     humanOrder,
     humanTake,
+    humanShow,
+    peek,
+    clearPeek,
     setPaused,
     setToast,
   };

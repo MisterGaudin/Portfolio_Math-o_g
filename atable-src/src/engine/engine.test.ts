@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { REGIONS } from '../config/cards';
 import {
   aiChoose,
+  aiChooseAll,
   ALL_REGION_IDS,
   BAGUETTE,
   beliefs,
@@ -14,6 +15,8 @@ import {
   evaluateMenu,
   evaluateOneMenu,
   placeOrder,
+  isProtected,
+  showCard,
   checkAnnounce,
   effectCard,
   cloneState,
@@ -741,5 +744,86 @@ describe('victoire', () => {
       expect(s.phase).toBe('gameOver');
       expect(s.players[s.winner!].etoiles).toBe(3);
     }
+  });
+});
+
+describe('mode Duel (2 joueurs)', () => {
+  const kinds = (s: GameState) => [...s.drawPile, ...s.players.flatMap((p) => p.hand)].filter((c) => c.kind === 'effect').map((c) => (c.kind === 'effect' ? c.effect : ''));
+
+  it('les Demi-tour deviennent des Dégustation, seulement à 2', () => {
+    const duo = kinds(createGame(setups(2), createRng(1)));
+    expect(duo).not.toContain('demitour');
+    expect(duo.filter((e) => e === 'degustation')).toHaveLength(2);
+    const trio = kinds(createGame(setups(3), createRng(1)));
+    expect(trio).toContain('demitour');
+    expect(trio).not.toContain('degustation');
+    expect(kinds(createGame(setups(2), createRng(1), { rules: { duel: false } }))).toContain('demitour');
+  });
+
+  it('Plat du jour : jamais « Service à l’anglaise » en Duel, jamais « Inspection » à plusieurs', () => {
+    for (let k = 0; k < 200; k++) {
+      expect(createGame(setups(2), createRng(k)).event).not.toBe('sensInverse');
+      expect(createGame(setups(3), createRng(k)).event).not.toBe('inspection');
+    }
+  });
+
+  it('Dégustation : on voit 3 cartes de la main adverse', () => {
+    const s = createGame(setups(2), createRng(5), { rules: { dishOfDay: false, effects: {} } });
+    const card = effectCard('degustation', 1);
+    s.players[0].hand[s.players[0].hand.findIndex((c) => c.kind !== 'vaisselle')] = card;
+    const other = s.players[0].hand.find((c) => c !== card && c.kind !== 'vaisselle')!;
+    submitChoice(s, 0, { cardId: card.id, mode: 'effect', target: 1, extra: [{ cardId: other.id, mode: 'market' }] });
+    submitChoice(s, 1, aiChooseAll(s, 1, createRng(2)));
+    resolveExchange(s, createRng(3));
+    const m = s.history.at(-1)!.moves.find((x) => x.card === card)!;
+    expect(m.peek).toHaveLength(3);
+    for (const c of m.peek!) expect(s.players[1].hand).toContain(c);
+  });
+
+  it('Inspection : il faut montrer une carte avant de choisir', () => {
+    const s = createGame(setups(2), createRng(6), { rules: { dishOfDay: false } });
+    s.event = 'inspection';
+    const ch = aiChooseAll(s, 0, createRng(1));
+    expect(() => submitChoice(s, 0, ch)).toThrow(/montre/);
+    const v = s.players[0].hand.find((c) => c.kind === 'vaisselle');
+    if (v) expect(() => showCard(s, 0, v.id)).toThrow(/Vaisselle/);
+    const shown = s.players[0].hand.find((c) => c.kind !== 'vaisselle')!;
+    showCard(s, 0, shown.id);
+    expect(() => showCard(s, 0, shown.id)).toThrow();
+    submitChoice(s, 0, aiChooseAll(s, 0, createRng(1)));
+    showCard(s, 1, s.players[1].hand.find((c) => c.kind !== 'vaisselle')!.id);
+    submitChoice(s, 1, aiChooseAll(s, 1, createRng(1)));
+    resolveExchange(s, createRng(1));
+    expect(s.history.at(-1)!.shown?.[0]?.id).toBe(shown.id);
+    expect(s.shown).toEqual({});
+  });
+
+  it('protection d’un tour seulement après une dénonciation juste', () => {
+    const s = createGame(setups(2), createRng(7), { rules: { dishOfDay: false, effects: {} } });
+    const holder = vaisselleHolder(s)!;
+    const target = 1 - holder;
+    denounce(s, holder, target, s.players[target].regions[0], createRng(1));
+    const next = () => {
+      for (const p of [0, 1]) submitChoice(s, p, aiChooseAll(s, p, createRng(p)));
+      resolveExchange(s, createRng(2));
+      resolveAnnouncements(s, [], createRng(3));
+    };
+    next();
+    // Tour suivant : encore protégé ; le tour d'après, plus du tout.
+    expect(isProtected(s, target)).toBe(true);
+    next();
+    expect(isProtected(s, target)).toBe(false);
+  });
+
+  it.each(['facile', 'moyen', 'difficile'] as const)('une partie complète en Duel (%s) se termine', (d) => {
+    const s = createGame(setups(2, d), createRng(77));
+    const rng = createRng(78);
+    let guard = 0;
+    while (s.phase !== 'gameOver' && guard++ < 20000) {
+      if (s.phase === 'roundOver') nextRound(s, rng);
+      else playBotTurn(s, rng);
+      expect(totalCards(s)).toBe(TOTAL_DEFAULT);
+    }
+    expect(s.phase).toBe('gameOver');
   });
 });

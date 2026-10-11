@@ -1,11 +1,16 @@
 // Un tour complet joué uniquement par des ordinateurs (simulation et tests).
-import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiReveal, aiTake } from './ai';
-import { activePlayers, denounce, marketReceivers, placeOrder, resolveAnnouncements, resolveExchange, submitChoice } from './game';
+import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiReveal, aiShow, aiTake } from './ai';
+import { activePlayers, denounce, marketReceivers, placeOrder, resolveAnnouncements, resolveExchange, showCard, submitChoice } from './game';
 import type { Rng } from './rng';
 import type { GameEvent, GameState } from './types';
 
 export function playBotTurn(state: GameState, rng: Rng): GameEvent[] {
   const events: GameEvent[] = [];
+  // 0. Inspection : chacun montre une carte.
+  for (const p of activePlayers(state)) {
+    const id = aiShow(state, p, rng);
+    if (id) events.push(...showCard(state, p, id));
+  }
   // 1. Dénonciation : la première IA (dans l'ordre des joueurs) qui le souhaite.
   for (let p = 0; p < state.players.length; p++) {
     const d = aiDenounce(state, p);

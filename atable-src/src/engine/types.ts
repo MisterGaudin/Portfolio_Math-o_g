@@ -25,12 +25,13 @@ export interface BaguetteCard {
 }
 
 /** Les effets des cartes spéciales (posées sur la pile spéciale, hors jeu, une fois jouées). */
-export type Effect = 'demitour' | 'troc' | 'chapardeur' | 'controle';
+export type Effect = 'demitour' | 'troc' | 'chapardeur' | 'controle' | 'degustation';
 
 /**
  * Carte à effet : « Demi-tour » (le sens s'inverse), « Troc » (échange de main),
- * « Chapardeur » (voler une carte au hasard chez un joueur, lui en rendre une) ou
- * « Contrôle sanitaire » (un joueur ne peut pas annoncer jusqu'à la fin du tour suivant).
+ * « Chapardeur » (voler une carte au hasard chez un joueur, lui en rendre une),
+ * « Contrôle sanitaire » (un joueur ne peut pas annoncer jusqu'à la fin du tour suivant) ou,
+ * en Duel, « Dégustation » (regarder 3 cartes au hasard dans la main de l'adversaire).
  */
 export interface EffectCard {
   kind: 'effect';
@@ -57,7 +58,7 @@ export type Mode = 'pass' | 'market' | 'effect';
 export interface Pick {
   cardId: string;
   mode: Mode;
-  /** Cible d'une carte à effet (Troc, Chapardeur, Contrôle sanitaire). */
+  /** Cible d'une carte à effet (Troc, Chapardeur, Contrôle sanitaire, Dégustation). */
   target?: number;
   /** Chapardeur : la carte rendue au joueur volé (choisie à l'avance). */
   give?: string;
@@ -134,7 +135,7 @@ export interface Order {
 }
 
 /** Carte « Plat du jour » : un événement qui change une règle pour toute la manche. */
-export type DayEvent = 'service' | 'fromagesBloques' | 'sensInverse' | 'sansBaguette' | 'troisCartes' | 'sansDenonciation' | 'doubleEtoile' | 'commandeLibre';
+export type DayEvent = 'service' | 'fromagesBloques' | 'sensInverse' | 'inspection' | 'sansBaguette' | 'troisCartes' | 'sansDenonciation' | 'doubleEtoile' | 'commandeLibre';
 
 /** Un mouvement de carte pendant l'échange simultané. */
 export interface Move {
@@ -153,6 +154,8 @@ export interface Move {
   /** Chapardeur : carte rendue (`give`) et carte volée (`stolen`, connue du voleur). */
   give?: string;
   stolen?: Card;
+  /** Dégustation : les 3 cartes vues chez l'adversaire (connues du seul joueur). */
+  peek?: Card[];
 }
 
 /** Mémoire d'un tour, utilisée par l'IA et les statistiques. */
@@ -161,6 +164,8 @@ export interface TurnRecord {
   denunciation?: Denunciation;
   moves: Move[];
   reshuffled: boolean;
+  /** Inspection : la carte montrée par chaque joueur en début de tour (publique). */
+  shown?: Record<number, Card>;
 }
 
 /** D'où vient une carte (pour mesurer l'effet du Marché). */
@@ -238,6 +243,11 @@ export interface Rules {
   commande: 'aucune' | 'plat' | 'type';
   /** Une carte « Plat du jour » est retournée à chaque manche. */
   dishOfDay: boolean;
+  /**
+   * Mode Duel (règles spéciales à 2 joueurs) : Dégustation à la place de Demi-tour,
+   * « Inspection » à la place de « Service à l'anglaise », protection d'un tour seulement.
+   */
+  duel: boolean;
 }
 
 export interface GameState {
@@ -272,6 +282,10 @@ export interface GameState {
   denounceBanUntil: Record<number, number>;
   /** Joueurs déjà démasqués cette manche (protégés jusqu'à la fin de la manche). */
   unmasked: number[];
+  /** Duel : un joueur démasqué est protégé tant que le tour est ≤ cette valeur. */
+  shieldUntil: Record<number, number>;
+  /** Inspection : carte montrée par chaque joueur ce tour-ci. */
+  shown: Record<number, string>;
   /** Réglages de la partie (voir GameOptions). */
   rules: Rules;
   /** Sens de passage : +1 = vers la gauche (joueur suivant), -1 = vers la droite. */
@@ -300,6 +314,7 @@ export type GameEvent =
   | { type: 'lastService'; announcers: number[] }
   | { type: 'bluff'; players: number[] }
   | { type: 'order'; order: Order }
+  | { type: 'show'; player: number; card: Card }
   | { type: 'noAnnounce' }
   | { type: 'roundWon'; result: RoundResult }
   | { type: 'gameWon'; player: number };

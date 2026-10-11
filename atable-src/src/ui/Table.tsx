@@ -2,7 +2,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useLayoutEffect, useState } from 'react';
 import { COURSE_ICONS, COURSE_LABELS, COURSES, DAY_EVENTS, REGION_BY_ID, REGIONS } from '../config/cards';
-import { announceableMenu, checkAnnounce, checkDenounce, evaluateMenu, leftOf, menuProgress, ordersAllowed, passCountOf, rightOf, visibleDiscard, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick, cardById } from '../engine';
+import { announceableMenu, checkAnnounce, checkDenounce, evaluateMenu, isDuel, isProtected, leftOf, mustShow, menuProgress, ordersAllowed, passCountOf, rightOf, visibleDiscard, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick, cardById } from '../engine';
 import { CardBack, CardView, DirtyPlate, RegionCardView, RegionChip } from './CardView';
 import { Modal } from './Modal';
 import type { Focus, Guide } from './tutorial';
@@ -92,7 +92,7 @@ function Seat({ state, p, ready, thinking, isLeft, isRight }: { state: GameState
       </div>
       <div className="seat-status">
         {state.frozen.includes(p) ? '🃏 À TABLE !' : ready ? '✓ prêt' : thinking ? '…' : ''}
-        {state.rules.denounceLimit === 'protege' && state.unmasked.includes(p) && <span title="Déjà démasqué : protégé"> 🛡️</span>}
+        {isProtected(state, p) && <span title="Déjà démasqué : protégé"> 🛡️</span>}
         {(state.blockedUntil[p] ?? 0) >= state.turn && <span title="Contrôle sanitaire : ne peut pas annoncer"> 🚫</span>}
       </div>
       {(isLeft || isRight) && <div className="seat-dir">{isLeft ? '⬅ reçoit tes cartes' : 'te passe ses cartes'}</div>}
@@ -162,14 +162,13 @@ function DenounceModal({ state, open, onClose, onConfirm, guide }: { state: Game
   const [shown, setShown] = useState<string | null>(null);
   useEffect(() => {
     if (open) {
-      setTarget(state.players.length === 2 && !(state.rules.denounceLimit === 'protege' && state.unmasked.includes(1)) ? 1 : null);
+      setTarget(state.players.length === 2 && !isProtected(state, 1) ? 1 : null);
       setRegion(null);
       setShown(null);
     }
   }, [open, state.players.length]);
   // Chaque région n'existe qu'une fois : on n'accuse pas de sa propre région.
   const regions = state.rules.regionCards === 'partagees' ? state.regionsInPlay : state.regionsInPlay.filter((r) => !state.players[0].regions.includes(r));
-  const isProtected = (i: number) => state.rules.denounceLimit === 'protege' && state.unmasked.includes(i);
   const needReveal = state.rules.revealToDenounce;
   const ok = target !== null && region !== null && (!needReveal || shown !== null) && (!guide || guide.allowDenounceTarget(target, region, shown));
   return (
@@ -182,9 +181,9 @@ function DenounceModal({ state, open, onClose, onConfirm, guide }: { state: Game
       <div className="row wrap">
         {state.players.map((p, i) =>
           i === 0 ? null : (
-            <button key={i} className={`pill${target === i ? ' active' : ''}`} disabled={isProtected(i) || state.frozen.includes(i)} onClick={() => setTarget(i)}>
+            <button key={i} className={`pill${target === i ? ' active' : ''}`} disabled={isProtected(state, i) || state.frozen.includes(i)} onClick={() => setTarget(i)}>
               {avatarOf(state, i)} {p.name}
-              {isProtected(i) ? ' 🛡️' : ''}
+              {isProtected(state, i) ? ' 🛡️' : ''}
             </button>
           ),
         )}
@@ -400,7 +399,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     if (stage === 'thinking') setPicks([]);
   }, [stage]);
   useEffect(() => {
-    game.setPaused(denounceOpen || orderOpen || eventOpen || bluffAsk);
+    game.setPaused(denounceOpen || orderOpen || eventOpen || bluffAsk || !!game.peek);
   }, [denounceOpen, orderOpen, eventOpen, bluffAsk, game]);
   useEffect(() => {
     if (!nudge) return;
@@ -408,8 +407,13 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     return () => clearTimeout(t);
   }, [nudge]);
 
+  const showing = choosing && mustShow(state, 0);
   const tapCard = (c: Card) => {
     if (!choosing || validated) return;
+    if (showing) {
+      const err = game.humanShow(c.id);
+      return err ? setNudge(err) : undefined;
+    }
     if (picks.some((x) => x.cardId === c.id)) return setPicks(picks.filter((x) => x.cardId !== c.id));
     if (guide && !guide.allowCard(c.id)) return setNudge('Suis la bulle 😉');
     if (picks.length >= need) return setNudge(`${need} carte${need > 1 ? 's' : ''} maximum : retouche une carte pour l’enlever`);
@@ -419,7 +423,10 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   };
   const pickMode = (cardId: string, m: Mode) => {
     if (guide && !guide.allowMode(cardId, m)) return setNudge('Suis la bulle 😉');
-    setPicks(picks.map((x) => (x.cardId === cardId ? { cardId, mode: m } : x)));
+    // Une seule cible possible (Duel) : elle est choisie d'office.
+    const card = me.hand.find((c) => c.id === cardId);
+    const targets = card?.kind === 'effect' ? state.players.map((_, i) => i).filter((i) => i !== 0 && (card.effect === 'controle' || !state.frozen.includes(i))) : [];
+    setPicks(picks.map((x) => (x.cardId === cardId ? { cardId, mode: m, target: m === 'effect' && targets.length === 1 ? targets[0] : undefined } : x)));
   };
   const pickTarget = (cardId: string, target: number) => setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, target } : x)));
   const pickGive = (cardId: string, give: string) => setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, give } : x)));
@@ -477,6 +484,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
       </div>
     );
   } else if (choosing && frozenMe) bar = <div className="hint">🃏 Ta main est posée face cachée — Dernier service des autres chefs…</div>;
+  else if (showing) bar = <div className="hint">🔍 Inspection : touche la carte que tu montres à tous (pas la Vaisselle).</div>;
   else if (choosing && validated) bar = <div className="hint">Cartes validées ✓ — on attend les autres…</div>;
   else if (choosing)
     bar = (
@@ -605,6 +613,14 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
               🔔 Dernier service ! {state.frozen.map((p) => (p === 0 ? 'Toi' : state.players[p].name)).join(', ')} {state.frozen.length > 1 ? 'ont' : state.frozen[0] === 0 ? 'as' : 'a'} annoncé face cachée : un dernier échange, puis on révèle.
             </motion.div>
           )}
+          {state.event === 'inspection' && !mustShow(state, 0) && Object.keys(state.shown).length > 0 && (stage === 'choosing' || stage === 'thinking') && (
+            <motion.div key="shown" className="banner" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+              🔍 Inspection :{' '}
+              {Object.entries(state.shown)
+                .map(([p, id]) => `${+p === 0 ? 'tu montres' : `${state.players[+p].name} montre`} ${cardById(id).name}`)
+                .join(' · ')}
+            </motion.div>
+          )}
           {lastOrder && lastOrder.turn === state.turn && (stage === 'choosing' || stage === 'thinking') && (
             <motion.div key="order" className="banner" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
               📝 {lastOrder.player === 0 ? 'Tu demandes' : `${state.players[lastOrder.player].name} demande`} : « Qui a {lastOrder.cardId ? cardById(lastOrder.cardId).name : lastOrder.course} ? » —{' '}
@@ -637,7 +653,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
             </span>
           )}
           <span className={`pass-dir${state.direction === -1 ? ' reversed' : ''}`} title={state.direction === -1 ? 'Sens inversé par un Demi-tour' : 'Sens normal'}>
-            {state.direction === -1 ? '🔄 ' : '⬅ '}vers {state.players[left].name}
+            {isDuel(state) ? `⚔️ Duel contre ${state.players[left].name}` : `${state.direction === -1 ? '🔄 ' : '⬅ '}vers ${state.players[left].name}`}
           </span>
         </div>
         <MenuGauge state={state} revealed={showRegion} focus={guide?.focus === 'gauge'} />
@@ -708,6 +724,22 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
           if (err) setNudge(err);
         }}
       />
+
+      <Modal open={!!game.peek} title="👅 Dégustation" onClose={game.clearPeek}>
+        {game.peek && (
+          <>
+            <p>Tu as goûté 3 cartes de la main de {state.players[game.peek.from].name} :</p>
+            <div className="row reveal-pick">
+              {game.peek.cards.map((c) => (
+                <CardView key={c.id} card={c} size="small" />
+              ))}
+            </div>
+            <button className="btn btn-green grow" onClick={game.clearPeek}>
+              Miam, noté ! 😋
+            </button>
+          </>
+        )}
+      </Modal>
 
       <Modal open={eventOpen} title={`${ev.icon} Plat du jour : ${ev.name}`} onClose={() => setEventOpen(false)}>
         <p className="big-line">{ev.text}</p>

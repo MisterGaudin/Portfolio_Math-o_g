@@ -103,6 +103,12 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
   (prend une carte au hasard au joueur choisi et lui en donne une), 🚫 **Contrôle sanitaire** (le joueur choisi ne
   peut pas annoncer jusqu'à la fin du tour suivant).
 - **Étoiles** : chaque manche gagnée rapporte ⭐ ; le premier à 3 étoiles devient **Chef 3 étoiles**.
+- **Mode Duel (à 2 joueurs)**, automatique (option `duel`) :
+  - les 2 Demi-tour (inutiles à 2) sont remplacés par 2 👅 **Dégustation** : on regarde 3 cartes au hasard dans la
+    main de l'adversaire ;
+  - le Plat du jour « Service à l'anglaise » est remplacé par 🔍 **Inspection** : au début de chaque tour, chacun
+    montre une carte de sa main (pas la Vaisselle) ;
+  - un joueur démasqué n'est protégé 🛡️ que jusqu'à la fin du tour suivant (sinon la Vaisselle ne sert plus à rien).
 
 Tous ces réglages sont dans `DEFAULT_RULES` (`src/engine/game.ts`). L'ancienne version « 2 menus » reste disponible
 (`TWO_MENUS_RULES`) pour la simulation.
