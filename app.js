@@ -56,8 +56,9 @@ let tweaks = { ...TWEAK_DEFAULTS };
         if (total >= 120) {
           if (slow > 50) {
             html.setAttribute('data-aura', 'off');
-            const svg = document.querySelector('svg defs')?.ownerSVGElement;
-            try { svg && svg.pauseAnimations && svg.pauseAnimations(); } catch(e){}
+            document.querySelectorAll('.fluid-mask svg.clip').forEach(svg => {
+              try { svg.pauseAnimations(); } catch(e){}
+            });
           }
           return;
         }
@@ -261,11 +262,26 @@ const BLOBS = {
    Each mask loops through several keyframe blob paths so no corner pops.
    Hover does NOT change the shape. */
 (() => {
-  const defsSvg = document.querySelector('svg defs');
   const keys = Object.keys(BLOBS);
   let counter = 0;
 
+  // Each card gets its own tiny <svg> holding its clipPath, so its SMIL
+  // timeline can be paused on its own while the card is off-screen (a single
+  // shared <svg> could only pause all 22 morphs at once).
+  const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      const svg = entry.target.querySelector(':scope > svg.clip');
+      if (!svg) return;
+      try {
+        if (entry.isIntersecting && document.documentElement.getAttribute('data-aura') !== 'off') svg.unpauseAnimations();
+        else svg.pauseAnimations();
+      } catch(e){}
+    });
+  }, { rootMargin: '100px 0px 100px 0px', threshold: 0 }) : null;
+
   document.querySelectorAll('.fluid-mask').forEach((el) => {
+    el.insertAdjacentHTML('afterbegin', '<svg class="clip" width="0" height="0" aria-hidden="true"><defs></defs></svg>');
+    const defsSvg = el.querySelector(':scope > svg.clip defs');
     const startKey = el.dataset.morph || 'a';
     const cpId = `cp-${counter}`;
 
@@ -310,6 +326,10 @@ const BLOBS = {
     }
 
     counter++;
+    if (io && !lowPower){
+      try { defsSvg.ownerSVGElement.pauseAnimations(); } catch(e){}
+      io.observe(el);
+    }
     el.style.setProperty('--cp', `url(#${cpId})`);
     el.style.setProperty('--cp-hover', `url(#${cpId})`); // same - no hover change
 
