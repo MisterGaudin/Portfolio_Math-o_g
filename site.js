@@ -47,3 +47,54 @@
     status.textContent = 'Votre messagerie s\'ouvre avec votre demande prête à envoyer. Si rien ne s\'ouvre, écrivez-moi à gaudinmister@gmail.com.';
   });
 })();
+
+/* =====================================================
+   Études de cas : carrousel + fenêtre détaillée
+   ===================================================== */
+(() => {
+  const track = document.getElementById('caseTrack');
+  if (!track) return;
+  const btns = document.querySelectorAll('.carousel-btn');
+
+  const step = () => {
+    const card = track.querySelector('.case-card');
+    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+    return card ? card.getBoundingClientRect().width + gap : track.clientWidth;
+  };
+  const sync = () => {
+    const max = track.scrollWidth - track.clientWidth - 2;
+    btns.forEach(b => { b.disabled = +b.dataset.dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
+  };
+  btns.forEach(b => b.addEventListener('click', () => track.scrollBy({ left: +b.dataset.dir * step(), behavior: 'smooth' })));
+  track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
+  window.addEventListener('resize', sync, { passive: true });
+  sync();
+
+  const modal = document.getElementById('caseModal');
+  const body = document.getElementById('caseModalBody');
+  if (!modal || typeof modal.showModal !== 'function') return;
+  let opener = null;
+
+  const close = () => modal.close();
+  modal.addEventListener('close', () => {
+    document.documentElement.classList.remove('modal-open');
+    body.innerHTML = '';
+    if (opener) opener.focus();
+  });
+  modal.querySelector('.case-modal-close').addEventListener('click', close);
+  // Click on the dimmed backdrop (outside the panel) closes it
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+  document.querySelectorAll('.case-open').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const src = document.getElementById('case-' + btn.dataset.case);
+      if (!src) return;
+      opener = btn;
+      body.innerHTML = src.innerHTML;
+      body.scrollTop = 0;
+      document.documentElement.classList.add('modal-open');
+      modal.showModal();
+      modal.querySelector('.case-modal-close').focus();
+    });
+  });
+})();

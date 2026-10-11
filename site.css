@@ -50,28 +50,18 @@ section.trust{
   color: var(--ink-3);
 }
 
+
 /* ---------- Services ---------- */
 .service-grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: clamp(16px, 2vw, 28px);
 }
-.service-card{
-  padding: clamp(24px, 3vw, 40px);
-  display: flex; flex-direction: column; gap: 14px;
-  transition: transform .4s var(--ease-out), box-shadow .4s var(--ease-out);
-}
-.service-card:hover{
-  transform: translateY(-4px);
-  box-shadow: 0 18px 40px oklch(0.18 0.015 285 / .08);
-}
-.service-num{
-  font-family: var(--f-display); font-style: italic;
-  font-size: 40px; line-height: 1;
-  color: transparent;
-  background: linear-gradient(120deg, var(--rose), var(--lilac), var(--sky));
-  -webkit-background-clip: text; background-clip: text;
-}
+.service-card{ overflow: hidden; display: flex; flex-direction: column; }
+.service-media{ display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--paper-2); }
+.service-media img{ width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease-out); }
+.service-card:hover .service-media img{ transform: scale(1.04); }
+.service-body{ padding: clamp(22px, 2.4vw, 32px); display: flex; flex-direction: column; gap: 12px; flex: 1; }
 .service-card h3,
 .case-card h3,
 .steps h3{
@@ -84,12 +74,12 @@ section.trust{
 .service-card p,
 .case-card p,
 .steps p{ margin: 0; color: var(--ink-2); }
-.service-list{
-  margin: 4px 0 0; padding: 0; list-style: none;
-  display: grid; gap: 6px;
-  font-size: 14px; color: var(--ink-2);
+.service-card .service-list{
+  font-family: var(--f-mono);
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-3);
+  line-height: 1.7;
 }
-.service-list li::before{ content: "✦"; margin-right: 10px; color: var(--ink-3); font-size: 10px; }
 .service-link{
   margin-top: auto;
   font-family: var(--f-mono);
@@ -100,6 +90,109 @@ section.trust{
   padding-bottom: 2px;
 }
 .service-link:hover{ color: var(--ink-2); }
+
+/* ---------- Case studies : carousel ---------- */
+.cases .project-head{ align-items: flex-end; }
+.carousel-nav{ display: flex; gap: 10px; }
+.carousel-btn{
+  width: 52px; height: 52px; border-radius: 50%;
+  border: 1px solid var(--hair);
+  background: color-mix(in oklch, var(--paper) 72%, transparent);
+  color: var(--ink);
+  font-size: 20px; cursor: pointer;
+  transition: background .2s, opacity .2s;
+}
+.carousel-btn:hover{ background: var(--paper); }
+.carousel-btn:disabled{ opacity: .35; cursor: default; }
+.case-track{
+  list-style: none; margin: 0; padding: 4px 2px 18px;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 2 * clamp(16px, 2vw, 28px)) / 3);
+  gap: clamp(16px, 2vw, 28px);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  overscroll-behavior-x: contain;
+}
+.case-card{ scroll-snap-align: start; overflow: hidden; display: flex; flex-direction: column; }
+.case-media{ aspect-ratio: 4 / 3; overflow: hidden; background: var(--paper-2); }
+.case-media img{ width: 100%; height: 100%; object-fit: cover; transition: transform .8s var(--ease-out); }
+.case-card:hover .case-media img{ transform: scale(1.04); }
+.case-body{ padding: clamp(20px, 2.2vw, 28px); display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.case-tags{
+  font-family: var(--f-mono);
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3);
+}
+.case-card .case-result{ font-size: 15px; color: var(--ink); }
+.case-open{
+  margin-top: auto; align-self: flex-start;
+  font: inherit;
+  font-family: var(--f-mono);
+  font-size: 12px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink);
+  background: none; border: 0; padding: 0 0 2px;
+  border-bottom: 1px solid currentColor;
+  cursor: pointer;
+}
+.case-open::after{ content: " +"; }
+
+/* ---------- Case modal ---------- */
+.case-modal{
+  width: min(980px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 0; border: 1px solid var(--hair); border-radius: 28px;
+  background: var(--paper); color: var(--ink);
+  overflow: hidden;
+}
+.case-modal::backdrop{ background: oklch(0.18 0.015 285 / .55); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.case-modal[open]{ display: flex; flex-direction: column; }
+.case-modal-body{ overflow-y: auto; padding: clamp(24px, 4vw, 56px); overscroll-behavior: contain; }
+.case-modal-close{
+  position: absolute; top: 14px; right: 14px; z-index: 2;
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 1px solid var(--hair); background: var(--paper); color: var(--ink);
+  font-size: 24px; line-height: 1; cursor: pointer;
+}
+.case-modal-body h2{
+  font-family: var(--f-display); font-weight: 400;
+  font-size: clamp(32px, 4.4vw, 52px); line-height: 1.05;
+  margin: 10px 48px 28px 0;
+}
+.case-modal-body h3{
+  font-family: var(--f-mono); font-weight: 500;
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 26px 0 8px;
+}
+.case-modal-body p{ color: var(--ink-2); max-width: 70ch; margin: 0; }
+.case-modal-body .case-result{
+  color: var(--ink);
+  padding: 14px 18px; border-radius: 16px;
+  background: color-mix(in oklch, var(--peach) 45%, transparent);
+}
+.case-steps{
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px; margin: 32px 0 24px;
+}
+.case-steps figure{ margin: 0; }
+.case-steps img{
+  width: 100%; aspect-ratio: 4 / 3; object-fit: contain; /* posters stay whole */
+  border-radius: 16px; background: var(--paper-2);
+  border: 1px solid var(--hair);
+}
+.case-steps figcaption{ font-size: 13px; color: var(--ink-2); margin-top: 8px; line-height: 1.45; }
+html.modal-open{ overflow: hidden; }
+
+/* ---------- Testimonial avatar ---------- */
+.quote-avatar{
+  width: 96px; height: 96px; border-radius: 50%;
+  object-fit: cover; display: block; margin: 0 auto 24px;
+  border: 3px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--hair), 0 10px 30px oklch(0.18 0.015 285 / .12);
+}
 
 /* ---------- Method ---------- */
 .steps{
@@ -115,34 +208,6 @@ section.trust{
   font-family: var(--f-mono); font-size: 14px;
   background: linear-gradient(135deg, var(--lilac), var(--sky));
   color: oklch(0.18 0.015 285);
-}
-
-/* ---------- Case studies ---------- */
-.case-grid{
-  display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr;
-  gap: clamp(16px, 2vw, 28px);
-  align-items: start;
-}
-.case-card{ overflow: hidden; display: flex; flex-direction: column; }
-.case-media{ display: block; aspect-ratio: 4 / 3; overflow: hidden; background: var(--paper-2); }
-.case-media img{
-  width: 100%; height: 100%; object-fit: cover;
-  transition: transform .8s var(--ease-out);
-}
-.case-card:hover .case-media img{ transform: scale(1.04); }
-.case-body{ padding: clamp(20px, 2.4vw, 32px); display: flex; flex-direction: column; gap: 12px; }
-.case-tags{
-  font-family: var(--f-mono);
-  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
-  color: var(--ink-3);
-}
-.case-result{
-  padding: 14px 16px;
-  border-radius: 16px;
-  background: color-mix(in oklch, var(--mint) 35%, transparent);
-  color: var(--ink) !important;
-  font-size: 15px;
 }
 
 /* ---------- Testimonial ---------- */
@@ -244,19 +309,18 @@ footer.site-foot{ padding-top: 40px; }
 /* ---------- Responsive ---------- */
 @media (max-width: 1100px){
   .steps{ grid-template-columns: repeat(2, 1fr); }
-  .case-grid{ grid-template-columns: 1fr 1fr; }
-  .case-grid .case-card:first-child{ grid-column: 1 / -1; }
 }
 @media (max-width: 900px){
+  .case-track{ grid-auto-columns: calc((100% - clamp(16px, 2vw, 28px)) / 2); }
   .service-grid,
   .about-grid,
   .contact-grid{ grid-template-columns: 1fr; }
 }
 @media (max-width: 640px){
+  .case-track{ grid-auto-columns: 86%; }
+  .carousel-btn{ width: 44px; height: 44px; }
   .steps,
-  .case-grid,
   .field-row{ grid-template-columns: 1fr; }
-  .case-grid .case-card:first-child{ grid-column: auto; }
   .service-card, .case-card, .quote-form{ border-radius: 22px; }
 }
 
