@@ -476,7 +476,7 @@ function catchUpText(state: GameState): string {
   const p = state.catchUp!;
   const low = state.players[p].etoiles;
   const tied = state.players.filter((q) => q.etoiles === low).length > 1;
-  const why = tied ? (low === 0 ? 'Tout le monde est à 0 étoile' : 'Égalité d’étoiles') + (p === 0 ? ' : tu es le plus jeune' : ` : ${state.players[p].name} est le plus jeune`) : p === 0 ? 'Tu as le moins d’étoiles' : `${state.players[p].name} a le moins d’étoiles`;
+  const why = tied ? 'Égalité d’étoiles' + (p === 0 ? ' : tu es le plus jeune' : ` : ${state.players[p].name} est le plus jeune`) : p === 0 ? 'Tu as le moins d’étoiles' : `${state.players[p].name} a le moins d’étoiles`;
   return `${why}, ${p === 0 ? 'tu commences' : 'il commence'} avec la Baguette !`;
 }
 
@@ -608,6 +608,11 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
         return setPicks([{ cardId: c.id, mode: 'pass' }, ...moved]);
       }
       if (solo) return picks.length >= 2 ? setNudge('2 cartes maximum : retouche une carte pour l’enlever') : setPicks([...picks, { cardId: c.id, mode: 'market' }]);
+      // Une carte à effet va d'office dans la case du Marché, d'où on peut la jouer.
+      if (c.kind === 'effect' && !marketPick) {
+        const target = activePlayers(state).filter((i) => i !== 0);
+        return setPicks([...picks, { cardId: c.id, mode: 'effect', target: target.length === 1 ? target[0] : undefined }]);
+      }
       if (!passPick && !cheese) return setPicks([{ cardId: c.id, mode: 'pass' }, ...picks]);
       if (!marketPick) return setPicks([...picks, { cardId: c.id, mode: 'market' }]);
       return setNudge('2 cartes maximum : retouche une carte pour l’enlever');

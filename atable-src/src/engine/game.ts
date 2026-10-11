@@ -274,11 +274,12 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       p.regions.flatMap((r, k) => shuffle(rng, deck.filter((c) => c.kind === 'dish' && c.region === r && c.course !== p.bonus[k])).slice(0, state.rules.headStart)),
     );
     for (const c of boosts.flat()) deck.splice(deck.indexOf(c), 1);
-    // Coup de main : le chef qui a le moins d'étoiles commence la manche avec la Baguette ;
-    // à égalité, le plus jeune (puis le premier dans l'ordre des places).
+    // Coup de main : dès qu'un chef a une étoile, celui qui en a le moins commence la manche avec la
+    // Baguette ; à égalité, le plus jeune (puis le premier dans l'ordre des places). Tant que personne
+    // n'a d'étoile, la Baguette est distribuée au hasard comme les autres cartes.
     const bi = deck.findIndex((c) => c.kind === 'baguette');
     state.catchUp = null;
-    if (state.rules.baguetteToLast && bi >= 0) {
+    if (state.rules.baguetteToLast && bi >= 0 && state.players.some((p) => p.etoiles > 0)) {
       state.catchUp = catchUpPlayer(state);
       boosts[state.catchUp].push(...deck.splice(bi, 1));
     }

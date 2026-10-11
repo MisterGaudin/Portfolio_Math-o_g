@@ -1264,7 +1264,7 @@ button.chip.active {
 .picks.split .swap {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 22px;
   transform: translate(-50%, -50%);
   width: 30px;
   height: 30px;

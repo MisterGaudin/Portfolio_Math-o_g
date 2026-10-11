@@ -52,7 +52,7 @@ export function Home({ initial, onStart, onTutorial, onRules }: { initial: Setup
             value={setup.age ?? ''}
             onChange={(e) => setSetup({ ...setup, age: e.target.value ? Math.max(1, Math.min(120, +e.target.value)) : undefined })}
           />
-          <small className="muted">À égalité d’étoiles, le plus jeune reçoit la Baguette 🥖</small>
+          <small className="muted">Dès la 1re étoile gagnée : à égalité, le plus jeune reçoit la Baguette 🥖</small>
         </label>
       </div>
 

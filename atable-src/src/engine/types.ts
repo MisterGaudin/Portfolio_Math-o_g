@@ -260,7 +260,7 @@ export interface Rules {
   handSize: number;
   /** À chaque nouvelle manche, la Vaisselle est donnée au chef qui a le plus d'étoiles. */
   vaisselleToLeader: boolean;
-  /** À chaque manche, la Baguette est donnée au chef qui a le moins d'étoiles (à égalité : le plus jeune). */
+  /** Dès qu'un chef a une étoile, la Baguette est donnée au chef qui en a le moins (à égalité : le plus jeune). */
   baguetteToLast: boolean;
   /** Égalité de menus : tous les chefs à égalité gagnent une étoile. */
   shareTies: boolean;

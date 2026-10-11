@@ -946,15 +946,16 @@ describe('version 5 : commande servie, une carte au voisin et une au Marché, é
     expect(s.lastRound?.coWinners).toEqual([0, 1]);
   });
 
-  it('à égalité d’étoiles, la Baguette va au plus jeune (dès la 1re manche)', () => {
+  it('tant que personne n’a d’étoile, la Baguette est au hasard ; ensuite, le moins d’étoiles puis le plus jeune', () => {
     const ages = [40, 9, 9, 70];
     const s = createGame(setups(4).map((x, i) => ({ ...x, age: ages[i] })), createRng(3), { rules: { dishOfDay: false } });
-    expect(s.catchUp).toBe(1);
-    expect(s.players[1].hand.some((c) => c.kind === 'baguette')).toBe(true);
+    expect(s.catchUp).toBeNull();
     s.players[1].etoiles = 1;
     s.phase = 'roundOver';
     nextRound(s, createRng(4));
+    // 0, 2 et 3 sont à 0 étoile : le plus jeune d'entre eux (2, 9 ans) reçoit la Baguette.
     expect(s.catchUp).toBe(2);
+    expect(s.players[2].hand.some((c) => c.kind === 'baguette')).toBe(true);
   });
 
   it('la Baguette va au chef qui a le moins d’étoiles', () => {

@@ -97,8 +97,8 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
 - 🍽️ **Vaisselle** : toujours dans une main, visible de tous, jamais au Marché, pas d'annonce avec. Seul son
   porteur peut **dénoncer**, **une fois par manche** : juste, l'accusé prend la Vaisselle et change de région ;
   faux, l'accusateur la garde. Après une dénonciation, **la Vaisselle ne bouge plus jusqu'au tour suivant**.
-- 🥖 **Coup de main** : en début de manche, le chef qui a le moins d'étoiles reçoit la Baguette ; à égalité (et
-  donc dès la 1re manche), c'est **le plus jeune**.
+- 🥖 **Coup de main** : tant que personne n'a d'étoile, la Baguette est distribuée au hasard. Ensuite, en début de
+  manche, le chef qui a le moins d'étoiles la reçoit ; à égalité, c'est **le plus jeune**.
 - 🦊 **Chapardeur** (2 cartes) : se joue à la place de la carte du Marché ; on vole une carte au hasard au joueur
   visé et on lui en rend une.
 - **Plat du jour** : une carte tirée à chaque manche change une règle (fromages au Marché, sens inversé — pas en
@@ -154,7 +154,7 @@ la main à la version 4 :
 | | Duel | 3 joueurs | 4 joueurs | 5 joueurs | 6 joueurs |
 |---|---|---|---|---|---|
 | **v4** | 58 | 59 | 65 | — | — |
-| **v5** | **79–81** | **85** | **86** | **85** | **84** |
+| **v5** | **78–80** | **85** | **86** | **86** | **84** |
 | Durée estimée d'une partie (v5) | ≈ 28 min | ≈ 28 min | ≈ 28 min | ≈ 32 min | ≈ 35 min |
 | Tours par manche (v5) | 10 | 7 | 5 | 5 | 5 |
 

@@ -77,7 +77,7 @@ const STEPS: Step[] = [
   { text: 'Échange…', expect: { kind: 'wait', until: (st) => st === 'announcing' } },
   { text: 'Plus de Vaisselle et un menu complet sans Baguette : c’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! ».', focus: 'announce', expect: { kind: 'announce' } },
   { text: 'Dernier service : Mamie a encore un tour pour compléter son menu. Si elle y arrive, elle gagne une étoile elle aussi !', expect: { kind: 'wait', until: (st) => st === 'showdown' } },
-  { text: 'Gagné ! Tu décroches une étoile ⭐, comme au Guide Michelin. Le premier à 3 étoiles devient Chef 3 étoiles. À chaque manche, le chef qui a le moins d’étoiles (à égalité : le plus jeune) commence avec la Baguette.', expect: { kind: 'next' } },
+  { text: 'Gagné ! Tu décroches une étoile ⭐, comme au Guide Michelin. Le premier à 3 étoiles devient Chef 3 étoiles. Dès qu’un chef a une étoile, celui qui en a le moins (à égalité : le plus jeune) commence chaque manche avec la Baguette.', expect: { kind: 'next' } },
   { text: 'Fin de manche : tout le monde révèle sa région. À toi de jouer pour de vrai !', expect: { kind: 'wait', until: (st) => st === 'roundEnd' } },
 ];
 
