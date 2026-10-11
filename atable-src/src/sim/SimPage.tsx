@@ -1,11 +1,12 @@
 // Page /sim : N parties IA contre IA à 2, 3 et 4 joueurs, statistiques et diagnostic.
 import { useState } from 'react';
-import { DEFAULT_RULES, MENU_LABELS, type MenuType, type Rules } from '../engine';
+import { DEFAULT_RULES, MENU_LABELS, V4_RULES, type MenuType, type Rules } from '../engine';
 import { simulate, type SimDifficulty, type SimStats } from './simulate';
 
 const LIMITS: { id: Rules['denounceLimit']; label: string }[] = [
-  { id: 'protege', label: 'Un joueur démasqué est protégé (règle du jeu)' },
-  { id: 'unique', label: 'Une seule dénonciation par joueur et par manche' },
+  { id: 'unique', label: 'Une seule dénonciation par joueur et par manche (règle du jeu)' },
+  { id: 'protege', label: 'Un joueur démasqué est protégé jusqu’à la fin de la manche' },
+  { id: 'tour', label: 'Un joueur démasqué est protégé jusqu’au tour suivant' },
   { id: 'aucune', label: 'Aucune limite' },
 ];
 
@@ -14,6 +15,8 @@ export function SimPage() {
   const [difficulty, setDifficulty] = useState<SimDifficulty>('moyen');
   const [limit, setLimit] = useState<Rules['denounceLimit']>(DEFAULT_RULES.denounceLimit);
   const [headStart, setHeadStart] = useState(DEFAULT_RULES.headStart);
+  /** Version des règles : la v5 (règles du jeu) ou la v4, pour comparer. */
+  const [version, setVersion] = useState<'v5' | 'v4'>('v5');
   const [results, setResults] = useState<SimStats[]>([]);
   const [running, setRunning] = useState<number | null>(null);
 
@@ -25,7 +28,7 @@ export function SimPage() {
       if (n > 4) return setRunning(null);
       setRunning(n);
       setTimeout(() => {
-        const s = simulate({ games, players: n, difficulty, seed: seed + n, rules: { denounceLimit: limit, headStart } });
+        const s = simulate({ games, players: n, difficulty, seed: seed + n, rules: { ...(version === 'v4' ? V4_RULES : {}), denounceLimit: limit, headStart } });
         const next = [...acc, s];
         setResults(next);
         step(n + 1, next);
@@ -66,6 +69,23 @@ export function SimPage() {
           {(['facile', 'moyen', 'difficile', 'mixte'] as SimDifficulty[]).map((d) => (
             <button key={d} className={difficulty === d ? 'active' : ''} onClick={() => setDifficulty(d)}>
               {d}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="field">
+        <span>Règles</span>
+        <div className="segmented">
+          {(['v5', 'v4'] as const).map((v) => (
+            <button
+              key={v}
+              className={version === v ? 'active' : ''}
+              onClick={() => {
+                setVersion(v);
+                setLimit(v === 'v4' ? V4_RULES.denounceLimit : DEFAULT_RULES.denounceLimit);
+              }}
+            >
+              {v === 'v5' ? 'v5 (règles du jeu)' : 'v4'}
             </button>
           ))}
         </div>

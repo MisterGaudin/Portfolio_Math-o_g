@@ -1,6 +1,6 @@
 // Mesures de « fun » en simulation : durée, tension, retours, interaction, temps morts, part du talent.
 // npm run fun -- [parties]
-import { createGame, createRng, menuProgress, nextRound, playBotTurn, shuffle, type Difficulty, type GameState, type Rules } from '../src/engine';
+import { createGame, createRng, menuProgress, nextRound, playBotTurn, shuffle, V4_RULES, type Difficulty, type GameState, type Rules } from '../src/engine';
 
 interface Cfg { name: string; n: number; levels: Difficulty[] | 'mixte'; rules?: Partial<Rules> }
 const games = +(process.argv[2] ?? 400);
@@ -140,7 +140,7 @@ const configs: Cfg[] = [
   { name: '4j mixte', n: 4, levels: 'mixte' },
   { name: '4j difficile', n: 4, levels: ['difficile', 'difficile', 'difficile', 'difficile'] },
   { name: '4j 1 difficile vs 3 faciles', n: 4, levels: ['difficile', 'facile', 'facile', 'facile'] },
-  { name: '4j règles v3 (sans v4)', n: 4, levels: 'mixte', rules: { effects: { demitour: 2, troc: 2 }, blindAnnounce: false, lastService: false, revealToDenounce: false, openMarket: false, commande: 'aucune', dishOfDay: false } },
+  { name: '4j règles v4', n: 4, levels: 'mixte', rules: V4_RULES },
 ];
 const out = configs.map(run);
 const keys = Object.keys(out[0]).filter((k) => k !== 'config');

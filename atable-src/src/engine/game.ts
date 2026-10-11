@@ -158,6 +158,7 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
     blockedUntil: {},
     event: 'service',
     orders: [],
+    catchUp: null,
   };
   dealRound(state, rng, preset);
   return state;
@@ -277,7 +278,11 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     const low = Math.min(...state.players.map((p) => p.etoiles));
     const lasts = state.players.map((p, i) => (p.etoiles === low ? i : -1)).filter((i) => i >= 0);
     const bi = deck.findIndex((c) => c.kind === 'baguette');
-    if (state.rules.baguetteToLast && lasts.length < n && bi >= 0) boosts[pick(rng, lasts)].push(...deck.splice(bi, 1));
+    state.catchUp = null;
+    if (state.rules.baguetteToLast && lasts.length < n && bi >= 0) {
+      state.catchUp = pick(rng, lasts);
+      boosts[state.catchUp].push(...deck.splice(bi, 1));
+    }
     state.players.forEach((p, i) => {
       const boost = boosts[i];
       p.hand = [...boost, ...deck.splice(0, (i === unlucky ? H - 1 : H) - boost.length)];
@@ -533,6 +538,8 @@ function serveOrder(state: GameState, player: number, query: { cardId?: string; 
   if (!query.cardId || cardById(query.cardId).kind !== 'dish') throw new Error('Choisis un plat');
   if (t === undefined || t === player || !state.players[t]) throw new Error('Choisis à qui tu demandes');
   if (state.frozen.includes(t)) throw new Error('Ce joueur a posé sa main face cachée');
+  if (state.orders.some((o) => o.player === player && o.target === t && o.turn === state.turn && o.cardId && imageIdOf(o.cardId) === imageIdOf(query.cardId!)))
+    throw new Error('Tu viens de le lui demander !');
   const other = state.players[t].hand;
   const k = other.findIndex((c) => c.kind === 'dish' && imageIdOf(c.id) === imageIdOf(query.cardId!));
   const order: Order = { player, turn: state.turn, cardId: query.cardId, target: t, yes: k >= 0 ? [t] : [], served: k >= 0 };

@@ -714,7 +714,9 @@ button.chip.active {
 }
 .toast {
   position: fixed;
-  bottom: 24px;
+  /* En haut de l'écran, et transparent aux doigts : il ne cache jamais les boutons du tour. */
+  top: 88px;
+  pointer-events: none;
   left: 50%;
   translate: -50% 0;
   background: #000d;
@@ -1242,4 +1244,40 @@ button.chip.active {
   border-radius: 8px;
   border: none;
   padding: 3px;
+}
+
+/* ── v5 : une carte au voisin, une au Marché ; commandes ── */
+.picks.split {
+  position: relative;
+}
+.picks.split .pick.empty {
+  flex-direction: column;
+  gap: 2px;
+}
+.pick-slot {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--gold, #f4c542);
+  letter-spacing: 0.02em;
+}
+.picks.split .swap {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 2px solid #fff6;
+  background: #3a1c22;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+.banner.orders {
+  display: grid;
+  gap: 2px;
+  font-size: 12px;
 }

@@ -1,17 +1,19 @@
 // Tutoriel interactif : une manche guidée contre « Mamie », avec des bulles.
-// Il montre la région secrète, l'échange, le Marché, la Vaisselle, la dénonciation
-// et l'annonce. Les cartes et les coups de Mamie sont écrits à l'avance.
+// Il montre la région secrète, les 2 cartes du tour (voisin + Marché), la commande servie,
+// la Vaisselle, la dénonciation et l'annonce. Les cartes et les coups de Mamie sont écrits à l'avance.
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ALL_REGION_IDS, buildDeck, cardById, createRng, shuffle, type Choice, type Mode, type RegionId } from '../engine';
+import { ALL_REGION_IDS, buildDeck, cardById, createRng, leftOf, shuffle, vaisselleLocked, type Choice, type Mode, type RegionId } from '../engine';
 import type { BotScript, GameController, Stage } from './useGame';
 
 /** Zones de l'écran que le tutoriel peut mettre en valeur. */
-export type Focus = 'region' | 'hand' | 'gauge' | 'vaisselle' | 'piles' | 'regions' | 'denounce' | 'actions' | 'announce' | 'opponents';
+export type Focus = 'region' | 'hand' | 'gauge' | 'vaisselle' | 'piles' | 'regions' | 'denounce' | 'actions' | 'announce' | 'opponents' | 'order';
 
 type Expect =
   | { kind: 'next' }
   | { kind: 'choice'; picks: { cardId: string; mode: Mode }[] }
-  | { kind: 'denounce'; target: number; region: RegionId; reveal: string }
+  | { kind: 'order'; target: number; cardId: string }
+  | { kind: 'give'; cardId: string }
+  | { kind: 'denounce'; target: number; region: RegionId }
   | { kind: 'announce' }
   | { kind: 'wait'; until: (stage: Stage, turn: number) => boolean };
 
@@ -25,57 +27,57 @@ const c = cardById;
 
 /**
  * Mise en place imposée : toi (Savoie, ta carte compte comme la Tartiflette) contre
- * Mamie (Bretagne, sa carte compte comme les Crêpes). Chacun donne 2 cartes par tour.
+ * Mamie (Bretagne, sa carte compte comme les Crêpes). Chaque tour : une carte au voisin, une au Marché.
  */
 function tutorialScript(): BotScript {
   const hands = [
     ['savoie-entree', 'savoie-fromage', 'vaisselle', 'alsace-plat', 'normandie-dessert', 'corse-entree', 'lyonnais-fromage', 'nord-plat'].map(c),
     ['bretagne-entree', 'bretagne-plat', 'provence-entree', 'savoie-dessert', 'auvergne-plat', 'bourgogne-fromage', 'lorraine-dessert', 'sud-ouest-entree'].map(c),
   ];
-  const used = new Set([...hands.flat().map((x) => x.id), 'bretagne-fromage']);
+  const top = ['alsace-dessert', 'corse-plat', 'nord-entree'];
+  const used = new Set([...hands.flat().map((x) => x.id), 'bretagne-fromage', ...top]);
   const rest = shuffle(createRng(7), buildDeck(ALL_REGION_IDS).filter((x) => !used.has(x.id)));
-  // Ce que Mamie donne à chaque tour.
-  const plan: Record<number, string[]> = {
+  // Ce que Mamie donne à chaque tour : [carte passée, carte au Marché].
+  const plan: Record<number, [string, string]> = {
     1: ['provence-entree', 'auvergne-plat'],
     2: ['vaisselle', 'bourgogne-fromage'],
-    3: ['savoie-dessert', 'sud-ouest-entree'],
   };
   return {
     names: ['Toi', 'Mamie'],
-    preset: { regions: [['savoie'], ['bretagne']], bonus: [['plat'], ['dessert']], hands, drawPile: [c('bretagne-fromage'), ...rest] },
+    preset: { regions: [['savoie'], ['bretagne']], bonus: [['plat'], ['dessert']], hands, drawPile: [...top.map(c), c('bretagne-fromage'), ...rest] },
     botChoice: (s, p) => {
       const hand = s.players[p].hand;
-      const wanted = (plan[s.turn] ?? []).filter((id) => hand.some((x) => x.id === id));
-      for (const x of hand) if (wanted.length < 2 && x.kind !== 'vaisselle' && !wanted.includes(x.id)) wanted.push(x.id);
-      return { cardId: wanted[0], mode: 'pass', extra: [{ cardId: wanted[1], mode: 'pass' }] };
+      const free = hand.filter((x) => x.kind !== 'vaisselle' || (!vaisselleLocked(s, p) && leftOf(s, p) !== p));
+      const [a, b] = plan[s.turn] ?? [];
+      const passId = free.find((x) => x.id === a)?.id ?? free.find((x) => x.kind !== 'vaisselle')!.id;
+      const marketId = free.find((x) => x.id === b && x.id !== passId && x.kind !== 'vaisselle')?.id ?? free.find((x) => x.id !== passId && x.kind !== 'vaisselle')!.id;
+      return { cardId: passId, mode: 'pass', extra: [{ cardId: marketId, mode: 'market' }] };
     },
-    // Quand Mamie prend la Vaisselle, elle te rend ses Madeleines ; en récompense, tu lui prends son Foie gras.
+    // Quand Mamie prend la Vaisselle, elle te rend ses Madeleines.
     swapCard: (s, receiver) => (receiver === 1 ? 'lorraine-dessert' : s.players[receiver].hand[0].id),
-    rewardCard: () => 'sud-ouest-entree',
   };
 }
-
-const pass = (...ids: string[]) => ids.map((cardId) => ({ cardId, mode: 'pass' as Mode }));
 
 const STEPS: Step[] = [
   { text: 'Bienvenue à table ! Tu affrontes Mamie. En début de manche, chacun reçoit une carte Région secrète (chaque région n’existe qu’une fois). Tape « Découvrir ma région ».', expect: { kind: 'wait', until: (st) => st !== 'intro' } },
   { text: 'Tu es la Savoie ! Ta carte Région compte comme un plat, la Tartiflette (★), sans que personne ne le voie. Pour crier « À TABLE ! », il te faut les 3 autres plats de Savoie : Entrée, Fromage et Dessert. Tape « Ma région » pour la revoir.', focus: 'region', expect: { kind: 'next' } },
-  { text: 'Astuce de chef : la vraie carte Tartiflette ne te servirait à rien. Si tu la reçois, donne-la : ton voisin croira que tu n’es pas la Savoie. C’est du bluff !', focus: 'region', expect: { kind: 'next' } },
-  { text: 'La jauge montre ton menu. Tu as déjà la Salade savoyarde et le Reblochon : il ne manque que le Gâteau de Savoie !', focus: 'gauge', expect: { kind: 'next' } },
-  { text: 'Mais tu as la Vaisselle 🍽️ : l’assiette sale montre qui l’a, et avec elle, pas d’annonce. Chaque tour, tout le monde donne 2 cartes à son voisin de gauche.', focus: 'vaisselle', expect: { kind: 'next' } },
-  { text: 'Tape la Vaisselle et la Choucroute (« Passer », c’est déjà choisi), puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: pass('vaisselle', 'alsace-plat') } },
-  { text: 'Tout le monde valide, puis les cartes glissent vers la gauche, toutes en même temps !', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 2 } },
-  { text: 'Mamie t’a passé une Tapenade (Provence) et une Truffade (Auvergne) : elle n’est sûrement ni Provence ni Auvergne. Retiens-le !', focus: 'hand', expect: { kind: 'next' } },
-  { text: 'Tape la Teurgoule et choisis « Marché » : elle part face visible à la défausse, et Mamie pioche une carte à la place. Tape aussi le Figatellu (Passer), puis « Valider ».', focus: 'actions', expect: { kind: 'choice', picks: [{ cardId: 'normandie-dessert', mode: 'market' }, { cardId: 'corse-entree', mode: 'pass' }] } },
-  { text: 'La Teurgoule est sur la défausse, et Mamie a pioché…', focus: 'piles', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 3 } },
-  { text: 'Aïe ! Mamie t’a renvoyé la Vaisselle. Mais il y a du bon : seul celui qui a la Vaisselle peut dénoncer quelqu’un.', focus: 'vaisselle', expect: { kind: 'next' } },
-  { text: 'Mamie garde jalousement ses cartes de Bretagne… Démasque-la ! Tape « Dénoncer », choisis Mamie et Bretagne, puis montre à tous une carte : le Saint-Marcellin.', focus: 'denounce', expect: { kind: 'denounce', target: 1, region: 'bretagne', reveal: 'lyonnais-fromage' } },
-  { text: 'Bien vu ! Mamie prend ta Vaisselle (elle te rend ses Madeleines), et en récompense ton Saint-Marcellin part chez elle contre une carte piochée au hasard dans sa main : le Foie gras. Elle change aussi de carte Région : ses cartes de Bretagne ne lui servent plus. Démasquée, elle est protégée 🛡️ jusqu’à la fin de la manche.', expect: { kind: 'next' } },
-  { text: 'Donne-lui le Foie gras et la Carbonade, inutiles pour toi, puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: pass('sud-ouest-entree', 'nord-plat') } },
+  { text: 'Astuce de chef : la vraie carte Tartiflette ne te servirait à rien. Si tu la reçois, donne-la : on croira que tu n’es pas la Savoie. C’est du bluff !', focus: 'region', expect: { kind: 'next' } },
+  { text: 'La jauge montre ton menu : tu as la Salade savoyarde et le Reblochon, il ne manque que le Gâteau de Savoie !', focus: 'gauge', expect: { kind: 'next' } },
+  { text: 'Mais tu as la Vaisselle 🍽️ : tant que tu l’as, pas d’annonce ! Chaque tour, tout le monde donne 2 cartes en même temps : une à son voisin, une au Marché (face visible).', focus: 'vaisselle', expect: { kind: 'next' } },
+  { text: 'Tape la Vaisselle (elle part chez Mamie), puis la Teurgoule (elle part au Marché), et « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: [{ cardId: 'vaisselle', mode: 'pass' }, { cardId: 'normandie-dessert', mode: 'market' }] } },
+  { text: 'Les cartes glissent toutes en même temps ! Quand Mamie met une carte au Marché, c’est toi qui pioches pour la remplacer.', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 2 } },
+  { text: 'Le Gâteau de Savoie, il te le faut… Passe commande ! Tape « 📝 Commander », puis Savoie et Gâteau de Savoie : « Mamie, du Gâteau de Savoie, tu en as ? »', focus: 'order', expect: { kind: 'order', target: 1, cardId: 'savoie-dessert' } },
+  { text: 'Elle l’avait : elle doit te servir ! Rends-lui une carte de ton choix : la Choucroute. (Rendre la Vaisselle, c’est permis aussi !) Mais attention : Mamie sait maintenant que tu cherches de la Savoie…', expect: { kind: 'give', cardId: 'alsace-plat' } },
+  { text: 'Ton menu est complet ! Donne le Figatellu à Mamie et le Saint-Marcellin au Marché, puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: [{ cardId: 'corse-entree', mode: 'pass' }, { cardId: 'lyonnais-fromage', mode: 'market' }] } },
+  { text: 'Échange…', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 3 } },
+  { text: 'Aïe ! Mamie t’a renvoyé la Vaisselle : tu n’as pas pu annoncer. Mais seul celui qui a la Vaisselle peut dénoncer quelqu’un, une fois par manche.', focus: 'vaisselle', expect: { kind: 'next' } },
+  { text: 'Mamie garde jalousement ses cartes de Bretagne… Démasque-la ! Tape « Dénoncer », choisis Bretagne.', focus: 'denounce', expect: { kind: 'denounce', target: 1, region: 'bretagne' } },
+  { text: 'Bien vu ! Mamie prend ta Vaisselle (elle te rend ses Madeleines) et la garde jusqu’au prochain tour. Elle change aussi de région : ses cartes de Bretagne ne lui servent plus.', expect: { kind: 'next' } },
+  { text: 'Donne-lui la Carbonade et mets les Madeleines au Marché, puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: [{ cardId: 'nord-plat', mode: 'pass' }, { cardId: 'lorraine-dessert', mode: 'market' }] } },
   { text: 'Échange…', expect: { kind: 'wait', until: (st) => st === 'announcing' } },
-  { text: 'Mamie t’a passé le Gâteau de Savoie : ton menu est complet, sans Baguette. C’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! » : tu poses ta main face cachée. Astuce : on peut aussi bluffer… mais un bluff raté coûte une étoile et la Vaisselle !', focus: 'announce', expect: { kind: 'announce' } },
-  { text: 'On révèle les mains…', expect: { kind: 'wait', until: (st) => st === 'showdown' } },
-  { text: 'Gagné ! Tu décroches une étoile ⭐, comme au Guide Michelin. Le premier à 3 étoiles devient Chef 3 étoiles. Quand quelqu’un annonce, les autres ont droit à un Dernier service : un dernier échange pour tenter de faire mieux.', expect: { kind: 'next' } },
+  { text: 'Plus de Vaisselle et un menu complet sans Baguette : c’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! ».', focus: 'announce', expect: { kind: 'announce' } },
+  { text: 'Dernier service : Mamie a encore un tour pour compléter son menu. Si elle y arrive, elle gagne une étoile elle aussi !', expect: { kind: 'wait', until: (st) => st === 'showdown' } },
+  { text: 'Gagné ! Tu décroches une étoile ⭐, comme au Guide Michelin. Le premier à 3 étoiles devient Chef 3 étoiles. Le chef en retard commence chaque manche avec la Baguette.', expect: { kind: 'next' } },
   { text: 'Fin de manche : tout le monde révèle sa région. À toi de jouer pour de vrai !', expect: { kind: 'wait', until: (st) => st === 'roundEnd' } },
 ];
 
@@ -90,6 +92,9 @@ export interface Guide {
   allowChoice: (choice: Choice) => boolean;
   allowDenounce: boolean;
   allowDenounceTarget: (target: number, region: RegionId, reveal: string | null) => boolean;
+  allowOrderButton: boolean;
+  allowOrder: (target: number, cardId: string) => boolean;
+  allowGive: (cardId: string) => boolean;
   allowAnnounce: (yes: boolean) => boolean;
   /** À appeler après une action réussie du joueur. */
   done: () => void;
@@ -127,7 +132,10 @@ export function useTutorial(game: GameController, active: boolean): Guide | null
         return all.length === e.picks.length && e.picks.every((x) => all.some((y) => y.cardId === x.cardId && y.mode === x.mode));
       },
       allowDenounce: e.kind === 'denounce',
-      allowDenounceTarget: (t, r, shown) => e.kind === 'denounce' && e.target === t && e.region === r && shown === e.reveal,
+      allowDenounceTarget: (t, r) => e.kind === 'denounce' && e.target === t && e.region === r,
+      allowOrderButton: e.kind === 'order',
+      allowOrder: (t, id) => e.kind === 'order' && e.target === t && e.cardId === id,
+      allowGive: (id) => e.kind === 'give' && e.cardId === id,
       allowAnnounce: (yes) => e.kind === 'announce' && yes,
       done: advance,
       finished: i >= STEPS.length - 1,

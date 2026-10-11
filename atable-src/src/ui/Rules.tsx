@@ -13,25 +13,21 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           à rien : donne-le pour bluffer !
         </p>
         <p>
-          <b>Chaque tour</b>, ensemble : donnez <b>2 cartes</b>, passées au voisin ou au <b>Marché</b> (défausse). Le voisin prend alors la pioche ou la carte
-          visible.
+          <b>Chaque tour</b>, ensemble : une carte à ton <b>voisin</b>, une au <b>Marché</b> (face visible). Ton voisin pioche, ou prend la carte visible.
         </p>
         <p>
-          <b>« À TABLE ! »</b> : main posée face cachée (bluff permis). Les autres ont un <b>Dernier service</b>, puis on révèle. Meilleur menu :
-          <b> Gastronomique</b> › <b>Maison</b> (avec la 🥖 Baguette). Bluff raté : −1 ⭐ et la Vaisselle.
+          📝 <b>Commande</b> (une par tour, deux en Duel) : « Bob, as-tu le Munster ? » S’il l’a, il te le sert et tu lui rends une carte. Tout le monde entend…
         </p>
         <p>
-          🍽️ <b>Vaisselle</b> (visible) : pas d’annonce avec. Elle seule permet de <b>dénoncer</b> en montrant une carte. Juste : il prend la Vaisselle,
-          change de région et te donne une carte contre celle montrée. Faux : tu attends un tour.
+          🔔 Menu complet ? Crie <b>« À TABLE ! »</b>. Les autres jouent un <b>Dernier service</b>. Chaque menu complet rapporte une étoile ; le meilleur gagne la manche :
+          <b> Gastronomique</b> › <b>Maison</b> (avec la 🥖 Baguette).
         </p>
         <p>
-          📝 <b>Commande</b> (une par manche) : « Qui a le Reblochon ? »
+          🍽️ <b>Vaisselle</b> : pas d’annonce avec. Elle seule permet de <b>dénoncer</b> (une fois par manche). Juste : il prend la Vaisselle et change de région. Faux :
+          tu la gardes. Elle ne bouge plus ce tour-ci.
         </p>
         <p>
-          ✨ <b>Effets</b> : 🔄 Demi-tour, 🤝 Troc, 🦊 Chapardeur, 🚫 Contrôle sanitaire. Chaque manche, un <b>Plat du jour</b> change une règle.
-        </p>
-        <p>
-          ⚔️ <b>Duel</b> (à 2) : 👅 Dégustation (voir 3 cartes adverses) remplace Demi-tour, protection d’un seul tour.
+          🥖 Le chef en retard commence avec la Baguette. 🦊 Chapardeur : vole une carte au hasard. Chaque manche, un <b>Plat du jour</b> change une règle.
         </p>
       </div>
     </Modal>

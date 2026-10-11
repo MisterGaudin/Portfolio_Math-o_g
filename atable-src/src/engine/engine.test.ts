@@ -873,10 +873,11 @@ describe('version 5 : commande servie, une carte au voisin et une au Marché, é
 
   it('en Duel, 2 commandes par tour', () => {
     const s = v5(2, 5);
-    const a = dishNotIn(s, 1);
+    const [a, b, c2] = s.players[0].hand.filter((x) => x.kind === 'dish');
     placeOrder(s, 0, { cardId: a.id, target: 1 });
-    placeOrder(s, 0, { cardId: a.id, target: 1 });
-    expect(() => placeOrder(s, 0, { cardId: a.id, target: 1 })).toThrow();
+    expect(() => placeOrder(s, 0, { cardId: a.id, target: 1 })).toThrow(/demander/);
+    placeOrder(s, 0, { cardId: b.id, target: 1 });
+    expect(() => placeOrder(s, 0, { cardId: c2.id, target: 1 })).toThrow();
   });
 
   it('une carte au voisin, l’autre au Marché', () => {

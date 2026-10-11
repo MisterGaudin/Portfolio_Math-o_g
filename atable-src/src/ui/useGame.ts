@@ -6,7 +6,7 @@ import {
   aiAnnounce,
   aiChooseAll,
   aiDenounce,
-  aiOrder,
+  botOrder,
   aiReveal,
   aiShow,
   aiTake,
@@ -22,6 +22,7 @@ import {
   mustShow,
   nextRound,
   placeOrder,
+  settleOrder,
   resolveAnnouncements,
   resolveExchange,
   showCard,
@@ -33,6 +34,7 @@ import {
   type Difficulty,
   type GameState,
   type Move,
+  type Order,
   type RegionId,
   type RoundPreset,
 } from '../engine';
@@ -68,11 +70,18 @@ export interface BotScript {
   botChoice: (state: GameState, player: number) => Choice;
   /** Carte rendue par celui qui reçoit la Vaisselle lors d'une dénonciation. */
   swapCard?: (state: GameState, receiver: number) => string | undefined;
-  /** Carte prise chez l'accusé en récompense d'une dénonciation juste. */
-  rewardCard?: (state: GameState, target: number) => string | undefined;
 }
 
 const BOT_NAMES = ['Bob', 'Jeannine', 'Gaston'];
+
+/** Texte public d'une commande (« Bob → Jeannine : as-tu le Munster ? Oui ! »), vu par le joueur. */
+export function orderText(state: GameState, o: Order): string {
+  const who = (p: number) => (p === 0 ? 'Toi' : state.players[p].name);
+  const dish = o.cardId ? dishName(o.cardId) : '';
+  if (o.target === undefined) return `📝 ${who(o.player)} : « Qui a ${dish} ? » — ${o.yes.length ? o.yes.map(who).join(', ') + ' : oui !' : 'personne !'}`;
+  if (o.target === 0 && o.served) return `📝 ${who(o.player)} te commande ${dish} : tu le sers${o.given ? `, et ${state.players[o.player].name} te rend ${dishName(o.given)}` : ''} !`;
+  return `📝 ${who(o.player)} → ${o.target === 0 ? 'toi' : state.players[o.target].name} : « ${dish}, tu en as ? » ${o.served ? 'Oui ! Servi 🍽️' : 'Non !'}`;
+}
 /** Nom d'un plat à partir de son identifiant. */
 const dishName = (id: string) => cardById(id).name;
 /** Temps laissé pour bluffer quand on n'a pas de menu complet. */
@@ -161,7 +170,7 @@ export function useGame() {
       const d = mutate((s) => {
         const receiver = s.players[target].regions.includes(region) ? target : accuser;
         const swap = script?.swapCard?.(s, receiver);
-        const opts = { reveal: reveal ?? aiReveal(s, accuser), rewardCardId: script?.rewardCard?.(s, target) };
+        const opts = { reveal: reveal || (s.rules.revealToDenounce ? aiReveal(s, accuser) : undefined) };
         const [ev] = denounce(s, accuser, target, region, rng.current, swap, opts);
         return ev.type === 'denounce' ? ev.denunciation : null;
       });
@@ -190,9 +199,9 @@ export function useGame() {
 
   // ─── Commande ────────────────────────────────────────────────────────────
   const humanOrder = useCallback(
-    (cardId: string): string | null => {
+    (cardId: string, target?: number): string | null => {
       try {
-        mutate((s) => placeOrder(s, 0, { cardId }));
+        mutate((s) => placeOrder(s, 0, { cardId, target }));
         return null;
       } catch (e) {
         return (e as Error).message;
@@ -214,6 +223,19 @@ export function useGame() {
     [mutate],
   );
   const clearPeek = useCallback(() => setPeek(null), []);
+
+  /** Commande servie : la carte rendue au joueur qui nous a servi. */
+  const humanGive = useCallback(
+    (cardId: string): string | null => {
+      try {
+        mutate((s) => settleOrder(s, 0, cardId));
+        return null;
+      } catch (e) {
+        return (e as Error).message;
+      }
+    },
+    [mutate],
+  );
 
   // ─── Choix ───────────────────────────────────────────────────────────────
   const humanChoose = useCallback(
@@ -310,14 +332,17 @@ export function useGame() {
       if (waiting !== undefined) {
         timer = setTimeout(() => {
           const ordered = mutate((s) => {
-            // Commande éventuelle de l'ordinateur (avant ses choix).
-            const want = script ? null : aiOrder(s, waiting);
-            const ev = want ? placeOrder(s, waiting, { cardId: want }) : [];
+            // Commande(s) éventuelle(s) de l'ordinateur (avant ses choix).
+            const ev = script ? [] : botOrder(s, waiting, rng.current);
             if (mustShow(s, waiting)) showCard(s, waiting, aiShow(s, waiting, rng.current)!);
             submitChoice(s, waiting, script ? script.botChoice(s, waiting) : aiChooseAll(s, waiting, rng.current));
-            return ev.length ? want : null;
+            return ev.flatMap((e) => (e.type === 'order' ? [e.order] : []));
           });
-          if (ordered) setToast(`📝 ${state.players[waiting].name} commande : « Qui a ${dishName(ordered)} ? »`);
+          if (ordered?.length) {
+            const cur = stateRef.current!;
+            setToast(ordered.map((o) => orderText(cur, o)).join(' · '));
+            if (ordered.some((o) => o.target === 0 && o.served)) vibrate([60, 40, 60]);
+          }
         }, botDelay());
       } else if (allChosen(state)) {
         // Marché ouvert : si le joueur reçoit une carte du Marché, il choisit d'abord.
@@ -404,6 +429,7 @@ export function useGame() {
     goNextRound,
     beginRound,
     humanOrder,
+    humanGive,
     humanTake,
     humanShow,
     peek,

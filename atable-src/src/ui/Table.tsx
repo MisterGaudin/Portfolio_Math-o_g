@@ -1,12 +1,12 @@
 // Table de jeu : adversaires en haut, pioche et défausse au centre, ta main en bas.
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { COURSE_ICONS, COURSE_LABELS, COURSES, DAY_EVENTS, REGION_BY_ID, REGIONS } from '../config/cards';
-import { announceableMenu, checkAnnounce, checkDenounce, evaluateMenu, isDuel, isProtected, leftOf, mustShow, menuProgress, ordersAllowed, passCountOf, rightOf, visibleDiscard, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick, cardById } from '../engine';
+import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, evaluateMenu, isDuel, isProtected, leftOf, mustShow, ordersPerTurn, pendingOrder, vaisselleLocked, menuProgress, passCountOf, rightOf, visibleDiscard, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick, cardById } from '../engine';
 import { CardBack, CardView, DirtyPlate, RegionCardView, RegionChip } from './CardView';
 import { Modal } from './Modal';
 import type { Focus, Guide } from './tutorial';
-import { REVEAL_MS, type GameController } from './useGame';
+import { orderText, REVEAL_MS, type GameController } from './useGame';
 
 const AVATARS = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧔'];
 const avatarOf = (s: GameState, p: number) => (s.players[p].name === 'Mamie' ? '👵' : AVATARS[p % AVATARS.length]);
@@ -174,8 +174,10 @@ function DenounceModal({ state, open, onClose, onConfirm, guide }: { state: Game
   return (
     <Modal open={open} title="Je te démasque !" onClose={onClose}>
       <p className="muted">
-        Juste : il prend ta Vaisselle et doit changer de région{needReveal ? ', et ta carte montrée part chez lui contre une carte prise au hasard dans sa main' : ''}. Faux :
-        tu gardes la Vaisselle et tu ne pourras pas dénoncer au prochain tour.
+        Juste : il prend ta Vaisselle{state.rules.vaisselleStays ? ' (elle reste chez lui ce tour-ci)' : ''} et doit changer de région
+        {needReveal ? ', et ta carte montrée part chez lui contre une carte prise au hasard dans sa main' : ''}. Faux : tu gardes la Vaisselle
+        {state.rules.vaisselleStays ? ' jusqu’au prochain tour' : ' et tu ne pourras pas dénoncer au prochain tour'}.
+        {state.rules.denounceLimit === 'unique' ? ' Une seule dénonciation par manche !' : ''}
       </p>
       <h3>Qui ?</h3>
       <div className="row wrap">
@@ -235,12 +237,131 @@ function MarketPickModal({ state, onPick }: { state: GameState; onPick: (t: 'pio
   );
 }
 
-/** Commande : « Qui a le Reblochon ? » — une région, puis un plat. */
-function OrderModal({ open, onClose, onConfirm }: { open: boolean; onClose: () => void; onConfirm: (cardId: string) => void }) {
+/** Les 2 cartes du tour : une pour le voisin, une pour le Marché (ou une carte à effet jouée). */
+function SplitPicks({ state, picks, solo, onSwap, onMode, onTarget, onGive }: {
+  state: GameState;
+  picks: Pick[];
+  solo: boolean;
+  onSwap: () => void;
+  onMode: (cardId: string, m: Mode) => void;
+  onTarget: (cardId: string, t: number) => void;
+  onGive: (cardId: string, give: string) => void;
+}) {
+  const me = state.players[0];
+  const left = leftOf(state, 0);
+  const slots: { label: string; pick?: Pick }[] = solo
+    ? [{ label: '🧺 Au Marché', pick: picks[0] }, { label: '🧺 Au Marché', pick: picks[1] }]
+    : [{ label: `➡ Pour ${state.players[left].name}`, pick: picks.find((x) => x.mode === 'pass') }, { label: '🧺 Au Marché', pick: picks.find((x) => x.mode !== 'pass') }];
+  return (
+    <div className="picks split">
+      {slots.map(({ label, pick }, k) => {
+        const card = pick && me.hand.find((c) => c.id === pick.cardId);
+        return (
+          <div key={k} className={`pick${card ? '' : ' empty'}`}>
+            <span className="pick-slot">{label}</span>
+            {card ? <span className="pick-name">{card.name}</span> : <span className="pick-name muted">touche une carte</span>}
+            {card?.kind === 'effect' && pick!.mode !== 'pass' && (
+              <span className="pick-modes">
+                <button className={pick!.mode === 'market' ? 'active' : ''} onClick={() => onMode(card.id, 'market')}>
+                  🧺
+                </button>
+                <button className={`play${pick!.mode === 'effect' ? ' active' : ''}`} onClick={() => onMode(card.id, 'effect')}>
+                  ✨ Jouer
+                </button>
+              </span>
+            )}
+            {card?.kind === 'effect' && pick!.mode === 'effect' && card.effect !== 'demitour' && activePlayers(state).length > 2 && (
+              <span className="pick-targets">
+                {state.players.map((pl, i) =>
+                  i === 0 || state.frozen.includes(i) ? null : (
+                    <button key={i} className={pick!.target === i ? 'active' : ''} onClick={() => onTarget(card.id, i)}>
+                      {pl.name}
+                    </button>
+                  ),
+                )}
+              </span>
+            )}
+            {card?.kind === 'effect' && card.effect === 'chapardeur' && pick!.mode === 'effect' && (
+              <select className="pick-give" value={pick!.give ?? ''} onChange={(e) => onGive(card.id, e.target.value)}>
+                <option value="">Carte à lui rendre…</option>
+                {me.hand
+                  .filter((c) => c.kind !== 'vaisselle' && !picks.some((y) => y.cardId === c.id))
+                  .map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+              </select>
+            )}
+          </div>
+        );
+      })}
+      {!solo && picks.length === 2 && (
+        <button className="swap" onClick={onSwap} aria-label="Échanger voisin et Marché" title="Échanger">
+          ⇅
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Commande servie : « Bob, as-tu le Munster ? » — à qui, une région, puis un plat. */
+function OrderModal({ state, open, onClose, onConfirm, guide }: { state: GameState; open: boolean; onClose: () => void; onConfirm: (cardId: string, target?: number) => void; guide: Guide | null }) {
   const [region, setRegion] = useState<string | null>(null);
+  const others = activePlayers(state).filter((i) => i !== 0);
+  const [target, setTarget] = useState<number | null>(null);
+  const service = state.rules.commande === 'service';
   useEffect(() => {
-    if (open) setRegion(null);
+    if (open) {
+      setRegion(null);
+      setTarget(others.length === 1 ? others[0] : null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+  const per = ordersPerTurn(state);
+  if (service)
+    return (
+      <Modal open={open} title="Passer commande 📝" onClose={onClose}>
+        <p className="muted">
+          Demande un plat à un chef, à voix haute. S’il l’a, il doit te le servir et tu lui rends une carte de ton choix (même la Vaisselle !). Attention : tout le monde entend
+          ce que tu cherches… {per > 1 ? `Ce tour-ci : ${per} commandes.` : 'Une commande par tour.'}
+        </p>
+        {others.length > 1 && (
+          <>
+            <h3>À qui ?</h3>
+            <div className="row wrap">
+              {others.map((i) => (
+                <button key={i} className={`pill${target === i ? ' active' : ''}`} onClick={() => setTarget(i)}>
+                  {avatarOf(state, i)} {state.players[i].name}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        <h3>Quelle région ?</h3>
+        <div className="row wrap">
+          {REGIONS.map((r) => (
+            <RegionChip key={r.id} region={r.id} active={region === r.id} onClick={() => setRegion(r.id)} />
+          ))}
+        </div>
+        {region && (
+          <>
+            <h3>Quel plat ?</h3>
+            <div className="row wrap">
+              {COURSES.map((course, k) => {
+                const id = `${region}-${course}`;
+                const ok = target !== null && (!guide || guide.allowOrder(target, id));
+                return (
+                  <button key={course} className="pill" disabled={target === null} onClick={() => (ok ? onConfirm(id, target!) : undefined)}>
+                    {COURSE_ICONS[course]} {REGION_BY_ID[region].dishes[k]}
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </Modal>
+    );
   return (
     <Modal open={open} title="Passer la commande 📝" onClose={onClose}>
       <p className="muted">Une fois par manche : demande un plat à voix haute. Chacun répond honnêtement oui ou non… et tout le monde t’entend !</p>
@@ -262,6 +383,29 @@ function OrderModal({ open, onClose, onConfirm }: { open: boolean; onClose: () =
           </div>
         </>
       )}
+    </Modal>
+  );
+}
+
+/** Commande servie : la carte que l'on rend au chef qui nous a servi. */
+function GiveModal({ state, onGive, guide }: { state: GameState; onGive: (cardId: string) => void; guide: Guide | null }) {
+  const order = pendingOrder(state)!;
+  const me = state.players[0];
+  const locked = vaisselleLocked(state, 0);
+  const served = me.hand.find((c) => c.id === order.cardId) ?? me.hand[me.hand.length - 1];
+  const name = state.players[order.target!].name;
+  return (
+    <Modal open title={`${name} te sert ! 🍽️`}>
+      <p>
+        Tu reçois <b>{served.name}</b>. Rends-lui une carte de ton choix{me.hand.some((c) => c.kind === 'vaisselle') && !locked ? ' : la Vaisselle, c’est permis 😏' : ''}.
+      </p>
+      <div className="reveal-pick">
+        {me.hand
+          .filter((c) => c !== served && !(c.kind === 'vaisselle' && locked))
+          .map((c) => (
+            <CardView key={c.id} card={c} size="small" onClick={() => (!guide || guide.allowGive(c.id) ? onGive(c.id) : undefined)} />
+          ))}
+      </div>
     </Modal>
   );
 }
@@ -295,6 +439,12 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
           </motion.div>
         ))}
       </div>
+      {flipped && state.catchUp !== null && (
+        <div className="event-card">
+          <b>🥖 Coup de main</b>
+          <span>{state.catchUp === 0 ? 'Tu as le moins d’étoiles : tu commences avec la Baguette !' : `${state.players[state.catchUp].name} a le moins d’étoiles : il commence avec la Baguette.`}</span>
+        </div>
+      )}
       {flipped && state.rules.dishOfDay && (
         <div className="event-card">
           <b>
@@ -332,6 +482,7 @@ function Showdown({ state, onNext }: { state: GameState; onNext: () => void }) {
             {a === w ? ' 🏆' : ''}
             {r.lateAnnouncers.includes(a) && <small> · Dernier service</small>}
             {r.bluffers.includes(a) && <b className="bluff-tag"> 🃏 Bluff raté : −1 ⭐ et la Vaisselle</b>}
+            {!state.rules.blindAnnounce && r.coWinners?.includes(a) && a !== w && <b> ⭐</b>}
           </div>
           <div className="show-cards">
             {r.hands[a].map((c) => (
@@ -344,6 +495,15 @@ function Showdown({ state, onNext }: { state: GameState; onNext: () => void }) {
         <p className="show-result">
           <b>{state.players[w].name}</b> {w === 0 ? 'gagnes' : 'gagne'} {state.event === 'doubleEtoile' ? '2 étoiles ⭐⭐' : 'une étoile ⭐'} avec un menu <b>{MENU_LABELS[r.menu.type]}</b>
           {` (${r.menu.regions.map((x) => REGION_BY_ID[x].name).join(' + ')})`} !
+          {r.coWinners && r.coWinners.length > 1 && (
+            <>
+              <br />
+              <small>
+                Menu complet aussi pour {r.coWinners.filter((p) => p !== w).map((p) => (p === 0 ? 'toi' : state.players[p].name)).join(', ')} :{' '}
+                {state.event === 'doubleEtoile' ? '2 étoiles chacun ⭐⭐' : 'une étoile chacun ⭐'}
+              </small>
+            </>
+          )}
           {r.tieBreak === 'vaisselle' && <><br /><small>Égalité : le plus proche du porteur de la Vaisselle, dans le sens du jeu, l’emporte.</small></>}
           {r.tieBreak === 'hasard' && <><br /><small>Égalité départagée au hasard.</small></>}
         </p>
@@ -360,8 +520,9 @@ function denunciationText(state: GameState, d: NonNullable<GameController['lastD
   const t = state.players[d.target].name;
   const region = REGION_BY_ID[d.region].name;
   const quote = `${a} : « ${t}, je te démasque : ${region} ! »`;
-  if (d.correct) return `${quote} Bien vu ! ${t} prend la Vaisselle et doit changer de région.`;
-  return `${quote} Raté ! ${d.accuser === 0 ? 'Tu gardes' : `${a} garde`} la Vaisselle.`;
+  const stays = state.rules.vaisselleStays ? ' jusqu’au prochain tour' : '';
+  if (d.correct) return `${quote} Bien vu ! ${t} prend la Vaisselle${stays} et doit changer de région.`;
+  return `${quote} Raté ! ${d.accuser === 0 ? 'Tu gardes' : `${a} garde`} la Vaisselle${stays}.`;
 }
 
 export function Table({ game, guide, onRules, onQuit }: { game: GameController; guide: Guide | null; onRules: () => void; onQuit: () => void }) {
@@ -382,8 +543,9 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   const humanMenu = state.phase === 'announce' ? announceableMenu(state, 0) : null;
   const announceErr = state.phase === 'announce' ? checkAnnounce(state, 0) : 'Pas maintenant';
   const frozenMe = state.frozen.includes(0);
-  const ordersLeft = ordersAllowed(state) - state.orders.filter((o) => o.player === 0).length;
-  const lastOrder = state.orders[state.orders.length - 1];
+  const orderErr = state.phase === 'choose' && stage === 'choosing' ? checkOrder(state, 0) : 'Pas maintenant';
+  /** Commandes du tour (affichées en bandeau). */
+  const turnOrders = state.orders.filter((o) => o.turn === state.turn);
   const ev = DAY_EVENTS[state.event];
   const holder = vaisselleHolder(state);
   const left = leftOf(state, 0);
@@ -399,8 +561,8 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     if (stage === 'thinking') setPicks([]);
   }, [stage]);
   useEffect(() => {
-    game.setPaused(denounceOpen || orderOpen || eventOpen || bluffAsk || !!game.peek);
-  }, [denounceOpen, orderOpen, eventOpen, bluffAsk, game]);
+    game.setPaused(denounceOpen || orderOpen || eventOpen || bluffAsk || !!game.peek || pendingOrder(state)?.player === 0);
+  }, [denounceOpen, orderOpen, eventOpen, bluffAsk, game, state]);
   useEffect(() => {
     if (!nudge) return;
     const t = setTimeout(() => setNudge(null), 2200);
@@ -408,6 +570,10 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   }, [nudge]);
 
   const showing = choosing && mustShow(state, 0);
+  /** Règle « une au voisin, une au Marché » (seul au Dernier service : les deux au Marché). */
+  const split = state.rules.split && need === 2;
+  const solo = left === 0;
+  const vLocked = vaisselleLocked(state, 0);
   const tapCard = (c: Card) => {
     if (!choosing || validated) return;
     if (showing) {
@@ -416,6 +582,22 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     }
     if (picks.some((x) => x.cardId === c.id)) return setPicks(picks.filter((x) => x.cardId !== c.id));
     if (guide && !guide.allowCard(c.id)) return setNudge('Suis la bulle 😉');
+    if (split) {
+      // Une carte pour le voisin, une pour le Marché : la carte va dans la case libre qui lui convient.
+      const cheese = state.event === 'fromagesBloques' && c.kind === 'dish' && c.course === 'fromage';
+      const passPick = picks.find((x) => x.mode === 'pass');
+      const marketPick = picks.find((x) => x.mode !== 'pass');
+      if (c.kind === 'vaisselle') {
+        if (solo) return setNudge('Personne à qui passer la Vaisselle : elle reste dans ta main');
+        if (vLocked) return setNudge('Après la dénonciation, la Vaisselle reste chez toi jusqu’au prochain tour');
+        const moved = passPick && !marketPick ? [{ ...passPick, mode: 'market' as Mode }] : marketPick ? [marketPick] : [];
+        return setPicks([{ cardId: c.id, mode: 'pass' }, ...moved]);
+      }
+      if (solo) return picks.length >= 2 ? setNudge('2 cartes maximum : retouche une carte pour l’enlever') : setPicks([...picks, { cardId: c.id, mode: 'market' }]);
+      if (!passPick && !cheese) return setPicks([{ cardId: c.id, mode: 'pass' }, ...picks]);
+      if (!marketPick) return setPicks([...picks, { cardId: c.id, mode: 'market' }]);
+      return setNudge('2 cartes maximum : retouche une carte pour l’enlever');
+    }
     if (picks.length >= need) return setNudge(`${need} carte${need > 1 ? 's' : ''} maximum : retouche une carte pour l’enlever`);
     // « Plateau de fromages » : un fromage ne se passe pas, il va au Marché.
     const forced = state.event === 'fromagesBloques' && c.kind === 'dish' && c.course === 'fromage';
@@ -427,6 +609,14 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     const card = me.hand.find((c) => c.id === cardId);
     const targets = card?.kind === 'effect' ? state.players.map((_, i) => i).filter((i) => i !== 0 && (card.effect === 'controle' || !state.frozen.includes(i))) : [];
     setPicks(picks.map((x) => (x.cardId === cardId ? { cardId, mode: m, target: m === 'effect' && targets.length === 1 ? targets[0] : undefined } : x)));
+  };
+  /** Échange les deux cases (voisin ↔ Marché). */
+  const swapPicks = () => {
+    if (picks.length !== 2) return;
+    const next = picks.map((x) => ({ cardId: x.cardId, mode: (x.mode === 'pass' ? 'market' : 'pass') as Mode }));
+    const bad = next.find((x) => x.mode === 'market' && me.hand.find((c) => c.id === x.cardId)?.kind === 'vaisselle');
+    if (bad) return setNudge('La Vaisselle ne va jamais au Marché !');
+    setPicks(next);
   };
   const pickTarget = (cardId: string, target: number) => setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, target } : x)));
   const pickGive = (cardId: string, give: string) => setPicks(picks.map((x) => (x.cardId === cardId ? { ...x, give } : x)));
@@ -444,8 +634,25 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     if (guide && !guide.allowChoice(choice)) return setNudge('Suis la bulle 😉');
     const err = game.humanChoose(choice);
     if (err) setNudge(err);
-    else guide?.done();
+    else {
+      submitted.current = { turn: state.turn, round: state.roundNumber, choice };
+      guide?.done();
+    }
   };
+  // Un chef t'a commandé une carte après ta validation : tes choix sont annulés. Si tes 2 cartes sont
+  // toujours dans ta main, on revalide tout seul ; sinon, il faut en choisir une autre.
+  const submitted = useRef<{ turn: number; round: number; choice: Choice } | null>(null);
+  useEffect(() => {
+    const sub = submitted.current;
+    if (!sub || !choosing || validated || sub.turn !== state.turn || sub.round !== state.roundNumber) return;
+    const ids = [sub.choice.cardId, ...(sub.choice.extra ?? []).map((x) => x.cardId)];
+    submitted.current = null;
+    if (ids.every((id) => me.hand.some((c) => c.id === id)) && !game.humanChoose(sub.choice)) {
+      submitted.current = sub;
+      return;
+    }
+    setNudge('On t’a commandé une de tes cartes choisies : choisis-en une autre');
+  }, [choosing, validated, state.turn, state.roundNumber, me.hand, game]);
   const denounceErr = checkDenounce(state, 0);
   const canDenounce = choosing && !validated && !denounceErr && (!guide || guide.allowDenounce);
 
@@ -476,7 +683,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
     ) : (
       <div className="row">
         <span className="hint">Pas de menu complet…</span>
-        {!guide && (
+        {!guide && state.rules.blindAnnounce && (
           <button className="btn small" onClick={announce} title="Annoncer quand même, face cachée">
             🃏 Bluffer
           </button>
@@ -489,6 +696,9 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
   else if (choosing)
     bar = (
       <div className={`actions${f('actions')}`}>
+        {split ? (
+          <SplitPicks state={state} picks={picks} solo={solo} onSwap={swapPicks} onMode={pickMode} onTarget={pickTarget} onGive={pickGive} />
+        ) : (
         <div className="picks">
           {Array.from({ length: need }, (_, k) => {
             const pk = picks[k];
@@ -547,13 +757,14 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
             );
           })}
         </div>
+        )}
         <div className="row">
           <button className={`btn btn-red${f('denounce')}`} disabled={!canDenounce} onClick={() => setDenounceOpen(true)} title={denounceErr ?? undefined}>
             🕵️{holder !== 0 ? ' 🔒' : ' Dénoncer'}
           </button>
-          {state.rules.commande !== 'aucune' && !guide && (
-            <button className="btn" disabled={ordersLeft <= 0 || validated} onClick={() => setOrderOpen(true)} title="Passer la commande (une fois par manche)">
-              📝
+          {state.rules.commande !== 'aucune' && (!guide || guide.allowOrderButton) && (
+            <button className={`btn${f('order')}`} disabled={!!orderErr} onClick={() => setOrderOpen(true)} title={orderErr ?? 'Passer commande'}>
+              📝{state.rules.commande === 'service' ? ' Commander' : ''}
             </button>
           )}
           <button className="btn btn-green grow" disabled={picks.length !== need} onClick={validate}>
@@ -610,7 +821,8 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
         <AnimatePresence>
           {state.lastService && (stage === 'choosing' || stage === 'thinking') && (
             <motion.div key="ls" className="banner gold" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
-              🔔 Dernier service ! {state.frozen.map((p) => (p === 0 ? 'Toi' : state.players[p].name)).join(', ')} {state.frozen.length > 1 ? 'ont' : state.frozen[0] === 0 ? 'as' : 'a'} annoncé face cachée : un dernier échange, puis on révèle.
+              🔔 Dernier service ! {state.frozen.map((p) => (p === 0 ? 'Toi' : state.players[p].name)).join(', ')} {state.frozen.length > 1 ? 'ont' : state.frozen[0] === 0 ? 'as' : 'a'}{' '}
+              {state.rules.blindAnnounce ? 'annoncé face cachée : un dernier échange, puis on révèle.' : 'crié « À TABLE ! » : un dernier tour pour les autres. Tout menu complet rapporte une étoile !'}
             </motion.div>
           )}
           {state.event === 'inspection' && !mustShow(state, 0) && Object.keys(state.shown).length > 0 && (stage === 'choosing' || stage === 'thinking') && (
@@ -621,10 +833,11 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
                 .join(' · ')}
             </motion.div>
           )}
-          {lastOrder && lastOrder.turn === state.turn && (stage === 'choosing' || stage === 'thinking') && (
-            <motion.div key="order" className="banner" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
-              📝 {lastOrder.player === 0 ? 'Tu demandes' : `${state.players[lastOrder.player].name} demande`} : « Qui a {lastOrder.cardId ? cardById(lastOrder.cardId).name : lastOrder.course} ? » —{' '}
-              {lastOrder.yes.length ? lastOrder.yes.map((p) => (p === 0 ? 'Toi' : state.players[p].name)).join(', ') + ' : oui !' : 'personne !'}
+          {turnOrders.length > 0 && (stage === 'choosing' || stage === 'thinking' || stage === 'marketPick') && (
+            <motion.div key="order" className="banner orders" initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
+              {turnOrders.slice(-3).map((o, k) => (
+                <div key={k}>{orderText(state, o)}</div>
+              ))}
             </motion.div>
           )}
           {game.lastDenunciation && (stage === 'choosing' || stage === 'thinking') && (
@@ -675,7 +888,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
       {game.fx && <ExchangeOverlay moves={game.fx.moves} fxKey={game.fx.key} />}
 
       <AnimatePresence>
-        {(nudge || game.toast) && (
+        {(nudge || game.toast) && !['showdown', 'roundEnd', 'intro', 'gameOver'].includes(stage) && (
           <motion.div className="toast" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ opacity: 0 }}>
             {nudge ?? game.toast}
           </motion.div>
@@ -716,14 +929,29 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
       {stage === 'marketPick' && <MarketPickModal state={state} onPick={game.humanTake} />}
 
       <OrderModal
+        state={state}
+        guide={guide}
         open={orderOpen}
         onClose={() => setOrderOpen(false)}
-        onConfirm={(id) => {
-          const err = game.humanOrder(id);
+        onConfirm={(id, target) => {
+          const err = game.humanOrder(id, target);
           setOrderOpen(false);
           if (err) setNudge(err);
+          else guide?.done();
         }}
       />
+
+      {pendingOrder(state)?.player === 0 && (
+        <GiveModal
+          state={state}
+          guide={guide}
+          onGive={(id) => {
+            const err = game.humanGive(id);
+            if (err) setNudge(err);
+            else guide?.done();
+          }}
+        />
+      )}
 
       <Modal open={!!game.peek} title="👅 Dégustation" onClose={game.clearPeek}>
         {game.peek && (

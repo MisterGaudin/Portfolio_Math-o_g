@@ -341,19 +341,15 @@ export function aiOrderService(state: GameState, player: number, rng: Rng): { ca
   const others = activePlayers(state).filter((i) => i !== player);
   if (!missing.length || !others.length) return null;
   if (me.difficulty === 'facile' && rng() < 0.4) return null;
-  let cardId = pick(rng, missing);
-  if (me.difficulty === 'difficile') {
-    // Bluff : une fois sur six, demander le plat d'une autre région (que personne n'a demandé).
-    if (rng() < 1 / 6) {
-      const decoys = state.regionsInPlay.filter((r) => !me.regions.includes(r)).flatMap((r) => COURSES.map((c) => `${r}-${c}`));
-      cardId = pick(rng, decoys);
-    }
-    // Qui a déjà répondu « non » pour ce plat depuis notre dernier échange avec lui ? On l'évite.
-    const said = (q: number) => state.orders.some((o) => o.player === player && o.target === q && o.cardId === cardId && !o.served && o.turn >= state.turn - 2);
-    const fresh = others.filter((q) => !said(q));
-    return { cardId, target: pick(rng, fresh.length ? fresh : others) };
-  }
-  return { cardId, target: pick(rng, others) };
+  // On ne redemande pas un plat à quelqu'un qui vient de répondre « non » (ce tour-ci, ou au tour
+  // précédent pour les IA moyenne et difficile).
+  const since = me.difficulty === 'facile' ? state.turn : state.turn - 1;
+  const refused = (q: number, id: string) => state.orders.some((o) => o.player === player && o.target === q && o.cardId === id && !o.served && o.turn >= since);
+  let wanted = missing;
+  // Bluff de l'IA difficile : une fois sur six, demander le plat d'une autre région pour brouiller les pistes.
+  if (me.difficulty === 'difficile' && rng() < 1 / 6) wanted = state.regionsInPlay.filter((r) => !me.regions.includes(r)).flatMap((r) => COURSES.map((c) => `${r}-${c}`));
+  const options = wanted.flatMap((cardId) => others.filter((q) => !refused(q, cardId)).map((target) => ({ cardId, target })));
+  return options.length ? pick(rng, options) : null;
 }
 
 /** Carte rendue après une commande servie : la Vaisselle si possible (bon débarras !), sinon la plus inutile. */

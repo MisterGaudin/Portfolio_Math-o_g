@@ -329,6 +329,8 @@ export interface GameState {
   blockedUntil: Record<number, number>;
   /** Carte « Plat du jour » de la manche. */
   event: DayEvent;
+  /** Chef en retard qui a reçu la Baguette en début de manche (règle « baguetteToLast »), ou null. */
+  catchUp: number | null;
   /** Commandes passées cette manche (publiques). */
   orders: Order[];
 }
