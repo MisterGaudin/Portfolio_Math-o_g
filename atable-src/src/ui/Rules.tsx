@@ -6,7 +6,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
     <Modal open={open} title="Règles d’À TABLE !" onClose={onClose}>
       <div className="rules">
         <p>
-          <b>But :</b> 3 étoiles ⭐ pour devenir <b>Chef 3 étoiles</b>.
+          <b>But :</b> 3 étoiles ⭐ pour devenir <b>Chef 3 étoiles</b>. De 2 à 6 chefs.
         </p>
         <p>
           Chacun a <b>une région secrète</b> et 8 cartes. Ta carte Région compte comme un de ses plats (★) : trouve les <b>3 autres</b>. Le vrai plat ne te sert
@@ -16,7 +16,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b>Chaque tour</b>, ensemble : une carte à ton <b>voisin</b>, une au <b>Marché</b> (face visible). Ton voisin pioche, ou prend la carte visible.
         </p>
         <p>
-          📝 <b>Commande</b> (une par tour, deux en Duel) : « Bob, as-tu le Munster ? » S’il l’a, il te le sert et tu lui rends une carte. Tout le monde entend…
+          📝 <b>Commande</b> (une par tour, deux en Duel) : « Bob, as-tu le Munster ? » S’il l’a, il doit te le servir (interdit de mentir !) et tu lui rends une carte. Tout le monde entend…
         </p>
         <p>
           🔔 Menu complet ? Crie <b>« À TABLE ! »</b>. Les autres jouent un <b>Dernier service</b>. Chaque menu complet rapporte une étoile ; le meilleur gagne la manche :

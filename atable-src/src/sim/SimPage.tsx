@@ -1,4 +1,4 @@
-// Page /sim : N parties IA contre IA à 2, 3 et 4 joueurs, statistiques et diagnostic.
+// Page /sim : N parties IA contre IA de 2 à 6 joueurs, statistiques et diagnostic.
 import { useState } from 'react';
 import { DEFAULT_RULES, MENU_LABELS, V4_RULES, type MenuType, type Rules } from '../engine';
 import { simulate, type SimDifficulty, type SimStats } from './simulate';
@@ -25,7 +25,7 @@ export function SimPage() {
     const seed = (Date.now() >>> 0) % 1e9;
     // Une configuration à la fois, pour garder la page réactive.
     const step = (n: number, acc: SimStats[]) => {
-      if (n > 4) return setRunning(null);
+      if (n > 6) return setRunning(null);
       setRunning(n);
       setTimeout(() => {
         const s = simulate({ games, players: n, difficulty, seed: seed + n, rules: { ...(version === 'v4' ? V4_RULES : {}), denounceLimit: limit, headStart } });
@@ -58,7 +58,7 @@ export function SimPage() {
   return (
     <div className="screen sim">
       <h1>Simulation</h1>
-      <p className="muted">Des ordinateurs jouent des parties complètes (jusqu’à 3 Étoiles) entre eux, à 2, 3 et 4 joueurs.</p>
+      <p className="muted">Des ordinateurs jouent des parties complètes (jusqu’à 3 Étoiles) entre eux, de 2 à 6 joueurs.</p>
       <label className="field">
         <span>Nombre de parties</span>
         <input type="number" min={10} max={20000} step={100} value={games} onChange={(e) => setGames(Math.max(10, +e.target.value || 0))} />
@@ -112,7 +112,7 @@ export function SimPage() {
         </select>
       </label>
       <button className="btn btn-gold block" disabled={running !== null} onClick={run}>
-        {running !== null ? `Simulation à ${running} joueurs…` : `Lancer ${games} parties × 3`}
+        {running !== null ? `Simulation à ${running} joueurs…` : `Lancer ${games} parties × 5`}
       </button>
 
       {results.length > 0 && (

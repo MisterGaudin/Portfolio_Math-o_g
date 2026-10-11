@@ -1301,3 +1301,54 @@ button.chip.active {
 .age-field small {
   grid-column: 1 / -1;
 }
+
+/* Table de 5 ou 6 joueurs : adversaires sur 3 colonnes, plus compacts. */
+.opponents.many {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+.opponents.many .seat {
+  max-width: none;
+  padding: 3px 2px;
+}
+.opponents.many .avatar {
+  font-size: 22px;
+}
+.opponents.many .seat-name {
+  font-size: 12px;
+}
+.seat-count {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.opp-n {
+  display: block;
+  font-size: 20px;
+  line-height: 1.1;
+}
+/* Table de 5 ou 6 : avatar et nom sur une ligne, étoiles et cartes sur la suivante. */
+.opponents.many .seat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  column-gap: 4px;
+  text-align: left;
+}
+.opponents.many .seat-top {
+  grid-row: span 2;
+}
+.opponents.many .seat-plate {
+  right: -6px;
+  top: -6px;
+  transform: scale(0.7);
+}
+.opponents.many .etoiles,
+.opponents.many .seat-count,
+.opponents.many .seat-status {
+  font-size: 11px;
+}
+.opponents.many .seat-status:empty,
+.opponents.many .seat-dir {
+  display: none;
+}

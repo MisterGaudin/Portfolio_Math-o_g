@@ -125,9 +125,9 @@ export interface RoundPreset {
 
 export const DEFAULT_MAX_TURNS = 200;
 
-/** Crée une partie et distribue la première manche. 2 à 4 joueurs. */
+/** Crée une partie et distribue la première manche. 2 à 6 joueurs. */
 export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = {}, preset?: RoundPreset): GameState {
-  if (setups.length < 2 || setups.length > 4) throw new Error('Il faut 2 à 4 joueurs');
+  if (setups.length < 2 || setups.length > 6) throw new Error('Il faut 2 à 6 joueurs');
   const state: GameState = {
     players: setups.map((s) => ({ ...s, hand: [], regions: [], bonus: [], etoiles: 0 })),
     regionsInPlay: [],

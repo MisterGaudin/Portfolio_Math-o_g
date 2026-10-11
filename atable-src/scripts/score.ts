@@ -5,7 +5,7 @@ const games = +(process.argv[2] ?? 300);
 /** Variante à tester (JSON en 2e argument), sinon les règles par défaut. */
 const rules = rulesOf(JSON.parse(process.argv[3] ?? '{}') as Partial<Rules>);
 const res: Record<string, number> = {};
-for (const n of (process.argv[4] ?? '2,3,4').split(',').map(Number)) {
+for (const n of (process.argv[4] ?? '2,3,4,5,6').split(',').map(Number)) {
   const st = measure(n, rules, games, process.env.SEED ? +process.env.SEED : undefined);
   const naive = naiveWinRate(n, rules, games);
   const sc = score(st, naive, rules, n);

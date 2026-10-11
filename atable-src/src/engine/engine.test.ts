@@ -969,7 +969,7 @@ describe('version 5 : commande servie, une carte au voisin et une au Marché, é
   });
 
   it.each(['facile', 'moyen', 'difficile'] as const)('parties complètes v5 entre IA (%s), cartes conservées', (d) => {
-    for (const n of [2, 3, 4]) {
+    for (const n of [2, 3, 4, 5, 6]) {
       const s = createGame(setups(n, d), createRng(n * 17));
       const rng = createRng(n);
       let guard = 0;

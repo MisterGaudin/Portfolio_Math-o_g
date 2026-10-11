@@ -40,7 +40,7 @@ import {
 } from '../engine';
 
 export interface Setup {
-  opponents: number; // 1 à 3
+  opponents: number; // 1 à 5
   difficulty: Difficulty;
   /** Ton âge : à égalité d'étoiles, le plus jeune reçoit la Baguette. */
   age?: number;
@@ -74,9 +74,9 @@ export interface BotScript {
   swapCard?: (state: GameState, receiver: number) => string | undefined;
 }
 
-const BOT_NAMES = ['Bob', 'Jeannine', 'Gaston'];
+const BOT_NAMES = ['Bob', 'Jeannine', 'Gaston', 'Lucette', 'Firmin'];
 /** Âges des ordinateurs (pour la Baguette du plus jeune). */
-const BOT_AGES = [45, 67, 38];
+const BOT_AGES = [45, 67, 38, 81, 12];
 
 /** Texte public d'une commande (« Bob → Jeannine : as-tu le Munster ? Oui ! »), vu par le joueur. */
 export function orderText(state: GameState, o: Order): string {

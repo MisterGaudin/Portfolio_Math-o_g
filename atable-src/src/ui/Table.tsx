@@ -8,7 +8,7 @@ import { Modal } from './Modal';
 import type { Focus, Guide } from './tutorial';
 import { orderText, REVEAL_MS, type GameController } from './useGame';
 
-const AVATARS = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧔'];
+const AVATARS = ['🧑‍🍳', '👨‍🍳', '👩‍🍳', '🧔', '👵', '👴'];
 const avatarOf = (s: GameState, p: number) => (s.players[p].name === 'Mamie' ? '👵' : AVATARS[p % AVATARS.length]);
 
 /** Étoiles gagnées (comme les étoiles Michelin). */
@@ -85,11 +85,16 @@ function Seat({ state, p, ready, thinking, isLeft, isRight }: { state: GameState
       </div>
       <div className="seat-name">{pl.name}</div>
       <Stars n={pl.etoiles} max={state.etoilesToWin} />
-      <div className="seat-cards overlap">
-        {pl.hand.map((c) => (
-          <CardBack key={c.id} size="mini" />
-        ))}
-      </div>
+      {state.players.length > 4 ? (
+        // Table de 5 ou 6 : on affiche juste le nombre de cartes pour gagner de la place.
+        <div className="seat-count">🂠 {pl.hand.length}</div>
+      ) : (
+        <div className="seat-cards overlap">
+          {pl.hand.map((c) => (
+            <CardBack key={c.id} size="mini" />
+          ))}
+        </div>
+      )}
       <div className="seat-status">
         {state.frozen.includes(p) ? '🃏 À TABLE !' : ready ? '✓ prêt' : thinking ? '…' : ''}
         {isProtected(state, p) && <span title="Déjà démasqué : protégé"> 🛡️</span>}
@@ -802,7 +807,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
         </button>
       </header>
 
-      <section className={`opponents n${state.players.length - 1}${f('opponents')}`}>
+      <section className={`opponents n${state.players.length - 1}${state.players.length > 4 ? ' many' : ''}${f('opponents')}`}>
         {state.players.map((_, p) =>
           p === 0 ? null : (
             <Seat key={p} state={state} p={p} ready={!!state.choices[p]} thinking={choosing && !state.choices[p]} isLeft={p === left} isRight={p === right && p !== left} />

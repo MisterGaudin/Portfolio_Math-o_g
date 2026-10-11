@@ -4,7 +4,7 @@
 import { simulate, type SimDifficulty } from '../src/sim/simulate';
 
 const [games = '1000', difficulty = 'moyen', ...players] = process.argv.slice(2);
-const counts = players.length ? players.map(Number) : [2, 3, 4];
+const counts = players.length ? players.map(Number) : [2, 3, 4, 5, 6];
 const f = (x: number, d = 1) => x.toFixed(d);
 
 for (const n of counts) {

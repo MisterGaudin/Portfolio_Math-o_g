@@ -1,7 +1,7 @@
 # À TABLE !
 
 Jeu de cartes familial sur les spécialités des régions de France, jouable au doigt sur téléphone.
-Tu affrontes 1 à 3 ordinateurs. Le but : terminer le menu de ta région secrète (Entrée, Plat, Fromage, Dessert) en passant commande aux autres chefs (« Bob, du Munster, tu en as ? »), et décrocher 3 Étoiles pour devenir **Chef 3 étoiles**.
+Tu affrontes 1 à 5 ordinateurs (2 à 6 chefs). Le but : terminer le menu de ta région secrète (Entrée, Plat, Fromage, Dessert) en passant commande aux autres chefs (« Bob, du Munster, tu en as ? »), et décrocher 3 Étoiles pour devenir **Chef 3 étoiles**.
 
 - **Vite + React + TypeScript**, sans backend : tout tourne dans le navigateur.
 - **Moteur de règles pur** dans `src/engine/` (aucune dépendance à l'UI), testé avec **Vitest**.
@@ -81,6 +81,7 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
 
 ## Règles (version 5)
 
+- **2 à 6 joueurs**, 8 cartes en main quel que soit le nombre de joueurs.
 - **Toutes les régions** (12) sont en jeu : 48 plats + Baguette + Vaisselle + 2 Chapardeur = 52 cartes (+ 12 cartes Région et 8 cartes Plat du jour).
 - **1 région secrète par joueur**, unique (12 cartes Région, une par région). La carte Région **compte comme un
   plat fixe de sa région** (`regionCourse` dans `src/config/cards.ts`, ex. Savoie = Tartiflette) : il reste
@@ -88,7 +89,7 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
 - **Chaque tour, 2 cartes données en même temps : une au voisin, une au Marché** (face visible). Le voisin de
   celui qui va au Marché pioche, ou prend la carte visible de la défausse (**Marché ouvert**).
 - 📝 **Commande servie** (façon 7 familles), **une par tour, deux en Duel** : « Bob, du Munster, tu en as ? ». S'il
-  l'a, il doit le servir, et on lui rend une carte de son choix (même la Vaisselle !). La question et la réponse
+  l'a, il doit le servir (**interdit de mentir**), et on lui rend une carte de son choix (même la Vaisselle !). La question et la réponse
   sont publiques : tout le monde apprend ce que tu cherches…
 - 🔔 **« À TABLE ! »** dès que le menu est complet. Les autres jouent un **Dernier service** (seul, on met ses 2
   cartes au Marché). Puis on révèle : **chaque menu complet rapporte une étoile**, le meilleur gagne la manche :
@@ -150,12 +151,15 @@ la main à la version 4 :
 | Part du talent | 10 | écart difficile / facile, et un débutant « naïf » ne doit pas battre l'IA difficile |
 | Décisions | 15 | progression, part des progrès obtenus par ses propres choix, choix serrés |
 
-| | Duel | 3 joueurs | 4 joueurs |
-|---|---|---|---|
-| **v4** | 58 | 59 | 65 |
-| **v5** | **79–81** | **85** | **86** |
-| Durée estimée d'une partie (v5) | ≈ 28 min | ≈ 28 min | ≈ 28 min |
-| Tours par manche (v5) | 10 | 7 | 5 |
+| | Duel | 3 joueurs | 4 joueurs | 5 joueurs | 6 joueurs |
+|---|---|---|---|---|---|
+| **v4** | 58 | 59 | 65 | — | — |
+| **v5** | **79–81** | **85** | **86** | **85** | **84** |
+| Durée estimée d'une partie (v5) | ≈ 28 min | ≈ 28 min | ≈ 28 min | ≈ 32 min | ≈ 35 min |
+| Tours par manche (v5) | 10 | 7 | 5 | 5 | 5 |
+
+À 5 et 6 joueurs, la pioche est presque vide après la donne (48 cartes en main sur 52) : le Marché est remélangé
+dès qu'elle s'épuise, ce qui fait tourner les cartes plus vite. Tester 6 ou 7 cartes en main n'apportait rien.
 
 Ce qui a fait monter la note : la **commande servie** (on va chercher ses plats au lieu d'attendre ce que le voisin
 veut bien donner), **une carte au voisin et une au Marché** (sans Marché obligatoire, garder et tout passer était la

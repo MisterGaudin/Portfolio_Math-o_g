@@ -26,9 +26,9 @@ export function Home({ initial, onStart, onTutorial, onRules }: { initial: Setup
       <div className="panel">
         <h3>Adversaires</h3>
         <div className="segmented">
-          {[1, 2, 3].map((n) => (
+          {[1, 2, 3, 4, 5].map((n) => (
             <button key={n} className={setup.opponents === n ? 'active' : ''} onClick={() => setSetup({ ...setup, opponents: n })}>
-              {'🤖'.repeat(n)}
+              <b className="opp-n">{n}</b>
               <small>{n} ordi{n > 1 ? 's' : ''}</small>
             </button>
           ))}
