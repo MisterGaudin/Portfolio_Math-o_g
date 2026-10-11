@@ -25,7 +25,7 @@ export interface BaguetteCard {
 }
 
 /** Les effets des cartes spéciales (posées sur la pile spéciale, hors jeu, une fois jouées). */
-export type Effect = 'demitour' | 'troc' | 'chapardeur' | 'controle' | 'degustation';
+export type Effect = 'demitour' | 'troc' | 'chapardeur' | 'controle' | 'degustation' | 'rupture' | 'torchon' | 'express';
 
 /**
  * Carte à effet : « Demi-tour » (le sens s'inverse), « Troc » (échange de main),
@@ -138,6 +138,10 @@ export interface Order {
   target?: number;
   /** Règle « service » : le plat a été servi (le joueur visé l'avait et l'a donné). */
   served?: boolean;
+  /** « Rupture de stock ! » : le joueur visé avait le plat mais a refusé de le servir (public). */
+  refused?: boolean;
+  /** Commande en plus grâce à « Livraison express ». */
+  express?: boolean;
   /** Carte rendue en échange (connue des deux seuls joueurs) ; absente tant qu'elle n'est pas choisie. */
   given?: string;
 }

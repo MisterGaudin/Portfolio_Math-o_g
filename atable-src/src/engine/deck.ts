@@ -38,7 +38,7 @@ export function cardById(id: string): Card {
   if (id === 'baguette') return BAGUETTE;
   if (id === 'vaisselle') return VAISSELLE;
   if (/^baguette-\d+$/.test(id)) return { ...BAGUETTE, id };
-  const fx = /^(demitour|troc|chapardeur|controle|degustation)-(\d+)$/.exec(id);
+  const fx = /^(demitour|troc|chapardeur|controle|degustation|rupture|torchon|express)-(\d+)$/.exec(id);
   if (fx) return effectCard(fx[1] as Effect, +fx[2]);
   const copy = /-(\d+)$/.exec(id);
   const base = copy ? id.slice(0, -copy[0].length) : id;

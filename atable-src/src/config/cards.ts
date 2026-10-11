@@ -74,6 +74,9 @@ export const SPECIALS = {
   chapardeur: { id: 'chapardeur', name: 'Chapardeur', icon: '🦊', hint: 'Vole une carte au hasard, rends-en une' },
   controle: { id: 'controle', name: 'Contrôle sanitaire', icon: '🚫', hint: 'Un joueur ne peut pas annoncer' },
   degustation: { id: 'degustation', name: 'Dégustation', icon: '👅', hint: 'Regarde 3 cartes de l’adversaire' },
+  rupture: { id: 'rupture', name: 'Rupture de stock', icon: '📦', hint: 'Refuse de servir une commande' },
+  torchon: { id: 'torchon', name: 'Coup de torchon', icon: '🧽', hint: 'La Vaisselle va au chef de ton choix' },
+  express: { id: 'express', name: 'Livraison express', icon: '🛵', hint: 'Une commande en plus' },
 } as const;
 
 /** Les cartes « Plat du jour » : un événement par manche. */

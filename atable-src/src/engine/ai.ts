@@ -1,7 +1,7 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, isProtected, vaisselleLocked, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
+import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, isProtected, vaisselleLocked, vaisselleHolder, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
 import { COURSES } from '../config/cards';
 import { cardById, menuProgress } from './deck';
 import { pick, type Rng } from './rng';
@@ -137,6 +137,8 @@ export function aiChoose(state: GameState, player: number, rng: Rng): Choice {
   const isBonus = (c: DishCard) => me.bonus[own.indexOf(c.region)] === c.course;
   /** Joue une carte à effet avec une cible raisonnable. */
   const playEffect = (card: Card & { kind: 'effect' }): Choice | null => {
+    // Rupture de stock et Livraison express ne se jouent pas pendant l'échange.
+    if (card.effect === 'rupture' || card.effect === 'express') return null;
     if (card.effect === 'demitour') return { cardId: card.id, mode: 'effect' };
     if (card.effect === 'controle') {
       // Contrôle sanitaire : sur le joueur le plus étoilé (ou un joueur au hasard).
@@ -291,15 +293,24 @@ export function aiChooseSplit(state: GameState, player: number, rng: Rng): Choic
   }
   // 2. Carte jouée ou mise au Marché.
   const rest = hand.filter((c) => c !== pass && c.kind !== 'vaisselle');
-  const fx = rest.find((c) => c.kind === 'effect' && c.effect !== 'troc' && me.difficulty !== 'facile');
+  const reactive = (c: Card) => c.kind === 'effect' && (c.effect === 'rupture' || c.effect === 'express');
+  const holder = vaisselleHolder(state);
+  const fx = rest.find((c) => c.kind === 'effect' && c.effect !== 'troc' && !reactive(c) && me.difficulty !== 'facile' && !(c.effect === 'torchon' && holder === null));
   if (fx && fx.kind === 'effect') {
     const others = activePlayers(state).filter((i) => i !== player);
     const top = Math.max(...others.map((i) => state.players[i].etoiles));
-    const target = fx.effect === 'controle' ? pick(rng, others.filter((i) => state.players[i].etoiles === top)) : fx.effect === 'demitour' ? undefined : pick(rng, others);
+    // Coup de torchon : la Vaisselle va au chef le plus étoilé qui ne l'a pas déjà.
+    const clean = others.filter((i) => i !== holder);
+    const topClean = Math.max(...clean.map((i) => state.players[i].etoiles));
+    const target =
+      fx.effect === 'controle' ? pick(rng, others.filter((i) => state.players[i].etoiles === top))
+      : fx.effect === 'torchon' ? (clean.length ? pick(rng, clean.filter((i) => state.players[i].etoiles === topClean)) : undefined)
+      : fx.effect === 'demitour' ? undefined : pick(rng, others);
     const give = fx.effect === 'chapardeur' ? (rest.find((c) => c !== fx && spare.includes(c)) ?? rest.find((c) => c !== fx))?.id : undefined;
-    if (others.length && (fx.effect !== 'chapardeur' || give)) return { cardId: pass.id, mode: isDish(pass) && pass.course === 'fromage' && state.event === 'fromagesBloques' ? 'market' : 'pass', extra: [{ cardId: fx.id, mode: 'effect', target, give }] };
+    if (others.length && (fx.effect !== 'chapardeur' || give) && (fx.effect !== 'torchon' || target !== undefined)) return { cardId: pass.id, mode: isDish(pass) && pass.course === 'fromage' && state.event === 'fromagesBloques' ? 'market' : 'pass', extra: [{ cardId: fx.id, mode: 'effect', target, give }] };
   }
-  const restSpare = rest.filter((c) => spare.includes(c) || c.kind === 'effect');
+  // Rupture de stock et Livraison express se gardent en main (elles servent plus tard).
+  const restSpare = rest.filter((c) => spare.includes(c) || (c.kind === 'effect' && !reactive(c)));
   const riskyOnes = restSpare.filter(risky);
   const market = riskyOnes.length ? pick(rng, riskyOnes) : restSpare.length ? pick(rng, restSpare) : pick(rng, rest);
   const fromage = (c: Card) => state.event === 'fromagesBloques' && isDish(c) && c.course === 'fromage';
@@ -334,9 +345,9 @@ export function aiReveal(state: GameState, player: number): string | undefined {
  * au joueur le plus susceptible de l'avoir (l'IA difficile écarte ceux qui ont déjà répondu non,
  * et bluffe parfois en demandant le plat d'une autre région pour brouiller les pistes).
  */
-export function aiOrderService(state: GameState, player: number, rng: Rng): { cardId: string; target: number } | null {
+export function aiOrderService(state: GameState, player: number, rng: Rng, express = false): { cardId: string; target: number } | null {
   const me = state.players[player];
-  if (checkOrder(state, player)) return null;
+  if (checkOrder(state, player, express)) return null;
   const missing = missingDishes(state, player);
   const others = activePlayers(state).filter((i) => i !== player);
   if (!missing.length || !others.length) return null;
@@ -351,6 +362,11 @@ export function aiOrderService(state: GameState, player: number, rng: Rng): { ca
   if (me.difficulty === 'difficile' && rng() < 1 / 6) wanted = state.regionsInPlay.filter((r) => !me.regions.includes(r)).flatMap((r) => COURSES.map((c) => `${r}-${c}`));
   const options = wanted.flatMap((cardId) => others.filter((q) => !refused(q, cardId)).map((target) => ({ cardId, target })));
   return options.length ? pick(rng, options) : null;
+}
+
+/** « Rupture de stock ! » : l'ordinateur visé refuse de servir (toujours, sauf l'IA facile une fois sur deux). */
+export function aiRupture(state: GameState, target: number, rng: Rng): boolean {
+  return state.players[target].difficulty !== 'facile' || rng() < 0.5;
 }
 
 /** Carte rendue après une commande servie : la Vaisselle si possible (bon débarras !), sinon la plus inutile. */

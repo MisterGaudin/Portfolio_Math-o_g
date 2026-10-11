@@ -1,5 +1,5 @@
 // Un tour complet joué uniquement par des ordinateurs (simulation et tests).
-import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiOrderGive, aiOrderService, aiReveal, aiShow, aiTake } from './ai';
+import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiOrderGive, aiOrderService, aiReveal, aiRupture, aiShow, aiTake } from './ai';
 import { activePlayers, denounce, marketReceivers, pendingOrder, placeOrder, resolveAnnouncements, settleOrder, resolveExchange, showCard, submitChoice } from './game';
 import type { Rng } from './rng';
 import type { GameEvent, GameState } from './types';
@@ -8,11 +8,18 @@ import type { GameEvent, GameState } from './types';
 export function botOrder(state: GameState, p: number, rng: Rng): GameEvent[] {
   if (state.rules.commande === 'service') {
     const events: GameEvent[] = [];
-    for (let k = 0; k < 3; k++) {
-      const o = aiOrderService(state, p, rng);
+    const refuse = (t: number) => aiRupture(state, t, rng);
+    for (let k = 0; k < 4; k++) {
+      // Commandes normales, puis une de plus avec « Livraison express » si l'ordinateur en a une.
+      let express = false;
+      let o = aiOrderService(state, p, rng);
+      if (!o && state.players[p].difficulty !== 'facile') {
+        express = true;
+        o = aiOrderService(state, p, rng, true);
+      }
       if (!o) break;
       try {
-        events.push(...placeOrder(state, p, o));
+        events.push(...placeOrder(state, p, { ...o, express, refuse }, rng));
       } catch {
         break; // commande refusée par les règles : on n'insiste pas
       }

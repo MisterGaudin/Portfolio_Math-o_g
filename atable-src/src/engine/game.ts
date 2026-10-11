@@ -364,14 +364,16 @@ export const vaisselleLocked = (state: GameState, player: number) =>
   !!state.denunciation && vaisselleHolder(state) === player && (state.rules.vaisselleStays || (!state.denunciation.correct && state.denunciation.accuser === player));
 
 /** Peut-on passer commande maintenant ? (renvoie un message d'erreur, ou null) */
-export function checkOrder(state: GameState, player: number): string | null {
+export function checkOrder(state: GameState, player: number, express = false): string | null {
   if (state.rules.commande === 'aucune') return 'Pas de commande dans cette version';
   if (state.phase !== 'choose' || state.frozen.includes(player)) return 'Ce n’est pas le moment de commander';
   if (state.choices[player]) return 'Commande avant de choisir tes cartes';
   if (pendingOrder(state)) return 'Une commande est en cours';
   if (state.rules.commande === 'service') {
     const per = ordersPerTurn(state);
-    if (state.orders.filter((o) => o.player === player && o.turn === state.turn).length >= per) return per > 1 ? 'Deux commandes par tour, pas plus' : 'Une commande par tour';
+    const used = state.orders.filter((o) => o.player === player && o.turn === state.turn && !o.express).length;
+    if (express) return state.players[player].hand.some((c) => c.kind === 'effect' && c.effect === 'express') ? null : 'Il faut une carte Livraison express';
+    if (used >= per) return per > 1 ? 'Deux commandes par tour, pas plus' : 'Une commande par tour';
     return null;
   }
   if (state.orders.filter((o) => o.player === player).length >= ordersAllowed(state)) return 'Tu as déjà passé ta commande cette manche';
@@ -521,10 +523,21 @@ export function denounce(
  * COMMANDE : « Qui a le Reblochon ? » (ou « Qui a un Fromage ? »), à voix haute, avant de
  * choisir ses cartes. Chaque autre joueur répond honnêtement oui ou non. Une fois par manche.
  */
-export function placeOrder(state: GameState, player: number, query: { cardId?: string; course?: Course; target?: number; give?: string }): GameEvent[] {
-  const err = checkOrder(state, player);
+export interface OrderQuery {
+  cardId?: string;
+  course?: Course;
+  target?: number;
+  give?: string;
+  /** Commande en plus, en défaussant une « Livraison express ». */
+  express?: boolean;
+  /** Le joueur visé joue-t-il « Rupture de stock » s'il en a une ? (décision du joueur visé) */
+  refuse?: (target: number) => boolean;
+}
+
+export function placeOrder(state: GameState, player: number, query: OrderQuery, rng?: Rng): GameEvent[] {
+  const err = checkOrder(state, player, query.express);
   if (err) throw new Error(err);
-  if (state.rules.commande === 'service') return serveOrder(state, player, query);
+  if (state.rules.commande === 'service') return serveOrder(state, player, query, rng);
   if (state.rules.commande === 'plat' && !query.cardId) throw new Error('Choisis un plat');
   if (state.rules.commande === 'type' && !query.course) throw new Error('Choisis un type de plat');
   const has = (q: number) =>
@@ -541,7 +554,7 @@ const imageIdOf = (id: string) => id.replace(/-\d+$/, '');
  * donne et tu lui rends une carte de ton choix (`give`, éventuellement choisie plus tard avec
  * settleOrder) — même la Vaisselle ! La demande et la réponse sont publiques, la carte rendue non.
  */
-function serveOrder(state: GameState, player: number, query: { cardId?: string; target?: number; give?: string }): GameEvent[] {
+function serveOrder(state: GameState, player: number, query: OrderQuery, rng?: Rng): GameEvent[] {
   const t = query.target;
   if (!query.cardId || cardById(query.cardId).kind !== 'dish') throw new Error('Choisis un plat');
   if (t === undefined || t === player || !state.players[t]) throw new Error('Choisis à qui tu demandes');
@@ -549,9 +562,18 @@ function serveOrder(state: GameState, player: number, query: { cardId?: string; 
   if (state.orders.some((o) => o.player === player && o.target === t && o.turn === state.turn && o.cardId && imageIdOf(o.cardId) === imageIdOf(query.cardId!)))
     throw new Error('Tu viens de le lui demander !');
   const other = state.players[t].hand;
+  // Livraison express : la carte part sur la pile spéciale, on pioche pour la remplacer.
+  if (query.express) discardEffect(state, player, 'express', rng);
   const k = other.findIndex((c) => c.kind === 'dish' && imageIdOf(c.id) === imageIdOf(query.cardId!));
-  const order: Order = { player, turn: state.turn, cardId: query.cardId, target: t, yes: k >= 0 ? [t] : [], served: k >= 0 };
+  const order: Order = { player, turn: state.turn, cardId: query.cardId, target: t, yes: k >= 0 ? [t] : [], served: k >= 0, express: query.express || undefined };
   state.orders.push(order);
+  // Rupture de stock : le joueur visé avait le plat, mais refuse de le servir (et tout le monde le sait).
+  if (k >= 0 && other.some((c) => c.kind === 'effect' && c.effect === 'rupture') && query.refuse?.(t)) {
+    discardEffect(state, t, 'rupture', rng);
+    order.served = false;
+    order.refused = true;
+    return [{ type: 'order', order }];
+  }
   if (k >= 0) {
     const card = other.splice(k, 1)[0];
     // Sa main a changé : s'il avait déjà choisi ses cartes, il choisit à nouveau.
@@ -561,6 +583,20 @@ function serveOrder(state: GameState, player: number, query: { cardId?: string; 
     if (query.give) settleOrder(state, player, query.give);
   }
   return [{ type: 'order', order }];
+}
+
+/** Une carte à effet jouée hors de l'échange : sur la pile spéciale, et on pioche pour garder sa main. */
+function discardEffect(state: GameState, player: number, effect: Effect, rng?: Rng): void {
+  const hand = state.players[player].hand;
+  const i = hand.findIndex((c) => c.kind === 'effect' && c.effect === effect);
+  if (i < 0) throw new Error('Carte à effet absente');
+  state.specialPile.push(...hand.splice(i, 1));
+  if (state.drawPile.length === 0 && state.discard.length) reshuffle(state, rng ?? Math.random);
+  const c = state.drawPile.pop();
+  if (c) {
+    hand.push(c);
+    state.origins[c.id] = 'market';
+  }
 }
 
 /** Commande servie : la carte rendue au joueur qui a servi (pas celle qu'on vient de recevoir). */
@@ -618,6 +654,8 @@ export function checkChoice(state: GameState, player: number, choice: Choice): s
     if (x.mode === 'pass' && state.event === 'fromagesBloques' && card.kind === 'dish' && card.course === 'fromage') return 'Plateau de fromages : les fromages ne se passent pas, ils vont au Marché';
     if (x.mode === 'effect') {
       if (card.kind !== 'effect') return 'Seule une carte à effet peut être jouée';
+      if (card.effect === 'rupture') return 'Rupture de stock se joue quand on te passe commande';
+      if (card.effect === 'express') return 'Livraison express se joue au moment de commander';
       if (card.effect !== 'demitour') {
         if (x.target === undefined || x.target === player || !state.players[x.target]) return 'Choisis le joueur visé';
         if (card.effect !== 'controle' && state.frozen.includes(x.target)) return 'Ce joueur a posé sa main face cachée';
@@ -740,6 +778,17 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
     if (m.card.effect === 'troc') [me.hand, other.hand] = [other.hand, me.hand];
     if (m.card.effect === 'controle') state.blockedUntil[m.target] = state.turn + 1;
     if (m.card.effect === 'degustation') m.peek = shuffle(rng, [...other.hand]).slice(0, 3);
+    if (m.card.effect === 'torchon') {
+      // Coup de torchon : la Vaisselle file chez le chef visé, qui rend une carte au hasard à son ancien porteur.
+      const h = vaisselleHolder(state);
+      if (h !== null && h !== m.target) {
+        const from = state.players[h].hand;
+        const vi = from.findIndex((c) => c.kind === 'vaisselle');
+        const gi = randInt(rng, other.hand.length);
+        swapCards(from, vi, other.hand, gi);
+        state.stats.vaisselleMoves += 1;
+      }
+    }
     if (m.card.effect === 'chapardeur') {
       // On vole une carte au hasard et on rend la carte choisie à l'avance (ou une au hasard si elle a disparu).
       let gi = me.hand.findIndex((c) => c.id === m.give);

@@ -1,7 +1,7 @@
 // Mesure du « fun » et barème /100 (voir README) : le barème est FIGÉ, calibré sur la v4
 // (4 joueurs ≈ 72, 3 joueurs ≈ 67, Duel ≈ 57) avant toute modification des règles.
 import {
-  activePlayers, aiAnnounce, aiChooseAll, aiDenounce, aiReveal, botOrder, checkOrder, vaisselleLocked, leftOf, missingDishes, pendingOrder, settleOrder, aiShow, aiTake, announceableMenu, checkAnnounce,
+  activePlayers, aiAnnounce, aiChooseAll, aiDenounce, aiReveal, aiRupture, botOrder, checkOrder, vaisselleLocked, leftOf, missingDishes, pendingOrder, settleOrder, aiShow, aiTake, announceableMenu, checkAnnounce,
   createGame, createRng, denounce, marketReceivers, menuProgress, mustShow, nextRound, passCountOf, placeOrder, playBotTurn,
   resolveAnnouncements, resolveExchange, showCard, shuffle, submitChoice, visibleDiscard, dayEventsFor,
   type Difficulty, type GameState, type Rules,
@@ -172,7 +172,7 @@ function naiveOrder(s: GameState, rng: () => number): void {
   // Un débutant ne redemande pas la même chose au même chef dans le tour.
   const options = missing.flatMap((cardId) => others.map((target) => ({ cardId, target }))).filter((o) => !s.orders.some((x) => x.player === 0 && x.turn === s.turn && x.target === o.target && x.cardId === o.cardId));
   if (!options.length) return;
-  placeOrder(s, 0, options[Math.floor(rng() * options.length)]);
+  placeOrder(s, 0, { ...options[Math.floor(rng() * options.length)], refuse: (t) => aiRupture(s, t, rng) }, rng);
   if (pendingOrder(s)) {
     const me = s.players[0];
     const give = me.hand.find((c) => c.kind === 'vaisselle' && !vaisselleLocked(s, 0)) ?? me.hand.find((c) => c.kind === 'dish' && !me.regions.includes(c.region)) ?? me.hand.find((c) => c.kind !== 'dish' || !me.regions.includes(c.region))!;
