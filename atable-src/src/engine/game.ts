@@ -589,7 +589,7 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
           card = d.card;
         }
         move.drawn = card;
-        state.origins[card.id] = 'market';
+        state.origins[card.id] = move.fromDiscard ? 'choice' : 'market';
       } else {
         state.origins[card.id] = 'pass';
         if (card.kind === 'vaisselle') state.stats.vaisselleMoves += 1;
@@ -616,6 +616,7 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
       if (gi < 0) gi = me.hand.findIndex((c) => c.kind !== 'vaisselle');
       const si = randInt(rng, other.hand.length);
       m.stolen = other.hand[si];
+      state.origins[m.stolen.id] = 'swap';
       swapCards(me.hand, gi, other.hand, si);
     }
   }
@@ -762,7 +763,7 @@ function finishRound(
     bonus: state.players.map((p) => [...p.bonus]),
     turns: state.turn,
     tieBreak,
-    thanksToMarket: winner !== null && state.players[winner].hand.some((c) => state.origins[c.id] === 'market'),
+    thanksToMarket: winner !== null && state.players[winner].hand.some((c) => state.origins[c.id] === 'market' || state.origins[c.id] === 'choice'),
     bluffers,
     lateAnnouncers: late,
   };

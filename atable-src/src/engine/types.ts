@@ -169,7 +169,7 @@ export interface TurnRecord {
 }
 
 /** D'où vient une carte (pour mesurer l'effet du Marché). */
-export type Origin = 'deal' | 'pass' | 'market' | 'swap';
+export type Origin = 'deal' | 'pass' | 'market' | 'swap' | 'choice' | 'order';
 
 export type Phase = 'choose' | 'announce' | 'roundOver' | 'gameOver';
 
