@@ -42,6 +42,18 @@ export function Home({ initial, onStart, onTutorial, onRules }: { initial: Setup
           ))}
         </div>
         <p className="muted center-text">{LEVELS.find((l) => l.id === setup.difficulty)?.hint}</p>
+        <label className="age-field">
+          <span>Ton âge</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={4}
+            max={120}
+            value={setup.age ?? ''}
+            onChange={(e) => setSetup({ ...setup, age: e.target.value ? Math.max(1, Math.min(120, +e.target.value)) : undefined })}
+          />
+          <small className="muted">À égalité d’étoiles, le plus jeune reçoit la Baguette 🥖</small>
+        </label>
       </div>
 
       <button className="btn btn-gold big block" onClick={() => onStart(setup)}>

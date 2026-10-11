@@ -11,7 +11,11 @@ export function botOrder(state: GameState, p: number, rng: Rng): GameEvent[] {
     for (let k = 0; k < 3; k++) {
       const o = aiOrderService(state, p, rng);
       if (!o) break;
-      events.push(...placeOrder(state, p, o));
+      try {
+        events.push(...placeOrder(state, p, o));
+      } catch {
+        break; // commande refusée par les règles : on n'insiste pas
+      }
       if (pendingOrder(state)) settleOrder(state, p, aiOrderGive(state, p, rng));
     }
     return events;

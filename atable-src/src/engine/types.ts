@@ -73,6 +73,8 @@ export interface PlayerSetup {
   name: string;
   isHuman: boolean;
   difficulty: Difficulty;
+  /** Âge du joueur : à égalité d'étoiles, la Baguette va au plus jeune. */
+  age?: number;
 }
 
 export interface Player extends PlayerSetup {
@@ -258,7 +260,7 @@ export interface Rules {
   handSize: number;
   /** À chaque nouvelle manche, la Vaisselle est donnée au chef qui a le plus d'étoiles. */
   vaisselleToLeader: boolean;
-  /** À chaque nouvelle manche, la Baguette est donnée au chef qui a le moins d'étoiles. */
+  /** À chaque manche, la Baguette est donnée au chef qui a le moins d'étoiles (à égalité : le plus jeune). */
   baguetteToLast: boolean;
   /** Égalité de menus : tous les chefs à égalité gagnent une étoile. */
   shareTies: boolean;

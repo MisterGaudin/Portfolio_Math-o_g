@@ -1281,3 +1281,23 @@ button.chip.active {
   gap: 2px;
   font-size: 12px;
 }
+
+.age-field {
+  display: grid;
+  grid-template-columns: auto 80px;
+  align-items: center;
+  gap: 4px 10px;
+  margin-top: 10px;
+}
+.age-field input {
+  font: inherit;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: 2px solid #fff4;
+  background: #0003;
+  color: inherit;
+  width: 100%;
+}
+.age-field small {
+  grid-column: 1 / -1;
+}

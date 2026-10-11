@@ -344,7 +344,8 @@ export function aiOrderService(state: GameState, player: number, rng: Rng): { ca
   // On ne redemande pas un plat à quelqu'un qui vient de répondre « non » (ce tour-ci, ou au tour
   // précédent pour les IA moyenne et difficile).
   const since = me.difficulty === 'facile' ? state.turn : state.turn - 1;
-  const refused = (q: number, id: string) => state.orders.some((o) => o.player === player && o.target === q && o.cardId === id && !o.served && o.turn >= since);
+  const refused = (q: number, id: string) =>
+    state.orders.some((o) => o.player === player && o.target === q && o.cardId === id && (o.turn === state.turn || (!o.served && o.turn >= since)));
   let wanted = missing;
   // Bluff de l'IA difficile : une fois sur six, demander le plat d'une autre région pour brouiller les pistes.
   if (me.difficulty === 'difficile' && rng() < 1 / 6) wanted = state.regionsInPlay.filter((r) => !me.regions.includes(r)).flatMap((r) => COURSES.map((c) => `${r}-${c}`));

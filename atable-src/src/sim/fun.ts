@@ -35,7 +35,7 @@ export function measure(n: number, rules: Partial<Rules>, games = 300, seed = 42
   for (let g = 0; g < games; g++) {
     const levels = shuffle(rng, Array.from({ length: n }, (_, i) => LEVELS[(i + g) % 3]));
     for (const lv of levels) lvSeats[lv] = (lvSeats[lv] ?? 0) + 1;
-    const s = createGame(levels.map((d, i) => ({ name: `J${i}`, isHuman: false, difficulty: d })), rng, { rules });
+    const s = createGame(levels.map((d, i) => ({ name: `J${i}`, isHuman: false, difficulty: d, age: 8 + Math.floor(rng() * 70) })), rng, { rules });
     const streak = Array(n).fill(0);
     const starsHist: number[][] = [];
     let leader = -1, frw = -1, guard = 0;
@@ -115,7 +115,7 @@ export function naiveWinRate(n: number, rules: Partial<Rules>, games = 300): num
   let wins = 0;
   for (let g = 0; g < games; g++) {
     const rng = createRng(1000 + g);
-    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: 'J' + i, isHuman: i === 0, difficulty: 'difficile' as Difficulty })), rng, { rules });
+    const s = createGame(Array.from({ length: n }, (_, i) => ({ name: 'J' + i, isHuman: i === 0, difficulty: 'difficile' as Difficulty, age: 8 + Math.floor(rng() * 70) })), rng, { rules });
     let guard = 0;
     while (s.phase !== 'gameOver' && guard++ < 5000) {
       if (s.phase === 'roundOver') { nextRound(s, rng); continue; }
@@ -169,7 +169,10 @@ function naiveOrder(s: GameState, rng: () => number): void {
   const missing = missingDishes(s, 0);
   const others = activePlayers(s).filter((i) => i !== 0);
   if (!missing.length || !others.length) return;
-  placeOrder(s, 0, { cardId: missing[Math.floor(rng() * missing.length)], target: others[Math.floor(rng() * others.length)] });
+  // Un débutant ne redemande pas la même chose au même chef dans le tour.
+  const options = missing.flatMap((cardId) => others.map((target) => ({ cardId, target }))).filter((o) => !s.orders.some((x) => x.player === 0 && x.turn === s.turn && x.target === o.target && x.cardId === o.cardId));
+  if (!options.length) return;
+  placeOrder(s, 0, options[Math.floor(rng() * options.length)]);
   if (pendingOrder(s)) {
     const me = s.players[0];
     const give = me.hand.find((c) => c.kind === 'vaisselle' && !vaisselleLocked(s, 0)) ?? me.hand.find((c) => c.kind === 'dish' && !me.regions.includes(c.region)) ?? me.hand.find((c) => c.kind !== 'dish' || !me.regions.includes(c.region))!;

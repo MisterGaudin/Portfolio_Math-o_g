@@ -442,7 +442,7 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
       {flipped && state.catchUp !== null && (
         <div className="event-card">
           <b>🥖 Coup de main</b>
-          <span>{state.catchUp === 0 ? 'Tu as le moins d’étoiles : tu commences avec la Baguette !' : `${state.players[state.catchUp].name} a le moins d’étoiles : il commence avec la Baguette.`}</span>
+          <span>{catchUpText(state)}</span>
         </div>
       )}
       {flipped && state.rules.dishOfDay && (
@@ -464,6 +464,15 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
       )}
     </motion.div>
   );
+}
+
+/** Pourquoi ce chef reçoit la Baguette : le moins d'étoiles, et à égalité le plus jeune. */
+function catchUpText(state: GameState): string {
+  const p = state.catchUp!;
+  const low = state.players[p].etoiles;
+  const tied = state.players.filter((q) => q.etoiles === low).length > 1;
+  const why = tied ? (low === 0 ? 'Tout le monde est à 0 étoile' : 'Égalité d’étoiles') + (p === 0 ? ' : tu es le plus jeune' : ` : ${state.players[p].name} est le plus jeune`) : p === 0 ? 'Tu as le moins d’étoiles' : `${state.players[p].name} a le moins d’étoiles`;
+  return `${why}, ${p === 0 ? 'tu commences' : 'il commence'} avec la Baguette !`;
 }
 
 /** Mains révélées après « À TABLE ! ». */

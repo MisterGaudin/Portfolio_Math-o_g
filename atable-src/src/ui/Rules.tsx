@@ -27,7 +27,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           tu la gardes. Elle ne bouge plus ce tour-ci.
         </p>
         <p>
-          🥖 Le chef en retard commence avec la Baguette. 🦊 Chapardeur : vole une carte au hasard. Chaque manche, un <b>Plat du jour</b> change une règle.
+          🥖 Le chef qui a le moins d’étoiles (à égalité : le plus jeune) commence avec la Baguette. 🦊 Chapardeur : vole une carte au hasard. Chaque manche, un <b>Plat du jour</b> change une règle.
         </p>
       </div>
     </Modal>

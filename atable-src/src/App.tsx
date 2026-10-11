@@ -8,7 +8,7 @@ import { tutorialScript, useTutorial } from './ui/tutorial';
 import { useGame, type Setup } from './ui/useGame';
 
 const SETUP_KEY = 'atable.setup';
-const DEFAULT_SETUP: Setup = { opponents: 2, difficulty: 'moyen' };
+const DEFAULT_SETUP: Setup = { opponents: 2, difficulty: 'moyen', age: 30 };
 
 function loadSetup(): Setup {
   try {

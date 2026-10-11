@@ -274,13 +274,12 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       p.regions.flatMap((r, k) => shuffle(rng, deck.filter((c) => c.kind === 'dish' && c.region === r && c.course !== p.bonus[k])).slice(0, state.rules.headStart)),
     );
     for (const c of boosts.flat()) deck.splice(deck.indexOf(c), 1);
-    // Coup de main au chef en retard : il commence la manche avec la Baguette.
-    const low = Math.min(...state.players.map((p) => p.etoiles));
-    const lasts = state.players.map((p, i) => (p.etoiles === low ? i : -1)).filter((i) => i >= 0);
+    // Coup de main : le chef qui a le moins d'étoiles commence la manche avec la Baguette ;
+    // à égalité, le plus jeune (puis le premier dans l'ordre des places).
     const bi = deck.findIndex((c) => c.kind === 'baguette');
     state.catchUp = null;
-    if (state.rules.baguetteToLast && lasts.length < n && bi >= 0) {
-      state.catchUp = pick(rng, lasts);
+    if (state.rules.baguetteToLast && bi >= 0) {
+      state.catchUp = catchUpPlayer(state);
       boosts[state.catchUp].push(...deck.splice(bi, 1));
     }
     state.players.forEach((p, i) => {
@@ -292,6 +291,14 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
     state.drawPile = deck;
   }
   for (const p of state.players) for (const c of p.hand) state.origins[c.id] = 'deal';
+}
+
+/** Le chef qui reçoit la Baguette : le moins d'étoiles, puis le plus jeune, puis la première place. */
+export function catchUpPlayer(state: GameState): number {
+  const age = (i: number) => state.players[i].age ?? Infinity;
+  return state.players
+    .map((_, i) => i)
+    .sort((a, b) => state.players[a].etoiles - state.players[b].etoiles || age(a) - age(b) || a - b)[0];
 }
 
 /**

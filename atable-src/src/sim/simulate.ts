@@ -58,7 +58,7 @@ export function simulate(opts: SimOptions): SimStats {
     // En mode mixte, les niveaux sont répartis au hasard autour de la table à chaque partie
     // (sinon on mesurerait l'effet des voisins plutôt que celui du niveau).
     const levels: Difficulty[] = difficulty === 'mixte' ? shuffle(rng, Array.from({ length: n }, (_, i) => LEVELS[(i + g) % 3])) : Array(n).fill(difficulty);
-    const s = createGame(levels.map((d, i) => ({ name: `IA ${i + 1}`, isHuman: false, difficulty: d })), rng, { rules: opts.rules });
+    const s = createGame(levels.map((d, i) => ({ name: `IA ${i + 1}`, isHuman: false, difficulty: d, age: 8 + Math.floor(rng() * 70) })), rng, { rules: opts.rules });
     // Nombre de places tenues par chaque niveau (pour un taux de victoire par place).
     for (const d of levels) (byLevel[d] ??= { games: 0, wins: 0 }).games += 1;
 

@@ -946,6 +946,17 @@ describe('version 5 : commande servie, une carte au voisin et une au Marché, é
     expect(s.lastRound?.coWinners).toEqual([0, 1]);
   });
 
+  it('à égalité d’étoiles, la Baguette va au plus jeune (dès la 1re manche)', () => {
+    const ages = [40, 9, 9, 70];
+    const s = createGame(setups(4).map((x, i) => ({ ...x, age: ages[i] })), createRng(3), { rules: { dishOfDay: false } });
+    expect(s.catchUp).toBe(1);
+    expect(s.players[1].hand.some((c) => c.kind === 'baguette')).toBe(true);
+    s.players[1].etoiles = 1;
+    s.phase = 'roundOver';
+    nextRound(s, createRng(4));
+    expect(s.catchUp).toBe(2);
+  });
+
   it('la Baguette va au chef qui a le moins d’étoiles', () => {
     for (let k = 0; k < 20; k++) {
       const s = v5(3, 10 + k);
