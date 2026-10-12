@@ -377,3 +377,9 @@ section.projects-intro{ padding-bottom: clamp(24px, 4vw, 48px); }
   background: linear-gradient(100deg, var(--rose), var(--lilac) 40%, var(--sky));
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }
+
+/* ---------- Hero headline ---------- */
+/* « remarquer » has a descender (q) right above the ascenders of « de bon » :
+   the .88 line-height inherited from the old headline made them touch. */
+.hero-left h1{ line-height: 1.04; }
+.hero-left h1 .italic{ padding-bottom: .06em; }
