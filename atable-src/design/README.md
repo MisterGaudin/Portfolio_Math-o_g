@@ -17,3 +17,6 @@ personnage, de château, de texte ni de cadre.
 Formule par carte Plat : « nature morte » à hauteur d'yeux, le plat en grand en bas au centre sur un support typique
 (ardoise, planche, plat en terre…), et derrière, un peu flou, un décor propre à la région (ex. Bretagne : port, bateaux
 de pêche, quai en granit, phare rayé). Palette de la région en touches (voir `palette.json`).
+
+**Contours** : toujours des contours d'encre brun-noir faits main, irréguliers, d'épaisseur variable, autour de chaque
+forme (plat, support, décor, nuages), avec quelques petits traits intérieurs : c'est ce qui donne le côté « humain ».
