@@ -406,3 +406,14 @@ section.hero{ min-height: 0; padding-top: clamp(16px, 3vh, 40px); padding-bottom
   box-shadow: 0 18px 40px oklch(0.18 0.015 285 / .25);
 }
 .reel-caption{ font-size: 13px; color: var(--ink-3) !important; }
+
+/* ---------- Sketch carousel inside a case modal ---------- */
+.sketch-block{ margin: 28px 0 8px; }
+.sketch-track{ grid-auto-columns: calc((100% - 2 * 16px) / 3); gap: 16px; }
+.sketch{ scroll-snap-align: start; display: flex; flex-direction: column; gap: 8px; }
+.sketch img{ width: 100%; aspect-ratio: 1; object-fit: contain; background: #fff; border: 1px solid var(--hair); border-radius: 16px; }
+.sketch span{ font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+.sketch-block .carousel-btn{ width: 44px; height: 44px; }
+.sketch-block .carousel-btn.prev{ left: -12px; }
+.sketch-block .carousel-btn.next{ right: -12px; }
+@media (max-width: 640px){ .sketch-track{ grid-auto-columns: 78%; } }

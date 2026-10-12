@@ -53,7 +53,7 @@
    ===================================================== */
 (() => {
   // Every .carousel (services, case studies) gets chevrons + dots
-  document.querySelectorAll('.carousel').forEach(carousel => {
+  const initCarousel = (carousel) => {
     const track = carousel.querySelector('.case-track');
     const btns = carousel.querySelectorAll('.carousel-btn');
     const cards = [...track.children];
@@ -67,7 +67,7 @@
       const max = track.scrollWidth - track.clientWidth - 2;
       btns.forEach(b => { b.disabled = +b.dataset.dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
       // Chevrons sit at the vertical middle of the card images
-      const media = cards[0] && cards[0].querySelector('.case-media, .service-media');
+      const media = cards[0] && cards[0].querySelector('.case-media, .service-media, img');
       if (media) carousel.style.setProperty('--media-mid', (media.offsetTop + media.offsetHeight / 2 + track.offsetTop) + 'px');
       const first = Math.round(track.scrollLeft / step());
       const visible = Math.max(1, Math.round(track.clientWidth / step()));
@@ -77,8 +77,11 @@
     track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
     window.addEventListener('resize', sync, { passive: true });
     window.addEventListener('load', sync);
+    carousel.querySelectorAll('img').forEach(i => i.addEventListener('load', sync));
     sync();
-  });
+  };
+  window.initCarousel = initCarousel;
+  document.querySelectorAll('.carousel').forEach(c => { if (!c.closest('[hidden]')) initCarousel(c); });
 })();
 
 (() => {
@@ -114,6 +117,7 @@
       body.scrollTop = 0;
       document.documentElement.classList.add('modal-open');
       modal.showModal();
+      body.querySelectorAll('.carousel').forEach(c => window.initCarousel && window.initCarousel(c));
       modal.querySelector('.case-modal-close').focus();
     });
   });
