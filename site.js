@@ -97,6 +97,13 @@
   // Click on the dimmed backdrop (outside the panel) closes it
   modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
 
+  // The whole card opens its study, not only the « En savoir plus » button
+  document.querySelectorAll('.case-card').forEach(card => {
+    const btn = card.querySelector('.case-open');
+    if (!btn) return;
+    card.addEventListener('click', (e) => { if (!e.target.closest('.case-open, a')) btn.click(); });
+  });
+
   document.querySelectorAll('.case-open').forEach(btn => {
     btn.addEventListener('click', () => {
       const src = document.getElementById('case-' + btn.dataset.case);

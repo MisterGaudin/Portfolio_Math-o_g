@@ -165,6 +165,8 @@ h2.display.one-line{ font-size: clamp(40px, 6.4vw, 104px); }
   border-bottom: 1px solid currentColor;
   cursor: pointer;
 }
+.case-card{ cursor: pointer; }
+.case-card:hover{ box-shadow: 0 18px 40px oklch(0.18 0.015 285 / .1); }
 .case-open::after{ content: " +"; }
 
 /* ---------- Case modal ---------- */
