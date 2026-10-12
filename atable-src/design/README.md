@@ -6,3 +6,14 @@
   gauche, titre en cartouche, région, carte de France, illustration, texte court, frise du menu, QR « Scanne-moi »).
 - Illustrations : style « livre illustré » (gouache numérique, contours bruns, pastels), le plat en vedette, un paysage
   de la région au fond, sans personnage.
+
+## Génération des illustrations (Higgsfield, modèle GPT Image 2.5, format 3:4, qualité medium)
+
+**Règle anti-plagiat** : la carte de référence (« Kiwi ») sert UNIQUEMENT pour la technique (trait brun fait main,
+gouache texturée, harmonie pastel, lumière douce). La composition doit être originale : pas de chemin vers
+l'horizon, pas de colline avec un bâtiment en haut à droite, pas de bande de rochers et de fleurs en bas, pas de
+personnage, de château, de texte ni de cadre.
+
+Formule par carte Plat : « nature morte » à hauteur d'yeux, le plat en grand en bas au centre sur un support typique
+(ardoise, planche, plat en terre…), et derrière, un peu flou, un décor propre à la région (ex. Bretagne : port, bateaux
+de pêche, quai en granit, phare rayé). Palette de la région en touches (voir `palette.json`).
