@@ -50,7 +50,7 @@ section.trust{
   -webkit-mask: var(--logo) center / contain no-repeat;
   mask: var(--logo) center / contain no-repeat;
 }
-.trust-list li:has(.logo[aria-label^="Celibel"]) .logo{ height: 72px; }
+.trust-list li:has(.logo[aria-label^="Celibel"]) .logo{ height: 80px; }
 .trust-list li{ justify-content: flex-end; }
 .trust-list{ align-items: flex-end; }
 .trust-list .wordmark{ line-height: 52px; }
