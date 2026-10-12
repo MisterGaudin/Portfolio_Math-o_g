@@ -347,4 +347,20 @@ footer.site-foot{ padding-top: 40px; }
 
 /* ---------- Projects page intro ---------- */
 section.projects-intro{ padding-bottom: clamp(24px, 4vw, 48px); }
-.projects-title{ font-size: clamp(48px, 8vw, 120px); line-height: .95; margin: 16px 0 24px; }
+.projects-title{
+  /* same look as h2.display in style.css, which only targets h2 */
+  font-family: var(--f-display);
+  font-weight: 400;
+  font-size: clamp(48px, 8vw, 120px);
+  line-height: .95;
+  letter-spacing: -0.02em;
+  margin: 16px 0 24px;
+  color: var(--ink);
+  font-variation-settings: "opsz" 144;
+}
+.projects-title em{
+  font-style: italic;
+  font-weight: 300;
+  background: linear-gradient(100deg, var(--rose), var(--lilac) 40%, var(--sky));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
