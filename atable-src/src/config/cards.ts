@@ -99,3 +99,16 @@ export const USE_CARD_IMAGES = true;
 
 /** Accès rapide à une région par son identifiant. */
 export const REGION_BY_ID: Record<string, RegionConfig> = Object.fromEntries(REGIONS.map((r) => [r.id, r]));
+
+/**
+ * Variante « Chefs » : six chefs animaux de la faune de France, chacun avec un pouvoir
+ * utilisable une fois par manche (voir ChefId dans le moteur).
+ */
+export const CHEFS = {
+  gourmand: { animal: 'Sanglier', name: 'Gaston le Sanglier', icon: '🐗', power: 'Une commande de plus.' },
+  maraichere: { animal: 'Écureuil', name: 'Noisette l’Écureuil', icon: '🐿️', power: 'Au Marché, pioche 2 cartes et garde la meilleure.' },
+  plongeur: { animal: 'Loutre', name: 'Lili la Loutre', icon: '🦦', power: 'Envoie la Vaisselle au chef de ton choix.' },
+  critique: { animal: 'Hibou grand-duc', name: 'Monsieur Grand-Duc', icon: '🦉', power: 'Regarde toute la main d’un chef.' },
+  renard: { animal: 'Renard roux', name: 'Roublard le Renard', icon: '🦊', power: 'Vole une carte au hasard à un chef et rends-lui en une.' },
+  maitre: { animal: 'Coq', name: 'Maître Coq', icon: '🐓', power: '« Rupture de stock ! » : refuse de servir une commande.' },
+} as const;
