@@ -262,84 +262,122 @@ const BLOBS = {
    Each mask loops through several keyframe blob paths so no corner pops.
    Hover does NOT change the shape. */
 (() => {
-  const keys = Object.keys(BLOBS);
+  // Each bubble's clip path is drawn by JS every frame (only while visible):
+  // a closed Catmull-Rom curve through 8 points whose radius "breathes" with
+  // per-card random frequencies, so no two bubbles move alike. Hover/touch
+  // makes the bubble swell toward the pointer, speed up and wobble like jelly.
+  const html = document.documentElement;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const N = 8;
+  const TAU = Math.PI * 2;
+  const blobs = [];
   let counter = 0;
 
-  // Each card gets its own tiny <svg> holding its clipPath, so its SMIL
-  // timeline can be paused on its own while the card is off-screen (a single
-  // shared <svg> could only pause all 22 morphs at once).
-  const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      const svg = entry.target.querySelector(':scope > svg.clip');
-      if (!svg) return;
-      try {
-        if (entry.isIntersecting && document.documentElement.getAttribute('data-aura') !== 'off') svg.unpauseAnimations();
-        else svg.pauseAnimations();
-      } catch(e){}
+  // Small deterministic RNG so each card keeps its personality between visits
+  const rng = (seed) => () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+
+  const pathFor = (b) => {
+    const pts = [];
+    const hovered = b.hover;
+    for (let i = 0; i < N; i++){
+      const a = b.angles[i] + b.spin;
+      let r = b.base[i]
+        + b.amp * (1 + 1.2 * hovered) * (Math.sin(b.t * b.f1[i] + b.p1[i]) * .6 + Math.sin(b.t * b.f2[i] + b.p2[i]) * .4);
+      if (hovered > .001){
+        // swell toward the pointer, slight pull on the opposite side
+        let d = Math.atan2(Math.sin(a - b.ptr), Math.cos(a - b.ptr));
+        r += hovered * (.075 * Math.exp(-(d * d) / .6) - .015);
+      }
+      if (b.boing > .001) r += b.boing * Math.sin(b.boingAge * 17) * (i % 2 ? 1 : -1);
+      r = Math.min(.55, Math.max(.3, r));
+      pts.push([.5 + r * Math.cos(a), .5 + r * Math.sin(a)]);
+    }
+    const f = (n) => n.toFixed(3);
+    let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
+    for (let i = 0; i < N; i++){
+      const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)},${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)},${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])},${f(p2[1])}`;
+    }
+    return d + ' Z';
+  };
+
+  let running = false, last = 0;
+  const visible = new Set();
+  const frame = (now) => {
+    if (!visible.size || document.hidden || html.getAttribute('data-aura') === 'off'){ running = false; return; }
+    const dt = Math.min(.05, last ? (now - last) / 1000 : .016);
+    last = now;
+    visible.forEach(b => {
+      b.hover += ((b.target) - b.hover) * Math.min(1, dt * 7);
+      b.t += dt * (1 + 1.6 * b.hover);
+      b.spin += dt * b.spinSpeed * (1 + b.hover);
+      if (b.boing > .001){ b.boingAge += dt; b.boing *= Math.exp(-dt * 4.5); }
+      // At rest the breathing is slow: redrawing every other frame is invisible
+      // and halves the work on phones. Hovered/wobbling bubbles redraw every frame.
+      const active = b.hover > .02 || b.boing > .001;
+      if (!active && (b.skip = !b.skip)) return;
+      b.path.setAttribute('d', pathFor(b));
     });
+    requestAnimationFrame(frame);
+  };
+  const kick = () => {
+    if (running || reduce || html.getAttribute('data-aura') === 'off') return;
+    running = true; last = 0;
+    requestAnimationFrame(frame);
+  };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+
+  const io = ('IntersectionObserver' in window) ? new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const b = e.target.__blob;
+      if (!b) return;
+      if (e.isIntersecting) visible.add(b); else visible.delete(b);
+    });
+    kick();
   }, { rootMargin: '100px 0px 100px 0px', threshold: 0 }) : null;
 
   document.querySelectorAll('.fluid-mask').forEach((el) => {
     el.insertAdjacentHTML('afterbegin', '<svg class="clip" width="0" height="0" aria-hidden="true"><defs></defs></svg>');
     const defsSvg = el.querySelector(':scope > svg.clip defs');
-    const startKey = el.dataset.morph || 'a';
     const cpId = `cp-${counter}`;
-
-    // Perf guard: on low-power machines, skip the SMIL <animate> entirely and
-    // serve a single static blob path. Same visual language, zero per-frame
-    // compositor cost for all ~20 masks combined.
-    const lowPower = document.documentElement.getAttribute('data-aura') === 'off';
-
-    if (lowPower){
-      defsSvg.insertAdjacentHTML('beforeend', `
-        <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
-          <path d="${BLOBS[startKey].rest}"/>
-        </clipPath>
-      `);
-    } else {
-      // Build a unique cycle: start -> 2 others -> back to start so it loops seamlessly
-      const others = keys.filter(k => k !== startKey);
-      const shuffled = [others[counter % others.length], others[(counter + 2) % others.length], others[(counter + 3) % others.length]];
-      const cycle = [startKey, ...shuffled, startKey];
-      const values = cycle.map(k => BLOBS[k].rest).join(';');
-      // slow, staggered per mask for organic variety
-      const dur = (14 + (counter % 5) * 2) + 's';
-      const begin = (-(counter % 7) * 1.3) + 's';
-
-      // calcMode="linear" + keyTimes uniformes : tous les segments durent
-      // 25% du cycle et avancent à vitesse constante. Sans ça :
-      //  - les anciens keyTimes "0;0.33;0.66;0.85;1" compressaient les 2
-      //    derniers segments en 19% + 15%, donnant un retour-à-la-forme-de-
-      //    départ visiblement précipité (effet "snap"/clipping) ;
-      //  - les keySplines "0.4 0 0.2 1" (ease-in-out avec vélocité nulle aux
-      //    extrémités) faisaient pulser la déformation à chaque keyframe.
-      defsSvg.insertAdjacentHTML('beforeend', `
-        <clipPath id="${cpId}" clipPathUnits="objectBoundingBox">
-          <path d="${BLOBS[startKey].rest}">
-            <animate attributeName="d" dur="${dur}" begin="${begin}" repeatCount="indefinite"
-                     calcMode="linear"
-                     keyTimes="0; 0.25; 0.5; 0.75; 1"
-                     values="${values}"/>
-          </path>
-        </clipPath>
-      `);
+    const R = rng(counter * 7919 + 17);
+    const b = {
+      t: R() * 100, spin: R() * TAU, spinSpeed: (R() < .5 ? -1 : 1) * (.015 + R() * .03),
+      amp: .024 + R() * .018, hover: 0, target: 0, ptr: 0, boing: 0, boingAge: 0,
+      angles: [], base: [], f1: [], f2: [], p1: [], p2: []
+    };
+    for (let i = 0; i < N; i++){
+      b.angles.push(i / N * TAU + (R() - .5) * .35);
+      b.base.push(.41 + R() * .09);
+      b.f1.push(.25 + R() * .35); b.f2.push(.5 + R() * .6);
+      b.p1.push(R() * TAU); b.p2.push(R() * TAU);
     }
-
+    defsSvg.insertAdjacentHTML('beforeend', `<clipPath id="${cpId}" clipPathUnits="objectBoundingBox"><path/></clipPath>`);
+    b.path = defsSvg.querySelector('path');
+    b.path.setAttribute('d', pathFor(b));
+    el.__blob = b;
+    blobs.push(b);
     counter++;
-    if (io && !lowPower){
-      try { defsSvg.ownerSVGElement.pauseAnimations(); } catch(e){}
-      io.observe(el);
-    }
     el.style.setProperty('--cp', `url(#${cpId})`);
-    el.style.setProperty('--cp-hover', `url(#${cpId})`); // same - no hover change
+    el.style.setProperty('--cp-hover', `url(#${cpId})`);
 
-    el.addEventListener('pointermove', (e) => {
+    const inner = el.querySelector('.inner');
+    const aim = (e) => {
       const r = el.getBoundingClientRect();
-      const mx = ((e.clientX - r.left) / r.width) * 100;
-      const my = ((e.clientY - r.top)  / r.height) * 100;
-      el.querySelector('.inner').style.setProperty('--mx', mx + '%');
-      el.querySelector('.inner').style.setProperty('--my', my + '%');
-    });
+      const u = (e.clientX - r.left) / r.width, v = (e.clientY - r.top) / r.height;
+      b.ptr = Math.atan2(v - .5, u - .5);
+      inner.style.setProperty('--mx', (u * 100) + '%');
+      inner.style.setProperty('--my', (v * 100) + '%');
+    };
+    el.addEventListener('pointerenter', (e) => { aim(e); b.target = 1; b.boing = .035; b.boingAge = 0; visible.add(b); kick(); });
+    el.addEventListener('pointermove', aim);
+    el.addEventListener('pointerleave', () => { b.target = 0; });
+    if (io) io.observe(el);
   });
 })();
 
@@ -368,6 +406,7 @@ const BLOBS = {
   const lbTitle     = document.getElementById('lbTitle');
   const lbKind      = document.getElementById('lbKind');
   const closeBtn    = document.getElementById('lbClose');
+  if (!lb) return; // pages without a gallery (home, legal) have no lightbox
   let lastFocus = null;
 
   const TOOL_LABEL = {
@@ -501,8 +540,11 @@ const BLOBS = {
     const isPhoto = !!el.closest('#photo');
     const isIllustration = !!el.closest('#illustration');
     const isDirect = el.classList.contains('fs-direct');
+    // A tile carrying several images (e.g. a whole character project) opens its own gallery
+    let multi = false;
+    try { multi = JSON.parse((el.dataset.gallery || '[]').replace(/&#39;/g, "'")).length > 1; } catch(e){}
     const handler = () => {
-      if (isPhoto || isIllustration || isDirect) openSingleFullscreen(el);
+      if (!multi && (isPhoto || isIllustration || isDirect)) openSingleFullscreen(el);
       else openFor(el);
     };
     el.addEventListener('click', handler);
@@ -648,6 +690,7 @@ const BLOBS = {
 (() => {
   const intro = document.getElementById('intro');
   const body  = document.body;
+  if (!intro) { body.classList.add('ready'); return; } // only the projects page has the intro curtain
   // If user comes back via in-page anchor reload, keep it fast
   const skip = sessionStorage.getItem('mg-intro-seen') === '1';
   if (skip) {
@@ -692,6 +735,7 @@ const BLOBS = {
     root.style.setProperty('--sky',   P.s);
     root.style.setProperty('--peach', P.p);
     root.style.setProperty('--mint',  P.m);
+    if (!panel) return; // pages without the tweaks panel only need the palette above
     document.getElementById('twkAura').value   = tweaks.auraIntensity;
     document.getElementById('twkGrain').value  = tweaks.grain;
     document.getElementById('twkCursor').value = tweaks.cursorOrb;
@@ -706,6 +750,7 @@ const BLOBS = {
     try { window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*'); } catch(e){}
   }
 
+  if (!panel) { apply(); return; }
   // Controls
   document.getElementById('twkAura').addEventListener('input', e => update({ auraIntensity: +e.target.value }));
   document.getElementById('twkGrain').addEventListener('input', e => update({ grain: +e.target.value }));
