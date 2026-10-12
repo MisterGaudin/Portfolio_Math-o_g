@@ -397,3 +397,12 @@ section.hero{ min-height: 0; padding-top: clamp(16px, 3vh, 40px); padding-bottom
   .hero-left{ order: -1; }
   .hero-right .portrait{ width: min(72%, 300px); margin: 8px auto 0; }
 }
+
+/* ---------- Reel player in case modal ---------- */
+.reel-player{ margin: 28px 0 8px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.reel-player video{
+  width: min(300px, 70vw); aspect-ratio: 9 / 16; display: block;
+  border-radius: 28px; border: 8px solid #15131a; background: #15131a;
+  box-shadow: 0 18px 40px oklch(0.18 0.015 285 / .25);
+}
+.reel-caption{ font-size: 13px; color: var(--ink-3) !important; }

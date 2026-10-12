@@ -90,6 +90,7 @@
   const close = () => modal.close();
   modal.addEventListener('close', () => {
     document.documentElement.classList.remove('modal-open');
+    body.querySelectorAll('video').forEach(v => v.pause());
     body.innerHTML = '';
     if (opener) opener.focus();
   });
