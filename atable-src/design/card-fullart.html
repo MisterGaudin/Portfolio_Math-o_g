@@ -1,0 +1,60 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Carte pleine image</title>
+<style>
+  :root { --rc: #1F3F6E; --ri: #fff; }
+  body { margin: 0; padding: 6mm; background: #e9e4dc; display: flex; gap: 6mm; align-items: flex-start; font-family: 'DejaVu Sans', sans-serif; }
+  /* Carte 63 × 88 mm, liseré blanc comme la référence */
+  .card { width: 63mm; height: 88mm; border-radius: 3.5mm; background: #fff; box-shadow: 0 1mm 3mm #0004; position: relative; overflow: hidden; }
+  .art { position: absolute; inset: 2.4mm; border-radius: 2.2mm; overflow: hidden; }
+  .art svg.bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  /* Coins */
+  .badge { position: absolute; top: 1.6mm; width: 9mm; text-align: center; }
+  .badge.l { left: 1.6mm; } .badge.r { right: 1.4mm; }
+  .disc { width: 8.4mm; height: 8.4mm; margin: 0 auto; border-radius: 50%; background: var(--rc); display: grid; place-items: center; font-size: 4.6mm; border: 0.5mm solid #fff; box-shadow: 0 0.3mm 0.8mm #0005; }
+  .map { width: 8.6mm; height: 8.6mm; margin: 0 auto; border-radius: 50%; background: #fffdf6; border: 0.5mm solid #fff; box-shadow: 0 0.3mm 0.8mm #0005; display: grid; place-items: center; }
+  .map svg { width: 7mm; height: 7mm; }
+  .code { display: inline-block; margin-top: 0.5mm; padding: 0 1mm; border-radius: 1mm; background: var(--rc); color: var(--ri); font: 700 1.7mm 'DejaVu Sans', sans-serif; letter-spacing: 0.15mm; }
+  /* Titre posé sur le ciel, comme la référence */
+  .title { position: absolute; left: 11mm; right: 11mm; top: 2mm; text-align: center; color: #1d2340; }
+  .title h1 { margin: 0; font: 700 4.4mm/1.05 'DejaVu Serif', serif; text-shadow: 0 0 1.2mm #fff, 0 0 0.6mm #fff; }
+  .title p { margin: 0.6mm 0 0; font: italic 2.4mm 'DejaVu Serif', serif; color: var(--rc); text-shadow: 0 0 1mm #fff; }
+  /* Bandeau semi-transparent en bas */
+  .band { position: absolute; left: 1.4mm; right: 1.4mm; bottom: 1.4mm; padding: 1.3mm 1.6mm 1.2mm; border-radius: 1.8mm; background: rgba(255, 251, 240, 0.78); backdrop-filter: blur(0.6mm); box-shadow: 0 0.3mm 1mm #0003; }
+  .band .txt { font: 1.85mm/1.25 'DejaVu Serif', serif; color: #2a1a0e; text-align: center; padding-right: 7.5mm; }
+  .menu { display: flex; justify-content: space-between; align-items: center; margin-top: 1mm; padding-right: 7.5mm; position: relative; }
+  .menu::before { content: ''; position: absolute; left: 2mm; right: 9.5mm; top: 50%; height: 0.35mm; background: var(--rc); opacity: 0.45; }
+  .dot { position: relative; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: #fff; border: 0.35mm solid var(--rc); display: grid; place-items: center; font-size: 2.3mm; }
+  .dot.on { width: 5.2mm; height: 5.2mm; background: var(--rc); box-shadow: 0 0 0 0.45mm #fff, 0 0 0 0.8mm var(--rc); }
+  .qr { position: absolute; right: 1.4mm; bottom: 1.3mm; width: 7mm; text-align: center; }
+  .qr svg { width: 7mm; height: 7mm; display: block; background: #fff; border-radius: 0.6mm; }
+  .qr small { font: 700 1.1mm 'DejaVu Sans', sans-serif; color: #2a1a0e; }
+  .note { font: 3.2mm/1.45 'DejaVu Sans', sans-serif; color: #3a2a1a; max-width: 72mm; }
+  .note b { color: #1F3F6E; }
+</style></head><body>
+<div class="card" id="card"><div class="art">
+  <!-- Illustration provisoire (sera remplacée par l'image Higgsfield en pleine page) -->
+  <svg class="bg" viewBox="0 0 200 280" preserveAspectRatio="xMidYMid slice">
+    <rect width="200" height="280" fill="#cfe2f2"/>
+    <g fill="#f6d6df"><circle cx="20" cy="70" r="26"/><circle cx="48" cy="62" r="22"/></g><g fill="#fbefc4"><circle cx="160" cy="58" r="24"/><circle cx="186" cy="72" r="22"/></g>
+    <g fill="#c2c9ea"><circle cx="70" cy="96" r="20"/><circle cx="130" cy="98" r="18"/></g>
+    <rect y="112" width="200" height="40" fill="#9fb2dc"/><path d="M20 112 l8 -26 h5 l8 26 z" fill="#f4f1ea"/><rect x="26" y="96" width="9" height="4" fill="#c8372d"/>
+    <path d="M0 150 Q100 136 200 152 V280 H0 Z" fill="#a9b79a" stroke="#1a1414" stroke-width="1.6"/>
+    <path d="M110 128 h44 l-6 12 h-34 z" fill="#b8504a" stroke="#1a1414" stroke-width="1.6"/><path d="M128 128 v-22 l14 18" fill="#f4f1ea" stroke="#1a1414" stroke-width="1.4"/>
+    <ellipse cx="100" cy="196" rx="54" ry="14" fill="#4a4f62" stroke="#1a1414" stroke-width="2"/>
+    <path d="M60 172 V184 A40 12 0 0 0 140 184 V172" fill="#d9883a" stroke="#1a1414" stroke-width="2"/>
+    <ellipse cx="100" cy="172" rx="40" ry="12" fill="#efb35c" stroke="#1a1414" stroke-width="2"/>
+    <path d="M100 172 L140 172 L140 184 L100 184 Z" fill="#fff1d2" stroke="#1a1414" stroke-width="1.6"/>
+    <g fill="#c96a86" stroke="#1a1414" stroke-width="1.2"><circle cx="18" cy="236" r="7"/><circle cx="184" cy="232" r="6"/></g>
+  </svg>
+  <div class="badge l"><div class="disc">🧀</div><span class="code">BRE</span></div>
+  <div class="title"><h1>Curé nantais</h1><p>Bretagne</p></div>
+  <div class="badge r"><div class="map"><svg viewBox="0 0 100 100"><path d="M48 4 L60 8 L72 14 L88 22 L84 34 L90 46 L84 56 L88 70 L80 82 L66 92 L54 88 L40 94 L28 90 L22 80 L26 66 L18 56 L22 44 L14 40 L4 36 L8 28 L22 30 L30 22 L40 16 Z" fill="#efe6d6" stroke="#8a7a66" stroke-width="3"/><path d="M22 44 L14 40 L4 36 L8 28 L22 30 L26 37 Z" fill="var(--rc)"/></svg></div><span class="code">BRE</span></div>
+  <div class="band">
+    <div class="txt">Pâte molle à croûte lavée, né vers 1880 près de Nantes, chez un curé.</div>
+    <div class="menu"><span class="dot">🥗</span><span class="dot">🍲</span><span class="dot on">🧀</span><span class="dot">🍰</span></div>
+    <div class="qr"><svg viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#fff"/><g fill="#1d1d1d"><rect width="7" height="7"/><rect x="14" width="7" height="7"/><rect y="14" width="7" height="7"/></g><g fill="#fff"><rect x="1" y="1" width="5" height="5"/><rect x="15" y="1" width="5" height="5"/><rect x="1" y="15" width="5" height="5"/></g><g fill="#1d1d1d"><rect x="2" y="2" width="3" height="3"/><rect x="16" y="2" width="3" height="3"/><rect x="2" y="16" width="3" height="3"/><rect x="9" y="1" width="2" height="2"/><rect x="11" y="8" width="3" height="1"/><rect x="9" y="10" width="2" height="2"/><rect x="15" y="9" width="2" height="3"/><rect x="13" y="15" width="2" height="4"/><rect x="16" y="17" width="3" height="2"/><rect x="1" y="9" width="3" height="2"/></g></svg><small>Recette</small></div>
+  </div>
+</div></div>
+<div class="note"><b>Pleine image, liseré blanc (comme Kiwi)</b><br>
+Titre posé sur le ciel, badges aux coins, bandeau crème semi-transparent en bas (texte + frise du menu), QR de 7 mm dans le bandeau.<br><br>
+<b>Pour l'illustration</b> : garder le haut calme (ciel) pour le titre et le bas un peu calme pour le bandeau ; le plat au centre.</div>
+</body></html>

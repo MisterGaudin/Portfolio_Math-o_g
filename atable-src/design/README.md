@@ -54,3 +54,14 @@ Modèle `gpt_image_2_5`, format 3:4, qualité `high` (1,5 crédit par image), r�
 > SUBJECT: {plat en grand au centre bas, sur son support} — middle ground (outlined): {éléments typiques de la région}
 > — far background (no outlines): {paysage de la région} — framing: {fleurs/plantes de la région aux coins}.
 > No text, no letters, no frame, full-bleed.
+
+## Mise en page « pleine image » (validée)
+
+- Liseré blanc de 2,4 mm aux coins arrondis, comme la carte Kiwi ; l'illustration remplit tout l'intérieur.
+- Titre posé directement sur le ciel (grand, à empattements), région en italique dessous.
+- Badges ronds aux coins : type de plat sur la couleur de la région (haut gauche), carte de France (haut droite),
+  code région dessous.
+- En bas, bandeau crème semi-transparent : 2 lignes de texte + frise du menu ; QR de 7 mm (« Recette ») dans le bandeau.
+- Composition des illustrations : **haut calme** (ciel) pour le titre, **bas assez calme** pour le bandeau, plat au centre.
+  Ajouter au prompt : "keep the top fifth as calm open sky for a title and the bottom fifth calm and simple for a
+  caption band; the hero dish sits in the middle of the frame".
