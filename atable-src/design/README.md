@@ -62,6 +62,7 @@ Modèle `gpt_image_2_5`, format 3:4, qualité `high` (1,5 crédit par image), r�
 - Badges ronds aux coins : type de plat sur la couleur de la région (haut gauche), carte de France (haut droite),
   code région dessous.
 - En bas, bandeau crème semi-transparent : 2 lignes de texte + frise du menu ; QR de 7 mm (« Recette ») dans le bandeau.
-- Composition des illustrations : **haut calme** (ciel) pour le titre, **bas assez calme** pour le bandeau, plat au centre.
-  Ajouter au prompt : "keep the top fifth as calm open sky for a title and the bottom fifth calm and simple for a
-  caption band; the hero dish sits in the middle of the frame".
+- Composition des illustrations : **le plat centré sur la carte** (au milieu en largeur ET en hauteur), **haut calme**
+  (ciel) pour le titre, **bas assez simple** pour le bandeau. Ajouter au prompt : "the hero dish is perfectly centred in
+  the frame, both horizontally and vertically; keep the top fifth as calm open sky for a title and the bottom fifth calm
+  and simple for a caption band".
