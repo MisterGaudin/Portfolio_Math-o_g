@@ -297,7 +297,7 @@ const BLOBS = {
       r = Math.min(.55, Math.max(.3, r));
       pts.push([.5 + r * Math.cos(a), .5 + r * Math.sin(a)]);
     }
-    const f = (n) => n.toFixed(4);
+    const f = (n) => n.toFixed(3);
     let d = `M${f(pts[0][0])},${f(pts[0][1])}`;
     for (let i = 0; i < N; i++){
       const p0 = pts[(i - 1 + N) % N], p1 = pts[i], p2 = pts[(i + 1) % N], p3 = pts[(i + 2) % N];
@@ -317,6 +317,10 @@ const BLOBS = {
       b.t += dt * (1 + 1.6 * b.hover);
       b.spin += dt * b.spinSpeed * (1 + b.hover);
       if (b.boing > .001){ b.boingAge += dt; b.boing *= Math.exp(-dt * 4.5); }
+      // At rest the breathing is slow: redrawing every other frame is invisible
+      // and halves the work on phones. Hovered/wobbling bubbles redraw every frame.
+      const active = b.hover > .02 || b.boing > .001;
+      if (!active && (b.skip = !b.skip)) return;
       b.path.setAttribute('d', pathFor(b));
     });
     requestAnimationFrame(frame);
