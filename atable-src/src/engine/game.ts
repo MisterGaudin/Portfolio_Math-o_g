@@ -4,7 +4,7 @@
 import { COURSES, DAY_EVENTS, HAND_SIZE, REGION_BY_ID, type Course } from '../config/cards';
 import { ALL_REGION_IDS, buildDeck, cardById, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
-import type { Card, Choice, DayEvent, Effect, Denunciation, GameEvent, GameState, Menu, Move, Order, PlayerSetup, RegionId, RoundResult, Rules } from './types';
+import type { Card, ChefId, Choice, DayEvent, Effect, Peek, Denunciation, GameEvent, GameState, Menu, Move, Order, PlayerSetup, RegionId, RoundResult, Rules } from './types';
 
 export interface GameOptions {
   /** Étoiles nécessaires pour devenir Chef 3 étoiles (3 par défaut). */
@@ -44,6 +44,7 @@ export const V4_RULES: Rules = {
   split: false,
   allServedStar: false,
   duelOrders: false,
+  chefs: false,
 };
 
 /**
@@ -159,7 +160,14 @@ export function createGame(setups: PlayerSetup[], rng: Rng, opts: GameOptions = 
     event: 'service',
     orders: [],
     catchUp: null,
+    chefUsed: {},
+    peeks: [],
   };
+  // Variante « Chefs » : un chef différent pour chacun, tiré au hasard (sauf s'il est déjà choisi).
+  if (state.rules.chefs) {
+    const free = shuffle(rng, CHEF_IDS.filter((c) => !setups.some((s) => s.chef === c)));
+    for (const p of state.players) p.chef ??= free.pop();
+  }
   dealRound(state, rng, preset);
   return state;
 }
@@ -185,6 +193,8 @@ export function cloneState(s: GameState): GameState {
     frozen: [...s.frozen],
     blockedUntil: { ...s.blockedUntil },
     orders: [...s.orders],
+    chefUsed: { ...s.chefUsed },
+    peeks: [...s.peeks],
   };
 }
 
@@ -210,6 +220,7 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
   state.lastService = false;
   state.blockedUntil = {};
   state.orders = [];
+  state.peeks = [];
   // Carte « Plat du jour » : un événement pour toute la manche.
   state.event = state.rules.dishOfDay && !preset ? pick(rng, dayEventsFor(state)) : 'service';
   if (state.event === 'sensInverse') state.direction = -1;
@@ -351,7 +362,66 @@ export const passCountOf = (state: GameState) => (state.event === 'troisCartes' 
 export const ordersAllowed = (state: GameState) => (state.rules.commande === 'aucune' ? 0 : state.event === 'commandeLibre' ? 2 : 1);
 
 /** Règle « service » : commandes permises par tour (2 avec « Carte blanche », et 2 en Duel si `duelOrders`). */
-export const ordersPerTurn = (state: GameState) => 1 + (state.event === 'commandeLibre' ? 1 : 0) + (isDuel(state) && state.rules.duelOrders ? 1 : 0);
+export const ordersPerTurn = (state: GameState, player?: number) =>
+  1 + (state.event === 'commandeLibre' ? 1 : 0) + (isDuel(state) && state.rules.duelOrders ? 1 : 0) + (player !== undefined && chefReady(state, player, 'gourmand') ? 1 : 0);
+
+export const CHEF_IDS: ChefId[] = ['gourmand', 'maraichere', 'plongeur', 'critique', 'renard', 'maitre'];
+/** Le joueur a-t-il ce chef (variante « Chefs ») ? */
+export const hasChef = (state: GameState, player: number, chef: ChefId) => state.rules.chefs && state.players[player]?.chef === chef;
+/** Pouvoir « une fois par manche » encore disponible ? */
+export const chefReady = (state: GameState, player: number, chef: ChefId) => hasChef(state, player, chef) && state.chefUsed[player] !== state.roundNumber;
+
+/** Vérifie qu'un pouvoir actif (Plongeur, Critique, Renard) peut être utilisé maintenant. */
+export function checkChefPower(state: GameState, player: number, chef: ChefId, target: number): string | null {
+  if (!chefReady(state, player, chef)) return 'Pouvoir déjà utilisé cette manche';
+  if (state.phase !== 'choose' || state.frozen.includes(player) || state.choices[player]) return 'Avant de choisir tes cartes';
+  if (pendingOrder(state)) return 'Une commande est en cours';
+  if (target === player || !state.players[target] || state.frozen.includes(target)) return 'Choisis un autre chef';
+  if (chef === 'plongeur') {
+    if (vaisselleHolder(state) !== player) return 'Il faut avoir la Vaisselle';
+    if (vaisselleLocked(state, player)) return 'Après une dénonciation, la Vaisselle reste chez toi ce tour-ci';
+  }
+  return null;
+}
+
+/**
+ * POUVOIRS DE CHEF (avant de choisir ses cartes, une fois par manche) :
+ * - Plongeur : la Vaisselle part chez le chef visé, qui rend une carte au hasard ;
+ * - Critique : regarde toute la main du chef visé ;
+ * - Renard : vole une carte au hasard au chef visé et lui rend la carte `give`.
+ */
+export function useChefPower(state: GameState, player: number, chef: ChefId, target: number, rng: Rng, give?: string): Peek | Card | null {
+  const err = checkChefPower(state, player, chef, target);
+  if (err) throw new Error(err);
+  const me = state.players[player].hand;
+  const other = state.players[target].hand;
+  state.chefUsed[player] = state.roundNumber;
+  if (chef === 'critique') {
+    const peek: Peek = { player, target, turn: state.turn, cards: [...other] };
+    state.peeks.push(peek);
+    return peek;
+  }
+  if (chef === 'plongeur') {
+    const vi = me.findIndex((c) => c.kind === 'vaisselle');
+    const gi = randInt(rng, other.length);
+    swapCards(me, vi, other, gi);
+    state.origins[me[vi].id] = 'swap';
+    state.stats.vaisselleMoves += 1;
+    delete state.choices[target];
+    return me[vi];
+  }
+  if (chef === 'renard') {
+    let gi = me.findIndex((c) => c.id === give);
+    if (gi < 0 || me[gi].kind === 'vaisselle') gi = me.findIndex((c) => c.kind !== 'vaisselle');
+    const si = randInt(rng, other.length);
+    const stolen = other[si];
+    swapCards(me, gi, other, si);
+    state.origins[stolen.id] = 'swap';
+    delete state.choices[target];
+    return stolen;
+  }
+  return null;
+}
 
 /** Commande servie dont la carte rendue n'a pas encore été choisie (une à la fois). */
 export const pendingOrder = (state: GameState) => state.orders.find((o) => o.served && o.given === undefined) ?? null;
@@ -370,7 +440,7 @@ export function checkOrder(state: GameState, player: number, express = false): s
   if (state.choices[player]) return 'Commande avant de choisir tes cartes';
   if (pendingOrder(state)) return 'Une commande est en cours';
   if (state.rules.commande === 'service') {
-    const per = ordersPerTurn(state);
+    const per = ordersPerTurn(state, player);
     const used = state.orders.filter((o) => o.player === player && o.turn === state.turn && !o.express).length;
     if (express) return state.players[player].hand.some((c) => c.kind === 'effect' && c.effect === 'express') ? null : 'Il faut une carte Livraison express';
     if (used >= per) return per > 1 ? 'Deux commandes par tour, pas plus' : 'Une commande par tour';
@@ -566,10 +636,14 @@ function serveOrder(state: GameState, player: number, query: OrderQuery, rng?: R
   if (query.express) discardEffect(state, player, 'express', rng);
   const k = other.findIndex((c) => c.kind === 'dish' && imageIdOf(c.id) === imageIdOf(query.cardId!));
   const order: Order = { player, turn: state.turn, cardId: query.cardId, target: t, yes: k >= 0 ? [t] : [], served: k >= 0, express: query.express || undefined };
+  // Gourmand : la commande en plus consomme son pouvoir de la manche.
+  if (!query.express && chefReady(state, player, 'gourmand') && state.orders.filter((o) => o.player === player && o.turn === state.turn && !o.express).length >= ordersPerTurn(state, player) - 1) state.chefUsed[player] = state.roundNumber;
   state.orders.push(order);
   // Rupture de stock : le joueur visé avait le plat, mais refuse de le servir (et tout le monde le sait).
-  if (k >= 0 && other.some((c) => c.kind === 'effect' && c.effect === 'rupture') && query.refuse?.(t)) {
-    discardEffect(state, t, 'rupture', rng);
+  const maitre = chefReady(state, t, 'maitre');
+  if (k >= 0 && (maitre || other.some((c) => c.kind === 'effect' && c.effect === 'rupture')) && query.refuse?.(t)) {
+    if (maitre) state.chefUsed[t] = state.roundNumber;
+    else discardEffect(state, t, 'rupture', rng);
     order.served = false;
     order.refused = true;
     return [{ type: 'order', order }];
@@ -755,6 +829,16 @@ export function resolveExchange(state: GameState, rng: Rng, takes: Record<number
           const d = drawCard(state, rng);
           reshuffled ||= d.reshuffled;
           card = d.card;
+          // Maraîchère : elle pioche 2 cartes, garde la meilleure et remet l'autre sous la pioche.
+          if (chefReady(state, to, 'maraichere') && (state.drawPile.length || state.discard.length)) {
+            state.chefUsed[to] = state.roundNumber;
+            const e = drawCard(state, rng);
+            reshuffled ||= e.reshuffled;
+            const useful = (c: Card) => c.kind === 'dish' && state.players[to].regions.includes(c.region) && !state.players[to].hand.some((h) => h.id === c.id);
+            const [keep, back] = useful(e.card) && !useful(card) ? [e.card, card] : [card, e.card];
+            card = keep;
+            state.drawPile.unshift(back);
+          }
         }
         move.drawn = card;
         state.origins[card.id] = move.fromDiscard ? 'choice' : 'market';

@@ -1,8 +1,14 @@
 // Un tour complet joué uniquement par des ordinateurs (simulation et tests).
-import { aiAnnounce, aiChooseAll, aiDenounce, aiOrder, aiOrderGive, aiOrderService, aiReveal, aiRupture, aiShow, aiTake } from './ai';
-import { activePlayers, denounce, marketReceivers, pendingOrder, placeOrder, resolveAnnouncements, settleOrder, resolveExchange, showCard, submitChoice } from './game';
+import { aiAnnounce, aiChefPower, aiChooseAll, aiDenounce, aiOrder, aiOrderGive, aiOrderService, aiReveal, aiRupture, aiShow, aiTake } from './ai';
+import { activePlayers, denounce, marketReceivers, pendingOrder, placeOrder, resolveAnnouncements, settleOrder, useChefPower, resolveExchange, showCard, submitChoice } from './game';
 import type { Rng } from './rng';
 import type { GameEvent, GameState } from './types';
+
+/** Variante « Chefs » : pouvoir éventuel de l'ordinateur, avant ses commandes. */
+export function botChef(state: GameState, p: number, rng: Rng): void {
+  const use = state.rules.chefs ? aiChefPower(state, p, rng) : null;
+  if (use) useChefPower(state, p, use.chef, use.target, rng, use.give);
+}
 
 /** Commande éventuelle d'un ordinateur (avant ses choix), carte rendue comprise. */
 export function botOrder(state: GameState, p: number, rng: Rng): GameEvent[] {
@@ -50,6 +56,7 @@ export function playBotTurn(state: GameState, rng: Rng): GameEvent[] {
   // Commandes à tour de rôle : le premier à commander change à chaque tour.
   const act = activePlayers(state);
   const first = (state.turn + state.roundNumber) % act.length;
+  for (const p of [...act.slice(first), ...act.slice(0, first)]) botChef(state, p, rng);
   for (const p of [...act.slice(first), ...act.slice(0, first)]) events.push(...botOrder(state, p, rng));
   for (const p of activePlayers(state)) submitChoice(state, p, aiChooseAll(state, p, rng));
   const takes = Object.fromEntries(marketReceivers(state).map((p) => [p, aiTake(state, p)]));

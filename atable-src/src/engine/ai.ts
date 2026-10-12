@@ -1,11 +1,11 @@
 // Intelligence des ordinateurs, en 3 niveaux.
 // L'IA ne lit que ce qu'un vrai joueur saurait : sa main, ses 2 régions, les cartes
 // reçues, la défausse (Marché) et les dénonciations publiques.
-import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, isProtected, vaisselleLocked, vaisselleHolder, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
+import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkChefPower, checkOrder, isProtected, vaisselleLocked, vaisselleHolder, leftOf, mustShow, ordersAllowed, passCountOf, visibleDiscard } from './game';
 import { COURSES } from '../config/cards';
 import { cardById, menuProgress } from './deck';
 import { pick, type Rng } from './rng';
-import type { Card, Choice, DishCard, GameState, Move, Pick, RegionId } from './types';
+import type { Card, ChefId, Choice, DishCard, GameState, Move, Pick, RegionId } from './types';
 
 /** Multiplicateur appliqué à une région quand un joueur s'en débarrasse. */
 const DUMP_FACTOR = 0.3;
@@ -57,6 +57,7 @@ export function beliefs(state: GameState, observer: number): Beliefs {
         if (m.player !== q || m.card.kind !== 'dish') continue;
         if (m.mode === 'market' || m.to === observer) weights[m.card.region] *= DUMP_FACTOR;
       }
+      for (const pk of state.peeks) if (pk.player === observer && pk.target === q && pk.turn === turnOf) for (const c of pk.cards) if (isDish(c) && weights[c.region] !== undefined) weights[c.region] *= PEEK_FACTOR;
       for (const o of state.orders) if (o.player === q && o.cardId && o.turn === turnOf) { const c = cardById(o.cardId); if (c.kind === 'dish' && weights[c.region] !== undefined) weights[c.region] *= ORDER_FACTOR; }
       for (const m of moves) if (m.player === observer && m.target === q && m.peek) for (const c of m.peek) if (isDish(c)) weights[c.region] *= PEEK_FACTOR;
     }
@@ -366,7 +367,34 @@ export function aiOrderService(state: GameState, player: number, rng: Rng, expre
 
 /** « Rupture de stock ! » : l'ordinateur visé refuse de servir (toujours, sauf l'IA facile une fois sur deux). */
 export function aiRupture(state: GameState, target: number, rng: Rng): boolean {
+  // (Aussi utilisé pour le Maître d'hôtel de la variante « Chefs ».)
   return state.players[target].difficulty !== 'facile' || rng() < 0.5;
+}
+
+/**
+ * Variante « Chefs » : l'ordinateur utilise son pouvoir.
+ * - Plongeur : dès qu'il a la Vaisselle, il l'envoie au chef le plus étoilé ;
+ * - Critique : à partir du 2e tour, il regarde la main du chef qu'il soupçonne le plus (ou au hasard) ;
+ * - Renard : à partir du 2e tour, il vole chez un chef qui a servi ou répondu « oui » à une commande, sinon au hasard.
+ * Renvoie le pouvoir utilisé, avec sa cible.
+ */
+export function aiChefPower(state: GameState, player: number, rng: Rng): { chef: ChefId; target: number; give?: string } | null {
+  const me = state.players[player];
+  const chef = me.chef;
+  if (!chef || !['plongeur', 'critique', 'renard'].includes(chef) || me.difficulty === 'facile' && rng() < 0.5) return null;
+  const others = activePlayers(state).filter((i) => i !== player);
+  if (!others.length) return null;
+  const top = Math.max(...others.map((i) => state.players[i].etoiles));
+  let target = pick(rng, others);
+  if (chef === 'plongeur') target = pick(rng, others.filter((i) => state.players[i].etoiles === top));
+  else if (state.turn < 2) return null;
+  if (chef === 'renard') {
+    const lead = state.orders.filter((o) => o.yes.length && o.player !== player).flatMap((o) => o.yes).filter((i) => others.includes(i));
+    if (lead.length) target = pick(rng, lead);
+  }
+  if (checkChefPower(state, player, chef, target)) return null;
+  const junk = me.hand.filter((c) => c.kind !== 'vaisselle' && !(isDish(c) && me.regions.includes(c.region) && me.bonus[me.regions.indexOf(c.region)] !== c.course) && c.kind !== 'baguette');
+  return { chef, target, give: chef === 'renard' ? (junk[0] ?? me.hand.find((c) => c.kind !== 'vaisselle'))?.id : undefined };
 }
 
 /** Carte rendue après une commande servie : la Vaisselle si possible (bon débarras !), sinon la plus inutile. */

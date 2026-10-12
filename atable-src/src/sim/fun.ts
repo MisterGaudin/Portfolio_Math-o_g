@@ -1,7 +1,7 @@
 // Mesure du « fun » et barème /100 (voir README) : le barème est FIGÉ, calibré sur la v4
 // (4 joueurs ≈ 72, 3 joueurs ≈ 67, Duel ≈ 57) avant toute modification des règles.
 import {
-  activePlayers, aiAnnounce, aiChooseAll, aiDenounce, aiReveal, aiRupture, botOrder, checkOrder, vaisselleLocked, leftOf, missingDishes, pendingOrder, settleOrder, aiShow, aiTake, announceableMenu, checkAnnounce,
+  activePlayers, aiAnnounce, aiChooseAll, aiDenounce, aiReveal, aiRupture, botChef, botOrder, checkOrder, vaisselleLocked, leftOf, missingDishes, pendingOrder, settleOrder, aiShow, aiTake, announceableMenu, checkAnnounce,
   createGame, createRng, denounce, marketReceivers, menuProgress, mustShow, nextRound, passCountOf, placeOrder, playBotTurn,
   resolveAnnouncements, resolveExchange, showCard, shuffle, submitChoice, visibleDiscard, dayEventsFor,
   type Difficulty, type GameState, type Rules,
@@ -121,6 +121,7 @@ export function naiveWinRate(n: number, rules: Partial<Rules>, games = 300): num
       if (s.phase === 'roundOver') { nextRound(s, rng); continue; }
       for (const p of activePlayers(s)) if (mustShow(s, p)) showCard(s, p, aiShow(s, p, rng)!);
       for (let p = 1; p < n; p++) { const d = aiDenounce(s, p); if (d) { denounce(s, p, d.target, d.region, rng, undefined, { reveal: aiReveal(s, p) }); break; } }
+      for (const p of activePlayers(s)) botChef(s, p, rng);
       for (let k = 0; k < 3; k++) naiveOrder(s, rng);
       for (const p of activePlayers(s)) if (p !== 0) botOrder(s, p, rng);
       for (const p of activePlayers(s)) if (p !== 0) submitChoice(s, p, aiChooseAll(s, p, rng));
@@ -193,6 +194,7 @@ export function ruleModules(rules: Rules, n: number): string[] {
   if (rules.baguetteToLast) m.push('Baguette au dernier');
   if (rules.allServedStar && rules.lastService) m.push('étoile pour tout menu servi');
   if (rules.duelOrders && n === 2) m.push('Duel : 2 commandes par tour');
+  if (rules.chefs) m.push('carte Chef (son pouvoir)', 'pouvoirs des autres chefs');
   if (rules.dishOfDay) m.push('Plat du jour (événements)');
   const fx = Object.entries(rules.effects).filter(([, k]) => (k ?? 0) > 0).map(([e]) => e);
   const duel = rules.duel && n === 2;

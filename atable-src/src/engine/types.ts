@@ -69,12 +69,34 @@ export interface Choice extends Pick {
   extra?: Pick[];
 }
 
+/**
+ * Variante « Chefs » : chaque joueur reçoit un chef au début de la partie, avec un pouvoir.
+ * Chaque pouvoir sert une fois par manche :
+ * - gourmand : une commande de plus ;
+ * - maraichere : quand elle pioche à cause du Marché, elle pioche 2 cartes et en garde 1 ;
+ * - plongeur : une fois par manche, envoie la Vaisselle au chef de son choix ;
+ * - critique : une fois par manche, regarde toute la main d'un chef ;
+ * - renard : une fois par manche, vole une carte au hasard à un chef et lui en rend une ;
+ * - maitre : une fois par manche, refuse de servir une commande (« Rupture de stock ! »).
+ */
+export type ChefId = 'gourmand' | 'maraichere' | 'plongeur' | 'critique' | 'renard' | 'maitre';
+
+/** Ce que le Critique a vu chez un autre chef (connu de lui seul). */
+export interface Peek {
+  player: number;
+  target: number;
+  turn: number;
+  cards: Card[];
+}
+
 export interface PlayerSetup {
   name: string;
   isHuman: boolean;
   difficulty: Difficulty;
   /** Âge du joueur : à égalité d'étoiles, la Baguette va au plus jeune. */
   age?: number;
+  /** Variante « Chefs » : son chef et son pouvoir. */
+  chef?: ChefId;
 }
 
 export interface Player extends PlayerSetup {
@@ -276,6 +298,8 @@ export interface Rules {
   allServedStar: boolean;
   /** Duel : chacun peut passer 2 commandes par tour. */
   duelOrders: boolean;
+  /** Variante « Chefs » : chaque joueur reçoit un chef différent, avec son pouvoir. */
+  chefs: boolean;
   /** Une carte « Plat du jour » est retournée à chaque manche. */
   dishOfDay: boolean;
   /**
@@ -337,6 +361,10 @@ export interface GameState {
   event: DayEvent;
   /** Chef en retard qui a reçu la Baguette en début de manche (règle « baguetteToLast »), ou null. */
   catchUp: number | null;
+  /** Variante « Chefs » : manche où chaque joueur a utilisé son pouvoir « une fois par manche ». */
+  chefUsed: Record<number, number>;
+  /** Cartes vues par le Critique (cette manche). */
+  peeks: Peek[];
   /** Commandes passées cette manche (publiques). */
   orders: Order[];
 }

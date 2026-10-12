@@ -1,0 +1,87 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Maquette carte À TABLE !</title>
+<style>
+  :root { --rc: #1F3F6E; --ri: #fff; --ink: #2a1a0e; }
+  body { margin: 0; padding: 6mm; background: #e9e4dc; font-family: 'DejaVu Serif', Georgia, serif; display: flex; gap: 6mm; align-items: flex-start; }
+  .card { width: 63mm; height: 88mm; border-radius: 3.5mm; background: #fffdf8; box-shadow: 0 1mm 3mm #0004; position: relative; overflow: hidden; }
+  .frame { position: absolute; inset: 2.2mm; border-radius: 2.4mm; border: 0.6mm solid var(--rc); background: linear-gradient(#fffdf8, #fbf5ea); }
+  /* En-tête */
+  .type { position: absolute; left: 1.6mm; top: 1.6mm; width: 10mm; text-align: center; }
+  .type .disc { width: 10mm; height: 10mm; border-radius: 50%; background: var(--rc); display: grid; place-items: center; font-size: 5.6mm; box-shadow: inset 0 0 0 0.5mm #fff8; }
+  .type .code { font: 700 2.1mm 'DejaVu Sans', sans-serif; color: var(--rc); letter-spacing: 0.2mm; margin-top: 0.4mm; }
+  .title { position: absolute; left: 12.6mm; right: 12.6mm; top: 2.2mm; text-align: center; }
+  .title .cart { background: var(--rc); color: var(--ri); border-radius: 4mm; padding: 1mm 1.5mm; font: 700 3.3mm/1.1 'DejaVu Serif', serif; box-shadow: 0 0.4mm 0 #0003; }
+  .title .region { font: italic 2.3mm 'DejaVu Serif', serif; color: var(--rc); margin-top: 0.6mm; }
+  .map { position: absolute; right: 1.4mm; top: 1.2mm; width: 10.5mm; text-align: center; }
+  .map svg { width: 10.5mm; height: 10.5mm; }
+  .map .code { font: 700 2.1mm 'DejaVu Sans', sans-serif; color: var(--rc); }
+  /* Illustration */
+  .art { position: absolute; left: 2mm; right: 2mm; top: 14.6mm; height: 30.5mm; border-radius: 2mm; overflow: hidden;
+         background: linear-gradient(180deg, #cfe6f5 0%, #f6d9e0 38%, #fbeccb 55%, #b9cfa0 56%, #8fb27a 100%); }
+  .art svg { width: 100%; height: 100%; }
+  .art .tag { position: absolute; left: 1.5mm; bottom: 1.2mm; font: 1.8mm 'DejaVu Sans', sans-serif; color: #fff; background: #0005; padding: 0.3mm 1mm; border-radius: 1mm; }
+  /* Texte */
+  .text { position: absolute; left: 3mm; right: 3mm; top: 45.8mm; font: 2.1mm/1.25 'DejaVu Serif', serif; color: var(--ink); text-align: center; }
+  /* Frise du menu */
+  .menu { position: absolute; left: 4mm; right: 4mm; top: 52.6mm; display: flex; justify-content: space-between; align-items: flex-start; }
+  .menu::before { content: ''; position: absolute; left: 3mm; right: 3mm; top: 2.6mm; height: 0.4mm; background: var(--rc); opacity: 0.5; }
+  .step { position: relative; width: 11mm; text-align: center; font: 1.7mm 'DejaVu Sans', sans-serif; color: #6b5a48; }
+  .step .dot { width: 5.2mm; height: 5.2mm; margin: 0 auto 0.4mm; border-radius: 50%; background: #fff; border: 0.4mm solid var(--rc); display: grid; place-items: center; font-size: 2.8mm; }
+  .step.on .dot { width: 6.2mm; height: 6.2mm; margin-top: -0.5mm; background: var(--rc); box-shadow: 0 0 0 0.6mm #fff, 0 0 0 1mm var(--rc); }
+  .step.on { color: var(--rc); font-weight: 700; }
+  /* QR */
+  .qr { position: absolute; left: 50%; bottom: 0.8mm; transform: translateX(-50%); text-align: center; }
+  .qr .ring { width: 15.4mm; height: 15.4mm; border-radius: 50%; background: #fff; border: 0.5mm solid var(--rc); display: grid; place-items: center; }
+  .qr svg { width: 12mm; height: 12mm; }
+  .qr small { font: 700 1.6mm 'DejaVu Sans', sans-serif; color: var(--rc); }
+  .guides { position: absolute; inset: 0; pointer-events: none; }
+  .note { font: 3.2mm/1.4 'DejaVu Sans', sans-serif; color: #3a2a1a; max-width: 70mm; }
+  .note b { color: #1F3F6E; }
+</style></head><body>
+<div class="card" id="card">
+  <div class="frame">
+    <div class="type"><div class="disc">🧀</div><div class="code">BRE</div></div>
+    <div class="title"><div class="cart">Curé nantais</div><div class="region">Bretagne</div></div>
+    <div class="map">
+      <!-- France simplifiée : la Bretagne est mise en couleur -->
+      <svg viewBox="0 0 100 100"><path d="M48 4 L60 8 L72 14 L88 22 L84 34 L90 46 L84 56 L88 70 L80 82 L66 92 L54 88 L40 94 L28 90 L22 80 L26 66 L18 56 L22 44 L14 40 L4 36 L8 28 L22 30 L30 22 L40 16 Z" fill="#efe6d6" stroke="#8a7a66" stroke-width="2.5"/>
+        <path d="M22 44 L14 40 L4 36 L8 28 L22 30 L26 37 Z" fill="var(--rc)"/></svg>
+      <div class="code">BRE</div>
+    </div>
+    <div class="art">
+      <svg viewBox="0 0 200 160" preserveAspectRatio="xMidYMid slice">
+        <ellipse cx="160" cy="34" rx="22" ry="10" fill="#fff" opacity=".9"/><ellipse cx="40" cy="26" rx="26" ry="11" fill="#fff" opacity=".85"/>
+        <path d="M0 78 Q50 62 100 76 T200 72 V160 H0 Z" fill="#9ab88a"/><path d="M0 92 Q60 80 120 94 T200 90 V160 H0 Z" fill="#7fa36b"/>
+        <rect x="150" y="54" width="6" height="22" fill="#fff"/><path d="M149 54 h8 l-4 -7 z" fill="#c8372d"/>
+        <path d="M60 128 L140 128 L148 140 L52 140 Z" fill="#a8743f" stroke="#5a3a1c" stroke-width="1.5"/>
+        <ellipse cx="100" cy="116" rx="34" ry="11" fill="#e8a64a" stroke="#5a3a1c" stroke-width="1.5"/>
+        <path d="M66 104 V116 A34 11 0 0 0 134 116 V104" fill="#d98d2e" stroke="#5a3a1c" stroke-width="1.5"/>
+        <ellipse cx="100" cy="104" rx="34" ry="11" fill="#f0b45a" stroke="#5a3a1c" stroke-width="1.5"/>
+        <path d="M100 104 L134 104 L134 116 L100 116 Z" fill="#fff4d9" stroke="#5a3a1c" stroke-width="1.2"/>
+        <circle cx="40" cy="146" r="3.5" fill="#d9475a"/><circle cx="168" cy="148" r="3" fill="#e57aa0"/>
+      </svg>
+      <span class="tag">illustration (Higgsfield / illustrateur)</span>
+    </div>
+    <div class="text">Pâte molle à croûte lavée, né vers 1880 près de Nantes, chez un curé.</div>
+    <div class="menu">
+      <div class="step"><div class="dot">🥗</div>Entrée</div>
+      <div class="step"><div class="dot">🍲</div>Plat</div>
+      <div class="step on"><div class="dot">🧀</div>Fromage</div>
+      <div class="step"><div class="dot">🍰</div>Dessert</div>
+    </div>
+    <div class="qr"><div class="ring"><svg viewBox="0 0 21 21" shape-rendering="crispEdges">
+      <rect width="21" height="21" fill="#fff"/>
+      <g fill="#1d1d1d"><rect x="0" y="0" width="7" height="7"/><rect x="14" y="0" width="7" height="7"/><rect x="0" y="14" width="7" height="7"/></g>
+      <g fill="#fff"><rect x="1" y="1" width="5" height="5"/><rect x="15" y="1" width="5" height="5"/><rect x="1" y="15" width="5" height="5"/></g>
+      <g fill="#1d1d1d"><rect x="2" y="2" width="3" height="3"/><rect x="16" y="2" width="3" height="3"/><rect x="2" y="16" width="3" height="3"/>
+      <rect x="9" y="1" width="2" height="2"/><rect x="8" y="5" width="1" height="3"/><rect x="11" y="8" width="3" height="1"/><rect x="9" y="10" width="2" height="2"/><rect x="15" y="9" width="2" height="3"/><rect x="18" y="11" width="2" height="2"/><rect x="9" y="14" width="3" height="1"/><rect x="13" y="15" width="2" height="4"/><rect x="16" y="17" width="3" height="2"/><rect x="10" y="18" width="2" height="2"/><rect x="1" y="9" width="3" height="2"/><rect x="5" y="11" width="2" height="1"/></g>
+    </svg></div><small>Scanne-moi</small></div>
+  </div>
+</div>
+<div class="note">
+  <b>Format poker 63 × 88 mm</b><br>Fichier d’impression : 69 × 94 mm (3 mm de fond perdu), aucun texte à moins de 4 mm du bord.<br><br>
+  <b>Coin haut gauche</b> : type de plat sur la couleur de la région + code (BRE) → lisible en éventail.<br>
+  <b>Haut droite</b> : carte de France, région en couleur.<br>
+  <b>Frise</b> : les 4 plats du menu, celui de la carte mis en avant.<br>
+  <b>QR</b> 12 mm (lien court → code simple, bien lisible) → lien du type <i>atable.fr/r/bretagne-fromage</i> redirigé vers la recette.
+</div>
+</body></html>

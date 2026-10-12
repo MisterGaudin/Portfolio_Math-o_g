@@ -1,0 +1,110 @@
+[
+ {
+  "id": "bretagne",
+  "name": "Bretagne",
+  "code": "BRE",
+  "color": "#1F3F6E",
+  "ink": "#FFFFFF",
+  "why": "Bleu marine (la mer, le Gwenn-ha-du)",
+  "contrast": 10.5
+ },
+ {
+  "id": "normandie",
+  "name": "Normandie",
+  "code": "NMD",
+  "color": "#4E9A3A",
+  "ink": "#2A1A0E",
+  "why": "Vert prairie (bocage, pommiers)",
+  "contrast": 4.8
+ },
+ {
+  "id": "nord",
+  "name": "Nord",
+  "code": "NRD",
+  "color": "#E0A800",
+  "ink": "#2A1A0E",
+  "why": "Jaune or (houblon, beffrois)",
+  "contrast": 7.8
+ },
+ {
+  "id": "alsace",
+  "name": "Alsace",
+  "code": "ALS",
+  "color": "#C8372D",
+  "ink": "#FFFFFF",
+  "why": "Rouge alsacien (géraniums, colombages)",
+  "contrast": 5.2
+ },
+ {
+  "id": "lorraine",
+  "name": "Lorraine",
+  "code": "LOR",
+  "color": "#8E9A2B",
+  "ink": "#2A1A0E",
+  "why": "Vert mirabellier (vergers, Vosges)",
+  "contrast": 5.4
+ },
+ {
+  "id": "bourgogne",
+  "name": "Bourgogne",
+  "code": "BOU",
+  "color": "#7B1E3A",
+  "ink": "#FFFFFF",
+  "why": "Lie-de-vin (vignobles)",
+  "contrast": 10.1
+ },
+ {
+  "id": "savoie",
+  "name": "Savoie",
+  "code": "SAV",
+  "color": "#3E9BD6",
+  "ink": "#2A1A0E",
+  "why": "Bleu glacier (montagne, lacs)",
+  "contrast": 5.5
+ },
+ {
+  "id": "lyonnais",
+  "name": "Lyonnais",
+  "code": "LYO",
+  "color": "#E8781F",
+  "ink": "#2A1A0E",
+  "why": "Orange (les toits de Lyon)",
+  "contrast": 5.7
+ },
+ {
+  "id": "auvergne",
+  "name": "Auvergne",
+  "code": "AUV",
+  "color": "#6B4A32",
+  "ink": "#FFFFFF",
+  "why": "Brun volcan (pierre de lave)",
+  "contrast": 7.9
+ },
+ {
+  "id": "provence",
+  "name": "Provence",
+  "code": "PRO",
+  "color": "#7A57B8",
+  "ink": "#FFFFFF",
+  "why": "Lavande",
+  "contrast": 5.5
+ },
+ {
+  "id": "corse",
+  "name": "Corse",
+  "code": "COR",
+  "color": "#14806F",
+  "ink": "#FFFFFF",
+  "why": "Vert maquis / émeraude",
+  "contrast": 4.8
+ },
+ {
+  "id": "sud-ouest",
+  "name": "Sud-Ouest",
+  "code": "SDO",
+  "color": "#C2407A",
+  "ink": "#FFFFFF",
+  "why": "Rose framboise (piment, Armagnac)",
+  "contrast": 4.9
+ }
+]
