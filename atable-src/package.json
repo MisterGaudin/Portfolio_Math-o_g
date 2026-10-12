@@ -14,7 +14,8 @@
     "card-ids": "vite-node scripts/card-ids.ts",
     "fun": "vite-node scripts/fun.ts",
     "naive": "vite-node scripts/naive.ts",
-    "score": "vite-node scripts/score.ts"
+    "score": "vite-node scripts/score.ts",
+    "solo": "vite-node scripts/solo.ts"
   },
   "dependencies": {
     "framer-motion": "^14.0.0",
