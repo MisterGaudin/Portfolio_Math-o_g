@@ -20,3 +20,21 @@ de pêche, quai en granit, phare rayé). Palette de la région en touches (voir 
 
 **Contours** : toujours des contours d'encre brun-noir faits main, irréguliers, d'épaisseur variable, autour de chaque
 forme (plat, support, décor, nuages), avec quelques petits traits intérieurs : c'est ce qui donne le côté « humain ».
+
+## Analyse détaillée de la référence (zooms sur le ciel, le personnage, les rochers, l'herbe, le château)
+
+1. **Aplats façon BD (cel-shading), pas de peinture** : couleurs en aplats avec UNE seule teinte d'ombre, quasiment
+   pas de dégradés, rien de flou. Un léger grain d'impression par-dessus les aplats.
+2. **Deux plans de dessin** :
+   - premier et deuxième plan (personnage, sac, rochers, herbes, fleurs, sol) : **contour d'encre presque noir,
+     épais, net et sûr**, extrémités affinées, formes fermées, peu de traits intérieurs (pas un trait tremblé) ;
+   - arrière-plan (ciel, nuages, château, collines lointaines) : **aucun contour**, seulement des aplats pastel doux,
+     peu contrastés : c'est ce qui crée la profondeur.
+3. **Palette un peu poudrée, pas « bonbon »** : vert sauge, vert mousse/olive, indigo-violet, rose ancien, orange,
+   crème, pervenche. Le noir des contours est un noir chaud (#1A1414).
+4. **Nuages** : formes festonnées superposées en aplats (rose pâle, jaune beurre, pervenche, blanc), petites étoiles
+   scintillantes blanches, un croissant de lune.
+5. **Petits gribouillis décoratifs** : sur les zones sombres, petites touffes d'herbe en « m », pousses de feuilles,
+   petites croix (coutures) : dessinés en trait clair (vert pâle, crème).
+6. **Formes simples, rondes et trapues**, peu de détails, très lisibles ; lumière traitée en aplat (faisceau crème,
+   halo doux).
