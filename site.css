@@ -62,6 +62,9 @@ section.trust{
 
 
 /* ---------- Services ---------- */
+.services .project-head > div{ flex: 1 1 100%; }
+h2.display.one-line{ font-size: clamp(40px, 6.4vw, 104px); }
+@media (min-width: 720px){ h2.display.one-line{ white-space: nowrap; } }
 .service-grid{
   display: grid;
   grid-template-columns: repeat(3, 1fr);
