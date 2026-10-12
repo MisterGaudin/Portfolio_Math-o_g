@@ -93,7 +93,7 @@ function canServe(hand: C[], o: C & { k: 'dish' }) {
   return m === 0 || (m === 1 && hand.some((h) => h.k === 'baguette'));
 }
 
-function serveAll(s: St, cfg: Cfg, rng: Rng) {
+function serveAll(s: St, _cfg: Cfg, rng: Rng) {
   let again = true;
   while (again) {
     again = false;
@@ -112,7 +112,7 @@ function serveAll(s: St, cfg: Cfg, rng: Rng) {
 }
 
 /** Valeur d'une main pour l'expert : progrès vers les commandes + petites réserves. */
-function value(hand: C[], s: St, cfg: Cfg): number {
+function value(hand: C[], s: St, _cfg: Cfg): number {
   let v = 0;
   const hasBag = hand.some((h) => h.k === 'baguette');
   for (const o of s.orders) {
@@ -309,7 +309,7 @@ function evaluate(cfg: Cfg, games: number) {
 }
 
 /** Barème solo /100 (mêmes idées que le barème multijoueur, adaptées au jeu seul). */
-function soloScore(cfg: Cfg, res: ReturnType<typeof evaluate>, games: number, rules: number) {
+function soloScore(_cfg: Cfg, res: ReturnType<typeof evaluate>, games: number, rules: number) {
   const e = res.expert, n = res.naive, r = res.random;
   const we = (100 * e.win) / games, wn = (100 * n.win) / games, wr = (100 * r.win) / games;
   const losses = games - e.win;
