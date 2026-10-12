@@ -385,3 +385,15 @@ section.projects-intro{ padding-bottom: clamp(24px, 4vw, 48px); }
    the .88 line-height inherited from the old headline made them touch. */
 .hero-left h1{ line-height: 1.04; }
 .hero-left h1 .italic{ padding-bottom: .06em; }
+
+/* ---------- Hero above the fold ---------- */
+/* The headline (3 lines) and its intro must be visible on arrival:
+   size it from the viewport height as well as its width. */
+section.hero{ min-height: 0; padding-top: clamp(16px, 3vh, 40px); padding-bottom: clamp(40px, 6vh, 80px); align-items: start; }
+.hero-left h1{ font-size: clamp(52px, min(8.6vw, 14.5vh), 150px); margin-top: 12px; }
+.hero-left .hero-intro{ margin-top: 20px; }
+.hero-right .portrait{ max-height: 78vh; }
+@media (max-width: 900px){
+  .hero-left{ order: -1; }
+  .hero-right .portrait{ width: min(72%, 300px); margin: 8px auto 0; }
+}
