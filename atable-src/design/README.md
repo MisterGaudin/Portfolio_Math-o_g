@@ -38,3 +38,19 @@ forme (plat, support, décor, nuages), avec quelques petits traits intérieurs :
    petites croix (coutures) : dessinés en trait clair (vert pâle, crème).
 6. **Formes simples, rondes et trapues**, peu de détails, très lisibles ; lumière traitée en aplat (faisceau crème,
    halo doux).
+
+## ✅ Formule validée (Curé nantais, job Higgsfield 05473772 / 14bfca1e)
+
+Modèle `gpt_image_2_5`, format 3:4, qualité `high` (1,5 crédit par image), référence de style : la carte Kiwi
+(media `c8359043-cf4d-4d2d-8c9a-c906e34a087b`). Gabarit du prompt :
+
+> Match the RENDERING of the reference card exactly, but invent a completely different composition and subject (do not
+> reuse its path, hill, castle, rock strata band, cat or layout). Rendering rules: (1) modern flat cel-shaded comic
+> illustration, NOT painterly, NOT blurry; (2) every foreground and middle-ground object has a bold, clean, confident
+> near-black ink outline (#1a1414), smooth with slightly tapered ends, closed contours, sparse interior detail lines;
+> (3) the far background has NO outlines at all: only flat, soft, low-contrast pastel shapes; (4) flat colour fills with
+> a single simple shadow tone, subtle grainy print texture; (5) muted, slightly dusty palette; (6) layered scalloped
+> pastel clouds with tiny sparkle stars; (7) small light doodles on dark areas ('m'-shaped grass tufts, leaf sprouts).
+> SUBJECT: {plat en grand au centre bas, sur son support} — middle ground (outlined): {éléments typiques de la région}
+> — far background (no outlines): {paysage de la région} — framing: {fleurs/plantes de la région aux coins}.
+> No text, no letters, no frame, full-bleed.
