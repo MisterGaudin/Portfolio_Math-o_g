@@ -18,13 +18,14 @@
   .title h1 { margin: 0; font: 700 4.4mm/1.05 'DejaVu Serif', serif; text-shadow: 0 0 1.2mm #fff, 0 0 0.6mm #fff; }
   .title p { margin: 0.6mm 0 0; font: italic 2.4mm 'DejaVu Serif', serif; color: var(--rc); text-shadow: 0 0 1mm #fff; }
   /* Bandeau semi-transparent en bas */
-  .band { position: absolute; left: 1.4mm; right: 1.4mm; bottom: 1.4mm; padding: 1.3mm 1.6mm 1.2mm; border-radius: 1.8mm; background: rgba(255, 251, 240, 0.78); backdrop-filter: blur(0.6mm); box-shadow: 0 0.3mm 1mm #0003; }
-  .band .txt { font: 1.85mm/1.25 'DejaVu Serif', serif; color: #2a1a0e; text-align: center; padding-right: 7.5mm; }
-  .menu { display: flex; justify-content: space-between; align-items: center; margin-top: 1mm; padding-right: 7.5mm; position: relative; }
-  .menu::before { content: ''; position: absolute; left: 2mm; right: 9.5mm; top: 50%; height: 0.35mm; background: var(--rc); opacity: 0.45; }
+  .band { position: absolute; left: 1.4mm; right: 1.4mm; bottom: 1.4mm; padding: 2.4mm 2.6mm 2.2mm; border-radius: 2mm; background: rgba(255, 251, 240, 0.82); backdrop-filter: blur(0.6mm); box-shadow: 0 0.3mm 1mm #0003; }
+  .band .txt { font: 1.85mm/1.5 'DejaVu Serif', serif; color: #2a1a0e; text-align: center; padding: 0 1mm; }
+  .foot { display: flex; align-items: center; gap: 3mm; margin-top: 2.2mm; padding-top: 1.8mm; border-top: 0.25mm solid rgba(31, 63, 110, 0.25); }
+  .menu { flex: 1; display: flex; justify-content: space-between; align-items: center; position: relative; padding: 0 0.5mm; }
+  .menu::before { content: ''; position: absolute; left: 2mm; right: 2mm; top: 50%; height: 0.35mm; background: var(--rc); opacity: 0.45; }
   .dot { position: relative; width: 4.2mm; height: 4.2mm; border-radius: 50%; background: #fff; border: 0.35mm solid var(--rc); display: grid; place-items: center; font-size: 2.3mm; }
   .dot.on { width: 5.2mm; height: 5.2mm; background: var(--rc); box-shadow: 0 0 0 0.45mm #fff, 0 0 0 0.8mm var(--rc); }
-  .qr { position: absolute; right: 1.4mm; bottom: 1.3mm; width: 7mm; text-align: center; }
+  .qr { width: 7mm; text-align: center; }
   .qr svg { width: 7mm; height: 7mm; display: block; background: #fff; border-radius: 0.6mm; }
   .qr small { font: 700 1.1mm 'DejaVu Sans', sans-serif; color: #2a1a0e; }
   .note { font: 3.2mm/1.45 'DejaVu Sans', sans-serif; color: #3a2a1a; max-width: 72mm; }
@@ -50,11 +51,11 @@
   <div class="badge r"><div class="map"><svg viewBox="0 0 100 100"><path d="M48 4 L60 8 L72 14 L88 22 L84 34 L90 46 L84 56 L88 70 L80 82 L66 92 L54 88 L40 94 L28 90 L22 80 L26 66 L18 56 L22 44 L14 40 L4 36 L8 28 L22 30 L30 22 L40 16 Z" fill="#efe6d6" stroke="#8a7a66" stroke-width="3"/><path d="M22 44 L14 40 L4 36 L8 28 L22 30 L26 37 Z" fill="var(--rc)"/></svg></div><span class="code">BRE</span></div>
   <div class="band">
     <div class="txt">Pâte molle à croûte lavée, né vers 1880 près de Nantes, chez un curé.</div>
-    <div class="menu"><span class="dot">🥗</span><span class="dot">🍲</span><span class="dot on">🧀</span><span class="dot">🍰</span></div>
-    <div class="qr"><svg viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#fff"/><g fill="#1d1d1d"><rect width="7" height="7"/><rect x="14" width="7" height="7"/><rect y="14" width="7" height="7"/></g><g fill="#fff"><rect x="1" y="1" width="5" height="5"/><rect x="15" y="1" width="5" height="5"/><rect x="1" y="15" width="5" height="5"/></g><g fill="#1d1d1d"><rect x="2" y="2" width="3" height="3"/><rect x="16" y="2" width="3" height="3"/><rect x="2" y="16" width="3" height="3"/><rect x="9" y="1" width="2" height="2"/><rect x="11" y="8" width="3" height="1"/><rect x="9" y="10" width="2" height="2"/><rect x="15" y="9" width="2" height="3"/><rect x="13" y="15" width="2" height="4"/><rect x="16" y="17" width="3" height="2"/><rect x="1" y="9" width="3" height="2"/></g></svg><small>Recette</small></div>
+    <div class="foot"><div class="menu"><span class="dot">🥗</span><span class="dot">🍲</span><span class="dot on">🧀</span><span class="dot">🍰</span></div>
+    <div class="qr"><svg viewBox="0 0 21 21" shape-rendering="crispEdges"><rect width="21" height="21" fill="#fff"/><g fill="#1d1d1d"><rect width="7" height="7"/><rect x="14" width="7" height="7"/><rect y="14" width="7" height="7"/></g><g fill="#fff"><rect x="1" y="1" width="5" height="5"/><rect x="15" y="1" width="5" height="5"/><rect x="1" y="15" width="5" height="5"/></g><g fill="#1d1d1d"><rect x="2" y="2" width="3" height="3"/><rect x="16" y="2" width="3" height="3"/><rect x="2" y="16" width="3" height="3"/><rect x="9" y="1" width="2" height="2"/><rect x="11" y="8" width="3" height="1"/><rect x="9" y="10" width="2" height="2"/><rect x="15" y="9" width="2" height="3"/><rect x="13" y="15" width="2" height="4"/><rect x="16" y="17" width="3" height="2"/><rect x="1" y="9" width="3" height="2"/></g></svg><small>Recette</small></div></div>
   </div>
 </div></div>
 <div class="note"><b>Pleine image, liseré blanc (comme Kiwi)</b><br>
-Titre posé sur le ciel, badges aux coins, bandeau crème semi-transparent en bas (texte + frise du menu), QR de 7 mm dans le bandeau.<br><br>
+Titre posé sur le ciel, badges aux coins, bandeau crème semi-transparent en bas : le texte respire (marges larges, interligne aéré, toute la largeur), puis une ligne séparée avec la frise du menu et le QR de 7 mm.<br><br>
 <b>Pour l'illustration</b> : le plat <b>centré</b> sur la carte (au milieu en largeur et en hauteur) ; ciel calme en haut pour le titre, bas simple pour le bandeau.</div>
 </body></html>
