@@ -14,7 +14,7 @@ gouache texturée, harmonie pastel, lumière douce). La composition doit être o
 l'horizon, pas de colline avec un bâtiment en haut à droite, pas de bande de rochers et de fleurs en bas, pas de
 personnage, de château, de texte ni de cadre.
 
-Formule par carte Plat : « nature morte » à hauteur d'yeux, le plat en grand en bas au centre sur un support typique
+Formule par carte Plat : « nature morte » à hauteur d'yeux, le plat en grand, centré sur la carte, sur un support typique
 (ardoise, planche, plat en terre…), et derrière, un peu flou, un décor propre à la région (ex. Bretagne : port, bateaux
 de pêche, quai en granit, phare rayé). Palette de la région en touches (voir `palette.json`).
 
@@ -51,7 +51,7 @@ Modèle `gpt_image_2_5`, format 3:4, qualité `high` (1,5 crédit par image), r�
 > (3) the far background has NO outlines at all: only flat, soft, low-contrast pastel shapes; (4) flat colour fills with
 > a single simple shadow tone, subtle grainy print texture; (5) muted, slightly dusty palette; (6) layered scalloped
 > pastel clouds with tiny sparkle stars; (7) small light doodles on dark areas ('m'-shaped grass tufts, leaf sprouts).
-> SUBJECT: {plat en grand au centre bas, sur son support} — middle ground (outlined): {éléments typiques de la région}
+> SUBJECT: {plat en grand, parfaitement centré, sur son support} — middle ground (outlined): {éléments typiques de la région}
 > — far background (no outlines): {paysage de la région} — framing: {fleurs/plantes de la région aux coins}.
 > No text, no letters, no frame, full-bleed.
 
