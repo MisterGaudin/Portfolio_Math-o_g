@@ -540,8 +540,11 @@ const BLOBS = {
     const isPhoto = !!el.closest('#photo');
     const isIllustration = !!el.closest('#illustration');
     const isDirect = el.classList.contains('fs-direct');
+    // A tile carrying several images (e.g. a whole character project) opens its own gallery
+    let multi = false;
+    try { multi = JSON.parse((el.dataset.gallery || '[]').replace(/&#39;/g, "'")).length > 1; } catch(e){}
     const handler = () => {
-      if (isPhoto || isIllustration || isDirect) openSingleFullscreen(el);
+      if (!multi && (isPhoto || isIllustration || isDirect)) openSingleFullscreen(el);
       else openFor(el);
     };
     el.addEventListener('click', handler);

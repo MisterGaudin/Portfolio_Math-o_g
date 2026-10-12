@@ -417,3 +417,8 @@ section.hero{ min-height: 0; padding-top: clamp(16px, 3vh, 40px); padding-bottom
 .sketch-block .carousel-btn.prev{ left: -12px; }
 .sketch-block .carousel-btn.next{ right: -12px; }
 @media (max-width: 640px){ .sketch-track{ grid-auto-columns: 78%; } }
+
+/* 7th illustration tile (manuel d histoire), below the cluster on the left */
+.gallery.illus-cluster > :nth-child(7){ grid-column: 1 / span 4; grid-row: 9 / span 4; }
+@media (max-width: 900px){ .gallery.illus-cluster > :nth-child(7){ grid-column: span 2 !important; grid-row: span 2 !important; } }
+@media (max-width: 600px){ .gallery.illus-cluster > :nth-child(7){ grid-row: span 1 !important; } }
