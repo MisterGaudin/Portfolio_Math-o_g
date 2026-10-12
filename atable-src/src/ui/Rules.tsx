@@ -9,8 +9,9 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b>But :</b> 3 étoiles ⭐ pour devenir <b>Chef 3 étoiles</b>. De 2 à 6 chefs.
         </p>
         <p>
-          Chacun a <b>une région secrète</b> et 8 cartes. Ta carte Région compte comme un de ses plats (★) : trouve les <b>3 autres</b>. Le vrai plat ne te sert
-          à rien : donne-le pour bluffer !
+          En début de manche, on prend <b>un plat de chaque région</b>, on les mélange et chacun en reçoit un, face cachée : c’est ton <b>plat secret</b>. Garde-le
+          à part : il compte dans ton menu (★) et sa région est la tienne. Trouve les <b>3 autres</b> plats. Les plats non distribués retournent dans la pioche
+          (en Duel, ils restent à part). Puis 8 cartes chacun (7 à 6 joueurs).
         </p>
         <p>
           <b>Chaque tour</b>, ensemble : une carte à ton <b>voisin</b>, une au <b>Marché</b> (face visible). Ton voisin pioche, ou prend la carte visible.
@@ -23,7 +24,7 @@ export function RulesModal({ open, onClose }: { open: boolean; onClose: () => vo
           <b> Gastronomique</b> › <b>Maison</b> (avec la 🥖 Baguette).
         </p>
         <p>
-          🍽️ <b>Vaisselle</b> : pas d’annonce avec. Elle seule permet de <b>dénoncer</b> (une fois par manche). Juste : il prend la Vaisselle et change de région. Faux :
+          🍽️ <b>Vaisselle</b> : pas d’annonce avec. Elle seule permet de <b>dénoncer</b> (une fois par manche). Juste : il prend la Vaisselle, montre son plat secret, le pose au Marché et en pioche un nouveau (en Duel, dans les plats mis à part). Faux :
           tu la gardes. Elle ne bouge plus ce tour-ci.
         </p>
         <p>

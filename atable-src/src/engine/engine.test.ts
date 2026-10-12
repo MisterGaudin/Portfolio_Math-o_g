@@ -49,7 +49,7 @@ const c = (id: string): Card => cardById(id);
 const R = (region: string) => regionCards(region);
 const ids = (cards: Card[]) => cards.map((x) => x.id);
 const TOTAL = REGIONS.length * 4 + 2;
-const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length + s.specialPile.length;
+const totalCards = (s: GameState) => s.players.reduce((n, p) => n + p.hand.length, 0) + s.drawPile.length + s.discard.length + s.specialPile.length + (s.rules.secretDish && s.rules.mode === 'unMenu' ? s.players.reduce((n, p) => n + p.regions.length, 0) + (s.rules.secretReserve ? s.regionReserve.length : 0) : 0);
 /** Paquet par défaut : 50 cartes + 2 Demi-tour, 2 Troc, 2 Chapardeur, 2 Contrôle sanitaire. */
 const TOTAL_DEFAULT = TOTAL + 8;
 
@@ -980,6 +980,24 @@ describe('version 5 : commande servie, une carte au voisin et une au Marché, é
         expect(totalCards(s)).toBe(TOTAL_V5);
       }
       expect(s.phase).toBe('gameOver');
+    }
+  });
+});
+
+describe('plat secret (pas de carte Région)', () => {
+  it.each([2, 3, 4, 5, 6])('%i joueurs : un plat de chaque région, une par joueur, retiré du paquet', (n) => {
+    for (const seed of [1, 2, 3]) {
+      const s = createGame(setups(n), createRng(seed));
+      const regions = s.players.map((p) => p.regions[0]);
+      expect(new Set(regions).size).toBe(n);
+      const inPlay = [...s.players.flatMap((p) => p.hand), ...s.drawPile].map((c) => c.id);
+      s.players.forEach((p) => {
+        const secret = regionCards(p.regions[0]).find((d) => d.course === p.bonus[0])!;
+        expect(inPlay).not.toContain(secret.id);
+        // les 3 autres plats de la région restent en jeu
+        for (const d of regionCards(p.regions[0])) if (d.id !== secret.id) expect(inPlay).toContain(d.id);
+      });
+      expect(s.players[0].hand.length + s.players[1].hand.length).toBe(n >= 6 ? 14 : 16);
     }
   });
 });

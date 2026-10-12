@@ -27,7 +27,7 @@ const c = cardById;
 
 /**
  * Mise en place imposée : toi (Savoie, ta carte compte comme la Tartiflette) contre
- * Mamie (Bretagne, sa carte compte comme les Crêpes). Chaque tour : une carte au voisin, une au Marché.
+ * Mamie (Bretagne, son plat secret est le dessert). Chaque tour : une carte au voisin, une au Marché.
  */
 function tutorialScript(): BotScript {
   const hands = [
@@ -35,7 +35,8 @@ function tutorialScript(): BotScript {
     ['bretagne-entree', 'bretagne-plat', 'provence-entree', 'savoie-dessert', 'auvergne-plat', 'bourgogne-fromage', 'lorraine-dessert', 'sud-ouest-entree'].map(c),
   ];
   const top = ['alsace-dessert', 'corse-plat', 'nord-entree'];
-  const used = new Set([...hands.flat().map((x) => x.id), 'bretagne-fromage', ...top]);
+  // Les plats secrets (Tartiflette, Far breton) sont mis à part : ils ne sont pas dans la pioche.
+  const used = new Set([...hands.flat().map((x) => x.id), 'bretagne-fromage', ...top, 'savoie-plat', 'bretagne-dessert']);
   const rest = shuffle(createRng(7), buildDeck(ALL_REGION_IDS).filter((x) => !used.has(x.id)));
   // Ce que Mamie donne à chaque tour : [carte passée, carte au Marché].
   const plan: Record<number, [string, string]> = {
@@ -59,10 +60,9 @@ function tutorialScript(): BotScript {
 }
 
 const STEPS: Step[] = [
-  { text: 'Bienvenue à table ! Tu affrontes Mamie. En début de manche, chacun reçoit une carte Région secrète (chaque région n’existe qu’une fois). Tape « Découvrir ma région ».', expect: { kind: 'wait', until: (st) => st !== 'intro' } },
-  { text: 'Tu es la Savoie ! Ta carte Région compte comme un plat, la Tartiflette (★), sans que personne ne le voie. Pour crier « À TABLE ! », il te faut les 3 autres plats de Savoie : Entrée, Fromage et Dessert. Tape « Ma région » pour la revoir.', focus: 'region', expect: { kind: 'next' } },
-  { text: 'Astuce de chef : la vraie carte Tartiflette ne te servirait à rien. Si tu la reçois, donne-la : on croira que tu n’es pas la Savoie. C’est du bluff !', focus: 'region', expect: { kind: 'next' } },
-  { text: 'La jauge montre ton menu : tu as la Salade savoyarde et le Reblochon, il ne manque que le Gâteau de Savoie !', focus: 'gauge', expect: { kind: 'next' } },
+  { text: 'Bienvenue à table ! Tu affrontes Mamie. En début de manche, on prend un plat de chaque région, on les mélange et chacun en reçoit un, face cachée : c’est ton plat secret. Tape « Découvrir ma région ».', expect: { kind: 'wait', until: (st) => st !== 'intro' } },
+  { text: 'Ton plat secret est la Tartiflette : tu es la Savoie ! Gardé à part, il compte déjà dans ton menu (★), sans que personne ne le voie. Pour crier « À TABLE ! », il te faut les 3 autres plats de Savoie : Entrée, Fromage et Dessert. Tape « Ma région » pour la revoir.', focus: 'region', expect: { kind: 'next' } },
+    { text: 'La jauge montre ton menu : tu as la Salade savoyarde et le Reblochon, il ne manque que le Gâteau de Savoie !', focus: 'gauge', expect: { kind: 'next' } },
   { text: 'Mais tu as la Vaisselle 🍽️ : tant que tu l’as, pas d’annonce ! Chaque tour, tout le monde donne 2 cartes en même temps : une à son voisin, une au Marché (face visible).', focus: 'vaisselle', expect: { kind: 'next' } },
   { text: 'Tape la Vaisselle (elle part chez Mamie), puis la Teurgoule (elle part au Marché), et « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: [{ cardId: 'vaisselle', mode: 'pass' }, { cardId: 'normandie-dessert', mode: 'market' }] } },
   { text: 'Les cartes glissent toutes en même temps ! Quand Mamie met une carte au Marché, c’est toi qui pioches pour la remplacer.', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 2 } },
@@ -72,7 +72,7 @@ const STEPS: Step[] = [
   { text: 'Échange…', expect: { kind: 'wait', until: (st, turn) => st === 'choosing' && turn === 3 } },
   { text: 'Aïe ! Mamie t’a renvoyé la Vaisselle : tu n’as pas pu annoncer. Mais seul celui qui a la Vaisselle peut dénoncer quelqu’un, une fois par manche.', focus: 'vaisselle', expect: { kind: 'next' } },
   { text: 'Mamie garde jalousement ses cartes de Bretagne… Démasque-la ! Tape « Dénoncer », choisis Bretagne.', focus: 'denounce', expect: { kind: 'denounce', target: 1, region: 'bretagne' } },
-  { text: 'Bien vu ! Mamie prend ta Vaisselle (elle te rend ses Madeleines) et la garde jusqu’au prochain tour. Elle change aussi de région : ses cartes de Bretagne ne lui servent plus.', expect: { kind: 'next' } },
+  { text: 'Bien vu ! Mamie prend ta Vaisselle (elle te rend ses Madeleines) et la garde jusqu’au prochain tour. Elle montre aussi son plat secret, le pose au Marché et en pioche un nouveau : ses cartes de Bretagne ne lui servent plus.', expect: { kind: 'next' } },
   { text: 'Donne-lui la Carbonade et mets les Madeleines au Marché, puis « Valider ».', focus: 'hand', expect: { kind: 'choice', picks: [{ cardId: 'nord-plat', mode: 'pass' }, { cardId: 'lorraine-dessert', mode: 'market' }] } },
   { text: 'Échange…', expect: { kind: 'wait', until: (st) => st === 'announcing' } },
   { text: 'Plus de Vaisselle et un menu complet sans Baguette : c’est un Gastronomique, l’annonce la plus forte ! (Avec la Baguette à la place d’un plat, ce serait un Maison.) Crie « À TABLE ! ».', focus: 'announce', expect: { kind: 'announce' } },

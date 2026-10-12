@@ -183,7 +183,7 @@ function naiveOrder(s: GameState, rng: () => number): void {
 
 /** Nombre de « modules » de règles à expliquer (accessibilité). */
 export function ruleModules(rules: Rules, n: number): string[] {
-  const m = ['région secrète (carte = 1 plat)', 'donner des cartes (voisin ou Marché)', 'menus Gastronomique / Maison (Baguette)', 'Vaisselle (pas d’annonce)', 'dénonciation (juste / fausse)', 'étoiles'];
+  const m = ['plat secret (= 1 plat de ta région)', 'donner des cartes (voisin ou Marché)', 'menus Gastronomique / Maison (Baguette)', 'Vaisselle (pas d’annonce)', 'dénonciation (juste / fausse)', 'étoiles'];
   if (rules.openMarket) m.push('Marché ouvert');
   if (rules.blindAnnounce) m.push('annonce face cachée + bluff puni');
   if (rules.lastService) m.push('Dernier service');

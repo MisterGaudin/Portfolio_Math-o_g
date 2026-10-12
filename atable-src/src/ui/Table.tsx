@@ -1,9 +1,9 @@
 // Table de jeu : adversaires en haut, pioche et défausse au centre, ta main en bas.
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { COURSE_ICONS, COURSE_LABELS, COURSES, DAY_EVENTS, REGION_BY_ID, REGIONS } from '../config/cards';
+import { COURSE_ICONS, COURSE_LABELS, COURSES, DAY_EVENTS, REGION_BY_ID, REGIONS, type Course } from '../config/cards';
 import { announceableMenu, activePlayers, checkAnnounce, checkDenounce, checkOrder, evaluateMenu, isDuel, isProtected, leftOf, mustShow, ordersPerTurn, pendingOrder, vaisselleLocked, menuProgress, passCountOf, rightOf, visibleDiscard, MENU_LABELS, vaisselleHolder, type Card, type Choice, type GameState, type Mode, type Move, type Pick, cardById } from '../engine';
-import { CardBack, CardView, DirtyPlate, RegionCardView, RegionChip } from './CardView';
+import { CardBack, CardView, DirtyPlate, RegionCardView, RegionChip, type CardSize } from './CardView';
 import { Modal } from './Modal';
 import type { Focus, Guide } from './tutorial';
 import { orderText, REVEAL_MS, type GameController } from './useGame';
@@ -53,7 +53,7 @@ function MenuGauge({ state, revealed, focus }: { state: GameState; revealed: boo
                     key={course}
                     className={`gauge-cell${full || joker ? ' full' : ''}`}
                     style={full ? { background: revealed ? r.color : '#c98a2b' } : joker ? { background: '#d9a441' } : undefined}
-                    title={fromRegion ? `${COURSE_LABELS[course]} : c’est ta carte Région` : COURSE_LABELS[course]}
+                    title={fromRegion ? `${COURSE_LABELS[course]} : c’est ${state.rules.secretDish ? 'ton plat secret' : 'ta carte Région'}` : COURSE_LABELS[course]}
                   >
                     {joker ? '🥖' : COURSE_ICONS[course]}
                     {fromRegion && <span className="gauge-gift">★</span>}
@@ -415,7 +415,13 @@ function GiveModal({ state, onGive, guide }: { state: GameState; onGive: (cardId
   );
 }
 
-/** Début de manche : on découvre ses 2 cartes Région secrètes. */
+/** Ce qui définit la région d'un joueur : son plat secret (règle par défaut) ou une carte Région. */
+function SecretView({ state, region, bonus, size }: { state: GameState; region: string; bonus: Course | null; size: CardSize }) {
+  const dish = state.rules.secretDish && state.rules.mode === 'unMenu' && bonus ? cardById(`${region}-${bonus}`) : null;
+  return dish ? <CardView card={dish} size={size} own={[region]} /> : <RegionCardView region={region} bonus={bonus} size={size} />;
+}
+
+/** Début de manche : on découvre son plat secret (ou ses cartes Région). */
 function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => void }) {
   const [flipped, setFlipped] = useState(false);
   const me = state.players[0];
@@ -426,8 +432,10 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
       <h2 className="atable-shout small">Manche {state.roundNumber}</h2>
       <p className="center-text">
         {!flipped
-          ? `Tu reçois ${one ? 'ta carte Région secrète' : '2 cartes Région secrètes'}. Cache bien ton écran…`
-          : one && me.bonus[0]
+          ? `Tu reçois ${state.rules.secretDish && one ? 'ton plat secret, face cachée' : one ? 'ta carte Région secrète' : '2 cartes Région secrètes'}. Cache bien ton écran…`
+          : one && me.bonus[0] && state.rules.secretDish
+            ? `Ton plat secret : ${REGION_BY_ID[regions[0]].dishes[COURSES.indexOf(me.bonus[0])]} (${COURSE_LABELS[me.bonus[0]]}). Ta région est ${REGION_BY_ID[regions[0]].name} : garde-le à part, il compte dans ton menu. Trouve les 3 autres plats !`
+            : one && me.bonus[0]
             ? `Ta région secrète ! Cette carte compte comme un de ses plats : ${REGION_BY_ID[regions[0]].dishes[COURSES.indexOf(me.bonus[0])]} (${COURSE_LABELS[me.bonus[0]]}) : trouve les 3 autres plats. La vraie carte ne te sert à rien… sauf pour bluffer !`
             : 'Tes 2 régions secrètes : termine leurs 2 menus !'}
       </p>
@@ -440,7 +448,7 @@ function RegionsIntro({ state, onStart }: { state: GameState; onStart: () => voi
             transition={{ duration: 0.5, delay: i * 0.25 }}
             className="intro-card"
           >
-            {flipped ? <RegionCardView region={r} bonus={me.bonus[i]} size="hand" /> : <CardBack size="hand" />}
+            {flipped ? <SecretView state={state} region={r} bonus={me.bonus[i]} size="hand" /> : <CardBack size="hand" />}
           </motion.div>
         ))}
       </div>
@@ -871,7 +879,7 @@ export function Table({ game, guide, onRules, onQuit }: { game: GameController; 
         <div className="me-info">
           <button className={`region-corner${showRegion ? ' open' : ''}${f('region')}`} onClick={() => setShowRegion((v) => !v)} aria-label="Mes régions secrètes">
             {showRegion ? (
-              me.regions.map((r, i) => <RegionCardView key={r} region={r} bonus={me.bonus[i]} size="mini" />)
+              me.regions.map((r, i) => <SecretView key={r} state={state} region={r} bonus={me.bonus[i]} size="mini" />)
             ) : (
               <span className="region-hidden">🔒<small>{me.regions.length > 1 ? 'Mes régions' : 'Ma région'}</small></span>
             )}

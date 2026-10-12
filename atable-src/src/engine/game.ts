@@ -2,7 +2,7 @@
 // annonces, départage et victoire. Toutes les fonctions modifient l'état reçu
 // (l'UI travaille sur une copie, voir cloneState) et renvoient des événements.
 import { COURSES, DAY_EVENTS, HAND_SIZE, REGION_BY_ID, type Course } from '../config/cards';
-import { ALL_REGION_IDS, buildDeck, cardById, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
+import { ALL_REGION_IDS, buildDeck, cardById, regionCards, evaluateMenu, evaluateOneMenu, VAISSELLE } from './deck';
 import { pick, randInt, shuffle, type Rng } from './rng';
 import type { Card, ChefId, Choice, DayEvent, Effect, Peek, Denunciation, GameEvent, GameState, Menu, Move, Order, PlayerSetup, RegionId, RoundResult, Rules } from './types';
 
@@ -27,6 +27,8 @@ export const V4_RULES: Rules = {
   mode: 'unMenu',
   regionsPerPlayer: 1,
   regionCards: 'uniques',
+  secretDish: false,
+  secretReserve: false,
   baguettes: 1,
   effects: { demitour: 2, troc: 2, chapardeur: 2, controle: 2 },
   blindAnnounce: true,
@@ -64,6 +66,8 @@ export const DEFAULT_RULES: Rules = {
   split: true,
   allServedStar: true,
   duelOrders: true,
+  secretDish: true,
+  secretReserve: true,
 };
 /** Règles « de base » (v3), sans les ajouts de la version 4 : utile pour comparer en simulation. */
 export const BASIC_RULES: Partial<Rules> = {
@@ -271,12 +275,28 @@ export function dealRound(state: GameState, rng: Rng, preset?: RoundPreset): voi
       state.regionReserve = cards;
     }
 
-    const deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, effectsFor(state)).filter((c) => c.kind !== 'vaisselle'));
+    let deck = shuffle(rng, buildDeck(state.regionsInPlay, state.rules.copies, state.rules.baguettes, effectsFor(state)).filter((c) => c.kind !== 'vaisselle'));
+    if (state.rules.mode === 'unMenu' && state.rules.secretDish) {
+      // Une carte Plat de chaque région, mélangées, une par joueur (face cachée, à part) :
+      // elles quittent le paquet ; les autres y retournent.
+      const picks = shuffle(rng, state.regionsInPlay.map((r) => pick(rng, deck.filter((c) => c.kind === 'dish' && c.region === r))));
+      state.players.forEach((p, i) => {
+        const c = picks[i] as Card & { kind: 'dish' };
+        p.regions = [c.region];
+        p.bonus = [c.course];
+      });
+      // En Duel (règle « secretReserve »), les plats non donnés restent à part, face cachée.
+      const reserve = state.rules.secretReserve && n === 2;
+      const given = new Set(picks.slice(0, reserve ? picks.length : n).map((c) => c.id));
+      deck = deck.filter((c) => !given.has(c.id));
+      state.regionReserve = reserve ? picks.slice(n).map((c) => `${c.kind === 'dish' ? c.region : ''}|${c.kind === 'dish' ? c.course : ''}`) : [];
+    }
     // Celui qui reçoit la Vaisselle : au hasard, ou (règle « vaisselleToLeader ») le chef en tête.
     const top = Math.max(...state.players.map((p) => p.etoiles));
     const leaders = state.players.map((p, i) => (p.etoiles === top ? i : -1)).filter((i) => i >= 0);
     const unlucky = state.rules.vaisselleToLeader && top > 0 ? pick(rng, leaders) : randInt(rng, n);
-    const H = state.rules.handSize;
+    // À 6 joueurs avec le plat secret, le paquet est plus court : 7 cartes en main.
+    const H = state.rules.handSize - (state.rules.mode === 'unMenu' && state.rules.secretDish && n >= 6 ? 1 : 0);
     // Coup de pouce éventuel : quelques cartes de ses propres régions dès le départ
     // (mises de côté pour tout le monde avant la donne au hasard).
     // Tirées au hasard (et jamais le plat que représente déjà la carte Région) : prendre
@@ -564,7 +584,28 @@ export function denounce(
     }
 
     // Anti-jeu : la région démasquée est remplacée par une région de la réserve.
-    if (state.rules.mode === 'unMenu') {
+    if (state.rules.mode === 'unMenu' && state.rules.secretDish) {
+      // Le plat secret est révélé et part au Marché ; l'accusé pioche un nouveau plat secret
+      // (première carte Plat de la pioche d'une autre région).
+      // En Duel, il le pioche dans la réserve des plats secrets (régions toujours différentes).
+      const i = p.regions.indexOf(region);
+      const old = regionCards(region).find((c) => c.course === p.bonus[i]);
+      if (state.regionReserve.length) {
+        const fresh = pick(rng, state.regionReserve);
+        state.regionReserve = state.regionReserve.filter((x) => x !== fresh);
+        if (old) state.discard.push(old);
+        p.regions[i] = fresh.split('|')[0];
+        p.bonus[i] = fresh.split('|')[1] as Course;
+      } else {
+        const k = state.drawPile.map((c, j) => ({ c, j })).reverse().find((x) => x.c.kind === 'dish' && x.c.region !== region)?.j ?? -1;
+        if (k >= 0) {
+          if (old) state.discard.push(old);
+          const fresh = state.drawPile.splice(k, 1)[0] as Card & { kind: 'dish' };
+          p.regions[i] = fresh.region;
+          p.bonus[i] = fresh.course;
+        }
+      }
+    } else if (state.rules.mode === 'unMenu') {
       const i = p.regions.indexOf(region);
       const fresh = pick(rng, state.regionReserve.filter((x) => !p.regions.includes(x.split('|')[0])));
       state.regionReserve = [...state.regionReserve.filter((x) => x !== fresh), `${region}|${p.bonus[i]}`];

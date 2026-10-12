@@ -264,6 +264,17 @@ export interface Rules {
    * - 'partagees' : 48 cartes (région × plat), plusieurs joueurs peuvent avoir la même région.
    */
   regionCards: 'uniques' | 'partagees';
+  /**
+   * Plat secret (règle « un menu ») : pas de carte Région. On prend une carte Plat de chaque région,
+   * on les mélange et on en donne une à chacun, face cachée, à part ; elle compte comme un plat de son
+   * menu et sa région est celle à compléter. Les cartes non données retournent dans la pioche.
+   */
+  secretDish: boolean;
+  /**
+   * Avec le plat secret : les cartes non données restent à part, face cachée (réserve) au lieu de
+   * retourner dans la pioche ; un chef démasqué y pioche son nouveau plat secret (régions toujours différentes).
+   */
+  secretReserve: boolean;
   /** Nombre de Baguettes dans le paquet (une seule peut servir par menu). */
   baguettes: number;
   /** Cartes à effet dans le paquet. */

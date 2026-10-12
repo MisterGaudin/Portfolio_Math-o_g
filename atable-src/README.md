@@ -81,11 +81,12 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
 
 ## Règles (version 5)
 
-- **2 à 6 joueurs**, 8 cartes en main quel que soit le nombre de joueurs.
-- **Toutes les régions** (12) sont en jeu : 48 plats + Baguette + Vaisselle + 2 Chapardeur = 52 cartes (+ 12 cartes Région et 8 cartes Plat du jour).
-- **1 région secrète par joueur**, unique (12 cartes Région, une par région). La carte Région **compte comme un
-  plat fixe de sa région** (`regionCourse` dans `src/config/cards.ts`, ex. Savoie = Tartiflette) : il reste
-  **3 plats à trouver**. La vraie carte de ce plat ne sert à rien à son propriétaire : la donner est un **bluff**.
+- **2 à 6 joueurs**, 8 cartes en main (7 à 6 joueurs).
+- **Toutes les régions** (12) sont en jeu : 48 plats + Baguette + Vaisselle + 2 Chapardeur = 52 cartes (+ 8 cartes Plat du jour). **Pas de carte Région.**
+- **Plat secret** : en début de manche, on prend **un plat de chaque région** (au hasard), on les mélange et on en
+  donne un à chacun, face cachée, **gardé à part** (hors de la main). Il compte dans le menu et **sa région est
+  celle à compléter** : il reste **3 plats à trouver**. Les plats non distribués retournent dans la pioche ; en
+  **Duel**, ils restent à part, face cachée (réserve des plats secrets). Chaque région n'est donc tenue que par un joueur.
 - **Chaque tour, 2 cartes données en même temps : une au voisin, une au Marché** (face visible). Le voisin de
   celui qui va au Marché pioche, ou prend la carte visible de la défausse (**Marché ouvert**).
 - 📝 **Commande servie** (façon 7 familles), **une par tour, deux en Duel** : « Bob, du Munster, tu en as ? ». S'il
@@ -95,7 +96,7 @@ scripts/      sim.ts (simulation CLI), card-ids.ts, icons.mjs (génère les PNG 
   cartes au Marché). Puis on révèle : **chaque menu complet rapporte une étoile**, le meilleur gagne la manche :
   **Gastronomique** (sans Baguette) › **Maison** (la Baguette remplace un plat manquant).
 - 🍽️ **Vaisselle** : toujours dans une main, visible de tous, jamais au Marché, pas d'annonce avec. Seul son
-  porteur peut **dénoncer**, **une fois par manche** : juste, l'accusé prend la Vaisselle et change de région ;
+  porteur peut **dénoncer**, **une fois par manche** : juste, l'accusé prend la Vaisselle, montre son plat secret, le pose au Marché et en pioche un nouveau (en Duel : dans la réserve des plats secrets) ;
   faux, l'accusateur la garde. Après une dénonciation, **la Vaisselle ne bouge plus jusqu'au tour suivant**.
 - 🥖 **Coup de main** : tant que personne n'a d'étoile, la Baguette est distribuée au hasard. Ensuite, en début de
   manche, le chef qui a le moins d'étoiles la reçoit ; à égalité, c'est **le plus jeune**.
@@ -154,12 +155,18 @@ la main à la version 4 :
 | | Duel | 3 joueurs | 4 joueurs | 5 joueurs | 6 joueurs |
 |---|---|---|---|---|---|
 | **v4** | 58 | 59 | 65 | — | — |
-| **v5** | **78–80** | **85** | **86** | **86** | **84** |
+| v5 (cartes Région) | 78–80 | 85 | 86 | 86 | 84 |
+| **v5 plat secret** | **81** | **85–86** | **86** | **85** | **84–85** |
 | Durée estimée d'une partie (v5) | ≈ 28 min | ≈ 28 min | ≈ 28 min | ≈ 32 min | ≈ 35 min |
 | Tours par manche (v5) | 10 | 7 | 5 | 5 | 5 |
 
 À 5 et 6 joueurs, la pioche est presque vide après la donne (48 cartes en main sur 52) : le Marché est remélangé
 dès qu'elle s'épuise, ce qui fait tourner les cartes plus vite. Tester 6 ou 7 cartes en main n'apportait rien.
+
+**Plat secret (sans carte Région)** : les plats secrets sortent du paquet, donc à 6 joueurs on passe à 7 cartes en
+main (sinon la pioche ne suffit pas). En Duel, laisser les 10 plats non distribués retourner dans la pioche faisait
+tomber la note à 77 : après une dénonciation, le nouveau plat secret pouvait être de la région de l'adversaire et les
+manches s'éternisaient (15 tours). Les garder à part, face cachée, pour ces repioches la remonte à 81.
 
 Ce qui a fait monter la note : la **commande servie** (on va chercher ses plats au lieu d'attendre ce que le voisin
 veut bien donner), **une carte au voisin et une au Marché** (sans Marché obligatoire, garder et tout passer était la
