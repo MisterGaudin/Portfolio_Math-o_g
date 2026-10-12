@@ -52,36 +52,36 @@
    Études de cas : carrousel + fenêtre détaillée
    ===================================================== */
 (() => {
-  const track = document.getElementById('caseTrack');
-  if (!track) return;
-  const btns = document.querySelectorAll('.carousel-btn');
+  // Every .carousel (services, case studies) gets chevrons + dots
+  document.querySelectorAll('.carousel').forEach(carousel => {
+    const track = carousel.querySelector('.case-track');
+    const btns = carousel.querySelectorAll('.carousel-btn');
+    const cards = [...track.children];
+    const dotsBox = carousel.nextElementSibling && carousel.nextElementSibling.classList.contains('carousel-dots') ? carousel.nextElementSibling : null;
+    const dots = dotsBox ? cards.map(() => dotsBox.appendChild(document.createElement('span'))) : [];
+    const step = () => {
+      const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+      return cards[0] ? cards[0].getBoundingClientRect().width + gap : track.clientWidth;
+    };
+    const sync = () => {
+      const max = track.scrollWidth - track.clientWidth - 2;
+      btns.forEach(b => { b.disabled = +b.dataset.dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
+      // Chevrons sit at the vertical middle of the card images
+      const media = cards[0] && cards[0].querySelector('.case-media, .service-media');
+      if (media) carousel.style.setProperty('--media-mid', (media.offsetTop + media.offsetHeight / 2 + track.offsetTop) + 'px');
+      const first = Math.round(track.scrollLeft / step());
+      const visible = Math.max(1, Math.round(track.clientWidth / step()));
+      dots.forEach((d, i) => d.classList.toggle('on', i >= first && i < first + visible));
+    };
+    btns.forEach(b => b.addEventListener('click', () => track.scrollBy({ left: +b.dataset.dir * step(), behavior: 'smooth' })));
+    track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
+    window.addEventListener('resize', sync, { passive: true });
+    window.addEventListener('load', sync);
+    sync();
+  });
+})();
 
-  const step = () => {
-    const card = track.querySelector('.case-card');
-    const gap = parseFloat(getComputedStyle(track).columnGap) || 0;
-    return card ? card.getBoundingClientRect().width + gap : track.clientWidth;
-  };
-  const cards = [...track.querySelectorAll('.case-card')];
-  const dotsBox = document.getElementById('caseDots');
-  const dots = cards.map(() => dotsBox.appendChild(document.createElement('span')));
-  const carousel = track.parentElement;
-
-  const sync = () => {
-    const max = track.scrollWidth - track.clientWidth - 2;
-    btns.forEach(b => { b.disabled = +b.dataset.dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max; });
-    // Chevrons sit at the vertical middle of the card images
-    const media = cards[0] && cards[0].querySelector('.case-media');
-    if (media) carousel.style.setProperty('--media-mid', (media.offsetTop + media.offsetHeight / 2 + track.offsetTop) + 'px');
-    // Active dot = first card fully in view
-    const first = Math.round(track.scrollLeft / step());
-    const visible = Math.max(1, Math.round(track.clientWidth / step()));
-    dots.forEach((d, i) => d.classList.toggle('on', i >= first && i < first + visible));
-  };
-  btns.forEach(b => b.addEventListener('click', () => track.scrollBy({ left: +b.dataset.dir * step(), behavior: 'smooth' })));
-  track.addEventListener('scroll', () => requestAnimationFrame(sync), { passive: true });
-  window.addEventListener('resize', sync, { passive: true });
-  sync();
-
+(() => {
   const modal = document.getElementById('caseModal');
   const body = document.getElementById('caseModalBody');
   if (!modal || typeof modal.showModal !== 'function') return;

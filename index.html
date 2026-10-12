@@ -168,11 +168,14 @@
       <span class="eyebrow">Services</span>
       <h2 class="display">Ce que je peux <em>faire pour vous.</em></h2>
     </div>
-    <p class="lede">Trois savoir-faire, une même exigence : des images pensées pour votre public, livrées prêtes à l'emploi.</p>
+    <p class="lede">Quatre savoir-faire, une même exigence : des images pensées pour votre public, livrées prêtes à l'emploi.</p>
   </div>
 
-  <div class="service-grid">
-    <article class="service-card reveal">
+  <div class="carousel reveal">
+    <button class="carousel-btn prev" type="button" data-dir="-1" aria-label="Service précédent"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <button class="carousel-btn next" type="button" data-dir="1" aria-label="Service suivant"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg></button>
+  <div class="case-track service-track">
+    <article class="service-card">
       <a class="service-media" href="#contact" data-service="Identité visuelle" tabindex="-1" aria-hidden="true">
         <img loading="lazy" decoding="async" width="1087" height="750" src="assets/event-expo-studio/02-tshirts-duo-960w.webp" srcset="assets/event-expo-studio/02-tshirts-duo-480w.webp 480w, assets/event-expo-studio/02-tshirts-duo-960w.webp 960w" sizes="(max-width: 900px) 92vw, 30vw" alt="">
       </a>
@@ -183,7 +186,7 @@
         <a class="service-link" href="#contact" data-service="Identité visuelle">Demander un devis →</a>
       </div>
     </article>
-    <article class="service-card reveal delay-1">
+    <article class="service-card">
       <a class="service-media" href="#contact" data-service="Illustration sur mesure" tabindex="-1" aria-hidden="true">
         <img loading="lazy" decoding="async" width="1792" height="1832" src="assets/illustration-5-renard-960w.webp" srcset="assets/illustration-5-renard-480w.webp 480w, assets/illustration-5-renard-960w.webp 960w" sizes="(max-width: 900px) 92vw, 30vw" alt="">
       </a>
@@ -194,18 +197,31 @@
         <a class="service-link" href="#contact" data-service="Illustration sur mesure">Demander un devis →</a>
       </div>
     </article>
-    <article class="service-card reveal delay-2">
+    <article class="service-card">
       <a class="service-media" href="#contact" data-service="Site web ou contenus visuels" tabindex="-1" aria-hidden="true">
         <img loading="lazy" decoding="async" width="1400" height="875" src="assets/etudes-de-cas/patrimoine/mise-en-situation-accueil-700w.webp" srcset="assets/etudes-de-cas/patrimoine/mise-en-situation-accueil-700w.webp 700w, assets/etudes-de-cas/patrimoine/mise-en-situation-accueil.webp 1400w" sizes="(max-width: 900px) 92vw, 30vw" alt="">
       </a>
       <div class="service-body">
         <h3>Web et contenus visuels</h3>
-        <p>Des sites vitrines rapides, beaux et bien référencés, et les images qui les font vivre : visuels réseaux sociaux, photo, prises de vue par drone.</p>
-        <p class="service-list">Site vitrine sur mesure · Visuels réseaux sociaux · Photo et drone</p>
+        <p>Des sites vitrines rapides, beaux et bien référencés, et les images qui les font vivre : visuels pour les réseaux sociaux et photographie.</p>
+        <p class="service-list">Site vitrine sur mesure · Visuels réseaux sociaux · Photographie</p>
         <a class="service-link" href="#contact" data-service="Site web ou contenus visuels">Demander un devis →</a>
       </div>
     </article>
+      <article class="service-card">
+      <a class="service-media" href="#contact" data-service="Prises de vue par drone" tabindex="-1" aria-hidden="true">
+        <img loading="lazy" decoding="async" width="1400" height="1050" src="assets/services/drone-700w.webp" srcset="assets/services/drone-700w.webp 700w, assets/services/drone.webp 1400w" sizes="(max-width: 900px) 92vw, 30vw" alt="">
+      </a>
+      <div class="service-body">
+        <h3>Prises de vue par drone</h3>
+        <p>Des images vues du ciel pour mettre en valeur un lieu, un chantier, un événement ou un territoire : vidéos immersives en 4K et photos aériennes.</p>
+        <p class="service-list">Vidéo 4K immersive (FPV) · Photos aériennes · Lieux, chantiers, événements</p>
+        <a class="service-link" href="#contact" data-service="Prises de vue par drone">Demander un devis →</a>
+      </div>
+    </article>
   </div>
+  </div>
+  <div class="carousel-dots" aria-hidden="true"></div>
 </section>
 
 <!-- ============ METHODE ============ -->
@@ -266,7 +282,7 @@
       </div>
     </li>
     <li class="case-card">
-      <div class="case-media"><img loading="lazy" decoding="async" width="1400" height="1400" src="assets/etudes-de-cas/kit-utilitaire/mise-en-situation-mobile-700w.webp" alt="Le visuel « Prêt à poser, prêt à bosser » sur un téléphone"></div>
+      <div class="case-media"><img loading="lazy" decoding="async" width="1400" height="1400" src="assets/etudes-de-cas/kit-utilitaire/mise-en-situation-mobile-700w.webp" alt="La carte « Prêt à poser, prêt à bosser » du bloc Avantages pros, sur un téléphone"></div>
       <div class="case-body">
         <span class="case-tags">Web · Direction artistique</span>
         <h3>Kit Utilitaire</h3>
@@ -294,7 +310,7 @@
     </li>
   </ul>
   </div>
-  <div class="carousel-dots" id="caseDots" aria-hidden="true"></div>
+  <div class="carousel-dots" aria-hidden="true"></div>
 
   <!-- Detailed contents, shown in the modal -->
   <div hidden>
@@ -356,12 +372,12 @@
       <h3>Le besoin</h3>
       <p>Kit Utilitaire équipe les véhicules utilitaires des artisans. Pour la page d'accueil de son site, la marque voulait une série de visuels qui parlent directement à ses clients : plombiers, électriciens et autres métiers du terrain.</p>
       <h3>Ma démarche</h3>
-      <p>J'ai défini un visuel principal et son ambiance en respectant la charte de la marque, avec des personnages de métier mis en scène. Je l'ai ensuite décliné en huit visuels, un par argument commercial. J'ai aussi conçu un bloc « Avantages pros » en quatre colonnes, un bandeau de réassurance avec ses pictogrammes, puis adapté le tout pour le mobile.</p>
+      <p>J'ai défini un visuel principal et son ambiance en respectant la charte de la marque, avec des personnages de métier mis en scène. Je l'ai ensuite décliné en huit visuels, un par argument commercial. J'ai aussi conçu le bloc « Avantages pros » : quatre cartes alignées, chacune portée par un personnage de métier, puis un bandeau de réassurance avec ses pictogrammes, et j'ai adapté le tout pour le mobile.</p>
       <h3>Le résultat</h3>
       <p class="case-result">Une série homogène : un visuel principal, huit déclinaisons et les modules du site, livrés en version ordinateur et mobile.</p>
       <div class="case-steps">
         <figure><img loading="lazy" src="assets/etudes-de-cas/kit-utilitaire/persona-700w.webp" alt=""><figcaption>La recherche de personnage : le plombier sous tous les angles.</figcaption></figure>
-        <figure><img loading="lazy" src="assets/etudes-de-cas/kit-utilitaire/mise-en-situation-mobile-700w.webp" alt=""><figcaption>Le visuel « Prêt à poser, prêt à bosser », version mobile (mise en situation).</figcaption></figure>
+        <figure><img loading="lazy" src="assets/etudes-de-cas/kit-utilitaire/mise-en-situation-mobile-700w.webp" alt=""><figcaption>« Prêt à poser, prêt à bosser » : l'une des quatre cartes du bloc « Avantages pros », chacune portée par un personnage de métier (mise en situation).</figcaption></figure>
         <figure><img loading="lazy" src="assets/etudes-de-cas/kit-utilitaire/mise-en-situation-ecran-700w.webp" alt=""><figcaption>La recherche de personnage pour l'électricienne (mise en situation).</figcaption></figure>
       </div>
     </div>
@@ -464,6 +480,7 @@
             <option>Identité visuelle</option>
             <option>Illustration sur mesure</option>
             <option>Site web ou contenus visuels</option>
+            <option>Prises de vue par drone</option>
             <option>Autre</option>
           </select>
         </label>
