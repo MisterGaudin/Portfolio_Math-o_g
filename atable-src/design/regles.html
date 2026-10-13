@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>À TABLE ! — Règles du jeu</title>
+<style>
+  @page { size: A4; margin: 14mm 15mm 16mm; }
+  :root { --ink: #2a1a0e; --wine: #6e1f2b; --gold: #c9921a; --cream: #fbf6ec; --line: #e6dccb; --soft: #f4ecdd; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 10.2pt/1.45 'DejaVu Serif', serif; color: var(--ink); background: #fff; }
+  h1, h2, h3, .sans { font-family: 'DejaVu Sans', sans-serif; }
+  .cover { text-align: center; padding: 6mm 0 5mm; border-bottom: 1.2mm solid var(--wine); margin-bottom: 5mm; }
+  .cover h1 { margin: 0; font-size: 38pt; letter-spacing: 0.6mm; color: var(--wine); }
+  .cover .tag { margin: 1mm 0 3mm; font-style: italic; font-size: 12pt; }
+  .facts { display: flex; justify-content: center; gap: 4mm; flex-wrap: wrap; }
+  .facts span { font: 700 9pt 'DejaVu Sans', sans-serif; background: var(--soft); border: 0.3mm solid var(--line); border-radius: 10mm; padding: 1mm 3.5mm; }
+  h2 { font-size: 13.5pt; color: var(--wine); margin: 5.5mm 0 2mm; padding-bottom: 1mm; border-bottom: 0.4mm solid var(--line); break-after: avoid; }
+  h2 .n { display: inline-block; width: 7mm; height: 7mm; line-height: 7mm; text-align: center; border-radius: 50%; background: var(--wine); color: #fff; font-size: 10pt; margin-right: 2mm; vertical-align: 1px; }
+  h3 { font-size: 10.8pt; margin: 3.5mm 0 1.2mm; color: var(--ink); break-after: avoid; }
+  p { margin: 0 0 2mm; }
+  ul, ol { margin: 0 0 2mm; padding-left: 5.5mm; }
+  li { margin-bottom: 1mm; }
+  .box { background: var(--cream); border: 0.3mm solid var(--line); border-left: 1.4mm solid var(--gold); border-radius: 1.5mm; padding: 2.5mm 3.5mm; margin: 2.5mm 0; break-inside: avoid; }
+  .box.wine { border-left-color: var(--wine); }
+  .box b.t { font-family: 'DejaVu Sans', sans-serif; }
+  .say { font-style: italic; color: var(--wine); }
+  .two { display: flex; gap: 4mm; align-items: stretch; }
+  .two > .box { flex: 1; margin: 1.5mm 0 2.5mm; }
+  .two > .box:first-child { flex: 2; }
+  table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 2mm 0 3mm; break-inside: avoid; }
+  th, td { border: 0.3mm solid var(--line); padding: 1.3mm 2mm; text-align: left; vertical-align: top; }
+  th { font: 700 8.6pt 'DejaVu Sans', sans-serif; background: var(--soft); }
+  td.reg { font: 700 8.8pt 'DejaVu Sans', sans-serif; color: #fff; white-space: nowrap; }
+  td.reg small { font-weight: 400; opacity: 0.85; }
+  .steps { counter-reset: s; list-style: none; padding: 0; }
+  .steps > li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2.2mm; }
+  .steps > li::before { content: counter(s); position: absolute; left: 0; top: 0.2mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--gold); color: #fff; font: 700 9pt/6mm 'DejaVu Sans', sans-serif; text-align: center; }
+  .pagebreak { break-before: page; }
+  .foot { margin-top: 3mm; text-align: center; font-size: 8.5pt; color: #8a7a66; }
+  .chefs td:first-child { white-space: nowrap; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>À TABLE !</h1>
+  <p class="tag">Le jeu de cartes des plats de nos régions</p>
+  <div class="facts"><span>2 à 6 joueurs</span><span>À partir de 8 ans</span><span>Environ 30 minutes</span></div>
+</div>
+
+<p>Vous êtes des chefs. Chacun doit composer en secret le menu complet d'une région de France — <b>entrée, plat,
+fromage et dessert</b> — en échangeant des cartes et en passant commande aux autres chefs. Mais attention : chaque
+question en dit long sur ce que vous cherchez… Le premier à décrocher <b>3 étoiles</b> devient <b>Chef 3 étoiles</b> !</p>
+
+<h2><span class="n">1</span>Le matériel</h2>
+<ul>
+  <li><b>48 cartes Plat</b> : 12 régions × 4 plats (Entrée, Plat, Fromage, Dessert). Chaque région a sa couleur.</li>
+  <li><b>1 Baguette</b> 🥖 : remplace n'importe quel plat manquant.</li>
+  <li><b>1 Vaisselle</b> 🍽️ : empêche d'annoncer, mais permet de dénoncer.</li>
+  <li><b>2 Chapardeur</b> 🦊 : cartes à effet pour voler une carte.</li>
+  <li><b>8 cartes Plat du jour</b> : une règle spéciale par manche.</li>
+  <li><b>6 aide-mémoire</b> : la liste des 48 plats, rangés par région (un par joueur).</li>
+  <li><b>Des jetons Étoile</b> ⭐.</li>
+</ul>
+<p>Il n'y a <b>pas de carte Région</b> : votre région vous est donnée par votre <b>plat secret</b> (voir plus bas).</p>
+
+<h2><span class="n">2</span>Le but du jeu</h2>
+<p>Chaque manche, complétez le <b>menu de votre région</b> (les 4 plats) et criez <b>« À TABLE ! »</b>.
+Chaque menu complet rapporte une étoile. Le premier chef à <b>3 étoiles</b> gagne la partie.</p>
+
+<h2><span class="n">3</span>La mise en place (à chaque manche)</h2>
+<ol class="steps">
+  <li><b>Le plat secret.</b> Prenez <b>un plat de chaque région</b> (au hasard, soit 12 cartes), mélangez-les et
+    donnez-en <b>un à chaque joueur, face cachée</b>. Chacun le regarde en secret et le garde <b>à part, hors de sa main</b>.
+    Ce plat compte déjà dans votre menu, et <b>sa région est la vôtre</b> : il vous reste les <b>3 autres plats</b> de
+    cette région à trouver. Chaque région n'est tenue que par un seul joueur.</li>
+  <li><b>Les plats non distribués</b> retournent dans la pioche. <i>(En Duel, ils restent à part, face cachée : c'est
+    la réserve des plats secrets.)</i></li>
+  <li><b>Le Plat du jour.</b> Retournez une carte Plat du jour : sa règle s'applique pendant toute la manche.</li>
+  <li><b>La Baguette.</b> Tant que personne n'a d'étoile, elle est mélangée avec les autres cartes. Dès qu'un chef a
+    une étoile, on la donne en début de manche au chef qui a <b>le moins d'étoiles</b> (à égalité : <b>le plus jeune</b>) :
+    c'est le <b>coup de main</b>.</li>
+  <li><b>La distribution.</b> Mélangez la pioche et donnez <b>8 cartes</b> à chacun (<b>7 cartes à 6 joueurs</b>).
+    La Vaisselle est donnée à un joueur au hasard et fait partie de ses cartes. Posez la pioche au centre : la place à
+    côté sera le <b>Marché</b> (défausse face visible).</li>
+</ol>
+
+<h2><span class="n">4</span>Un tour de jeu</h2>
+<p>Tout le monde joue <b>en même temps</b>. Un tour se déroule en 3 temps.</p>
+
+<h3>📝 a) Les commandes</h3>
+<p>Chacun peut passer <b>une commande par tour</b> (<b>deux en Duel</b>), à tour de rôle (celui qui commence change à
+chaque tour, dans le sens des aiguilles d'une montre). On demande un plat à un autre chef, au choix :</p>
+<ul>
+  <li>par son nom : <span class="say">« Bob, du Munster, tu en as ? »</span></li>
+  <li>ou par sa région et son type : <span class="say">« Bob, as-tu le fromage d'Alsace ? »</span>
+    (c'est la même carte : chaque région a un seul plat de chaque type).</li>
+</ul>
+<p>S'il l'a, il <b>doit vous le servir</b> en disant son nom (<span class="say">« Oui, voilà le Munster ! »</span>),
+et vous lui <b>rendez une carte de votre choix</b> (même la Vaisselle !). S'il ne l'a pas, il répond simplement
+<span class="say">« Non ! »</span>. On ne redemande pas le même plat au même chef dans le même tour.</p>
+<div class="box wine"><b class="t">Règle d'or : interdit de mentir !</b> Si vous avez le plat demandé, vous devez le
+servir. Mais tout le monde entend vos questions : demander le Munster, c'est avouer qu'on cherche peut-être l'Alsace…
+À vous de brouiller les pistes en commandant aussi des plats dont vous n'avez pas besoin.</div>
+
+<h3>🔄 b) Donner 2 cartes</h3>
+<p>Chacun choisit en secret <b>2 cartes</b> de sa main, puis tout le monde les révèle en même temps :</p>
+<ul>
+  <li><b>une carte à votre voisin</b> de gauche (face cachée : lui seul la voit) ;</li>
+  <li><b>une carte au Marché</b>, face visible.</li>
+</ul>
+<p>Chacun reçoit la carte de son voisin, puis <b>pioche</b> pour remplacer la carte partie au Marché : soit la carte du
+dessus de la pioche, soit <b>la carte visible du Marché</b> (Marché ouvert). Si la pioche est vide, mélangez le
+Marché pour en refaire une.</p>
+<p>La <b>Vaisselle ne va jamais au Marché</b> : on ne peut que la passer à son voisin (ou la rendre après une commande).</p>
+
+<h3>🔔 c) L'annonce : « À TABLE ! »</h3>
+<p>Dès que votre menu est complet (votre plat secret + les 3 autres plats de votre région dans votre main) et que
+vous <b>n'avez pas la Vaisselle</b>, criez <b>« À TABLE ! »</b> et posez votre main face cachée.</p>
+<ul>
+  <li>Les autres chefs jouent alors un <b>Dernier service</b> : un dernier tour pour compléter leur menu
+    (ceux qui ont annoncé ne jouent plus). En Duel, celui qui reste joue seul : il met ses 2 cartes au Marché et pioche,
+    et la Vaisselle ne bouge pas.</li>
+  <li>Puis tout le monde révèle son plat secret et sa main.</li>
+</ul>
+
+<h2><span class="n">5</span>Les étoiles</h2>
+<ul>
+  <li><b>Chaque menu complet rapporte une étoile</b> ⭐ — y compris ceux complétés pendant le Dernier service.</li>
+  <li>Le meilleur menu gagne la manche : <b>Gastronomique</b> (les 4 vrais plats) bat <b>Maison</b> (la Baguette
+    remplace un plat manquant ; une seule Baguette par menu). À égalité, un chef qui a annoncé l'emporte sur ceux qui ont complété leur menu pendant le
+    Dernier service ; sinon, c'est le plus proche du porteur de la Vaisselle, dans le sens du jeu.</li>
+  <li>Le premier à <b>3 étoiles</b> devient <b>Chef 3 étoiles</b> et gagne la partie. Si plusieurs y arrivent en même
+    temps : celui qui a le plus d'étoiles, sinon le gagnant de la manche.</li>
+  <li>Sinon, on rassemble toutes les cartes et on refait une mise en place pour la manche suivante.</li>
+</ul>
+
+<h2><span class="n">6</span>La Vaisselle et la dénonciation</h2>
+<p>La Vaisselle 🍽️ est toujours dans la main de quelqu'un, et <b>tout le monde sait qui l'a</b>. Tant que vous l'avez,
+<b>pas d'annonce</b>. Mais <b>seul son porteur peut dénoncer</b> : pendant un tour, avant de donner ses cartes, il accuse un
+chef en nommant une région : <span class="say">« Mamie, je te démasque : Bretagne ! »</span></p>
+<div class="two">
+  <div class="box"><b class="t">✔ C'est juste</b><br>L'accusé prend la Vaisselle (il rend en échange une carte tirée au
+  hasard de sa main). Il <b>montre son plat secret</b>, le pose au <b>Marché</b> et en <b>pioche un nouveau</b>, gardé à
+  part : la première carte Plat de la pioche qui n'est pas de la région qu'il vient de perdre (en Duel : un plat de la
+  réserve des plats secrets). Sa nouvelle région est celle de ce plat.</div>
+  <div class="box"><b class="t">✘ C'est faux</b><br>L'accusateur garde la Vaisselle.</div>
+</div>
+<ul>
+  <li>Chaque joueur ne peut dénoncer <b>qu'une fois par manche</b>, et une seule dénonciation par tour.</li>
+  <li>Après une dénonciation, <b>la Vaisselle ne bouge plus</b> jusqu'au tour suivant.</li>
+  <li>Pas de dénonciation pendant le Dernier service.</li>
+</ul>
+
+<h2><span class="n">7</span>Les cartes spéciales</h2>
+<ul>
+  <li><b>🥖 Baguette</b> : remplace n'importe quel plat de votre menu (menu « Maison »). Voir aussi le coup de main.</li>
+  <li><b>🦊 Chapardeur</b> : se joue <b>à la place de la carte du Marché</b>. Désignez un chef : vous lui volez une carte au
+    hasard et lui en rendez une de votre choix. Le Chapardeur est ensuite mis de côté.</li>
+</ul>
+
+<h3>Les 8 cartes Plat du jour</h3>
+<table>
+  <tr><th style="width:34%">Carte</th><th>Effet pendant la manche</th></tr>
+  <tr><td>🍽️ Service classique</td><td>Rien ne change : bon appétit !</td></tr>
+  <tr><td>🧀 Plateau de fromages</td><td>Les fromages ne se passent pas au voisin : ils vont au Marché.</td></tr>
+  <tr><td>🔄 Service à l'anglaise</td><td>On passe les cartes dans l'autre sens. <i>(En Duel, tirez une autre carte.)</i></td></tr>
+  <tr><td>🥖 Grève des boulangers</td><td>La Baguette ne remplace aucun plat.</td></tr>
+  <tr><td>🔥 Coup de feu</td><td>On donne 3 cartes par tour au lieu de 2.</td></tr>
+  <tr><td>🤫 Repas de famille</td><td>Pas de dénonciation cette manche.</td></tr>
+  <tr><td>⭐ Guide Michelin</td><td>Chaque menu complet rapporte 2 étoiles.</td></tr>
+  <tr><td>📝 Carte blanche</td><td>Chacun peut passer 2 commandes au lieu d'une.</td></tr>
+</table>
+
+<h2><span class="n">8</span>Le Duel (2 joueurs)</h2>
+<ul>
+  <li><b>Deux commandes par tour</b> au lieu d'une.</li>
+  <li>Les 10 plats secrets non distribués restent <b>à part, face cachée</b> : un joueur démasqué y pioche son nouveau
+    plat secret.</li>
+  <li>Votre « voisin » est votre adversaire : une carte pour lui, une au Marché.</li>
+  <li>Pas de « Service à l'anglaise » ; Dernier service joué seul (voir 4c).</li>
+</ul>
+
+<h2><span class="n">9</span>L'aide-mémoire : les 48 plats</h2>
+<p>Chaque joueur a un aide-mémoire. Il sert à passer commande et à dénoncer sans se perdre.</p>
+<table>
+  <tr><th>Région</th><th>🥗 Entrée</th><th>🍲 Plat</th><th>🧀 Fromage</th><th>🍰 Dessert</th></tr>
+  <tr><td class="reg" style="background:#C8372D">Alsace <small>ALS</small></td><td>Tarte flambée</td><td>Choucroute</td><td>Munster</td><td>Kougelhopf</td></tr>
+  <tr><td class="reg" style="background:#6B4A32">Auvergne <small>AUV</small></td><td>Pounti</td><td>Truffade</td><td>Saint-Nectaire</td><td>Pompe aux pommes</td></tr>
+  <tr><td class="reg" style="background:#7B1E3A">Bourgogne <small>BOU</small></td><td>Escargots</td><td>Bœuf bourguignon</td><td>Époisses</td><td>Pain d'épices</td></tr>
+  <tr><td class="reg" style="background:#1F3F6E">Bretagne <small>BRE</small></td><td>Huîtres de Cancale</td><td>Kig ha farz</td><td>Curé nantais</td><td>Crêpes</td></tr>
+  <tr><td class="reg" style="background:#14806F">Corse <small>COR</small></td><td>Figatellu</td><td>Civet de sanglier</td><td>Brocciu</td><td>Fiadone</td></tr>
+  <tr><td class="reg" style="background:#8E9A2B">Lorraine <small>LOR</small></td><td>Quiche lorraine</td><td>Potée lorraine</td><td>Carré de l'Est</td><td>Madeleines</td></tr>
+  <tr><td class="reg" style="background:#E8781F">Lyonnais <small>LYO</small></td><td>Salade lyonnaise</td><td>Quenelles</td><td>Saint-Marcellin</td><td>Bugnes</td></tr>
+  <tr><td class="reg" style="background:#E0A800;color:#2a1a0e">Nord <small>NRD</small></td><td>Potjevleesch</td><td>Carbonade flamande</td><td>Maroilles</td><td>Gaufre</td></tr>
+  <tr><td class="reg" style="background:#4E9A3A">Normandie <small>NMD</small></td><td>Huîtres d'Isigny</td><td>Poulet Vallée d'Auge</td><td>Camembert</td><td>Teurgoule</td></tr>
+  <tr><td class="reg" style="background:#7A57B8">Provence <small>PRO</small></td><td>Tapenade</td><td>Bouillabaisse</td><td>Banon</td><td>Calissons</td></tr>
+  <tr><td class="reg" style="background:#3E9BD6">Savoie <small>SAV</small></td><td>Salade savoyarde</td><td>Tartiflette</td><td>Reblochon</td><td>Gâteau de Savoie</td></tr>
+  <tr><td class="reg" style="background:#C2407A">Sud-Ouest <small>SDO</small></td><td>Foie gras</td><td>Cassoulet</td><td>Ossau-Iraty</td><td>Canelé</td></tr>
+</table>
+
+<h2><span class="n">10</span>Variante : les Chefs</h2>
+<p>Pour des joueurs habitués. En début de partie, chacun tire (ou choisit) un chef animal. Chaque chef a un pouvoir
+utilisable <b>une fois par manche</b>.</p>
+<table class="chefs">
+  <tr><th>Chef</th><th>Pouvoir (une fois par manche)</th></tr>
+  <tr><td>🐗 Gaston le Sanglier</td><td>Passe une commande de plus.</td></tr>
+  <tr><td>🐿️ Noisette l'Écureuil</td><td>Quand elle pioche pour remplacer sa carte du Marché, elle pioche 2 cartes et garde la meilleure.</td></tr>
+  <tr><td>🦦 Lili la Loutre</td><td>Envoie la Vaisselle au chef de son choix.</td></tr>
+  <tr><td>🦉 Monsieur Grand-Duc</td><td>Regarde toute la main d'un chef.</td></tr>
+  <tr><td>🦊 Roublard le Renard</td><td>Vole une carte au hasard à un chef et lui en rend une.</td></tr>
+  <tr><td>🐓 Maître Coq</td><td>« Rupture de stock ! » : refuse de servir une commande.</td></tr>
+</table>
+
+<h2><span class="n">11</span>Résumé d'un tour</h2>
+<div class="box">
+  <ol style="margin:0">
+    <li><b>Dénoncer</b> (seulement le porteur de la Vaisselle, une fois par manche).</li>
+    <li><b>Commander</b> : une commande chacun (deux en Duel). Interdit de mentir !</li>
+    <li><b>Donner 2 cartes</b> en même temps : une au voisin, une au Marché. Piocher (pioche ou Marché).</li>
+    <li><b>Annoncer « À TABLE ! »</b> si le menu est complet et qu'on n'a pas la Vaisselle → Dernier service → étoiles.</li>
+  </ol>
+</div>
+
+<p class="foot">À TABLE ! — règles version 5 (plat secret) · Les Amis du patrimoine</p>
+</body>
+</html>
